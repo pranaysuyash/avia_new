@@ -1,17 +1,54 @@
 # 🎵 Audio/Video Transcription & Entity Extraction App
 
-A powerful MVP web application that transforms audio and video content into structured, analyzable data. Upload media files or record live audio to generate transcripts and extract meaningful information like names, dates, and organizations.
+A comprehensive enterprise-ready platform that transforms audio and video content into structured, analyzable data with advanced collaboration, security, and technical infrastructure features.
 
-## ✨ Features
+## ✨ Core Features
 
+### 🎯 Media Processing & Analysis
 - **🎤 Audio/Video Processing**: Upload MP3, WAV, MP4, M4A files or record live audio
 - **📝 Intelligent Transcription**: OpenAI Whisper API with local model fallback
-- **🏷️ Dual Analysis Modes**:
+- **🏷️ Triple Analysis Modes**:
   - **Basic Mode**: Fast local NER using spaCy (offline capable)
   - **Advanced Mode**: AI-powered analysis with OpenAI GPT (summaries + enhanced entities)
+  - **Medical Mode**: HIPAA-compliant healthcare entity extraction
 - **🔧 Admin Panel**: Generate scripted audio content using ElevenLabs TTS
-- **🌐 Web Interface**: Clean, responsive Streamlit-based UI
-- **🐳 Docker Ready**: One-command deployment with Docker Compose
+
+### 👥 Collaboration & Teams
+- **🔐 Authentication System**: User registration, login, and profile management
+- **👥 Team Workspaces**: Create teams, assign roles, share resources
+- **🔗 Sharing & Permissions**: Share transcripts with fine-grained access control
+- **✏️ Real-time Annotations**: Collaborate on transcripts with timestamped comments
+- **📊 Version Control**: Track changes and restore previous versions
+- **🔔 Notifications**: Get alerts for shares, mentions, and updates
+
+### 🏢 Enterprise Features
+- **🌍 Multi-language Support**: 10 languages including RTL support
+- **📊 Advanced Segmentation**: Semantic, structural, temporal, and hybrid segmentation
+- **🏷️ AI-powered Tagging**: Automatic content categorization with 12+ tag types
+- **📤 Enhanced Export**: 8+ formats including PDF, DOCX, CSV with templates
+- **🔍 Batch Processing**: Process multiple files with progress tracking
+- **📈 Analytics & Reporting**: Usage metrics and team insights
+
+### 🔧 Technical Infrastructure
+- **🚀 REST API**: Complete FastAPI backend with JWT authentication
+- **🔌 WebSocket Server**: Real-time updates and live collaboration
+- **⚡ Background Jobs**: Async processing with priority queue system
+- **📊 Monitoring**: Comprehensive logging, metrics, and health checks
+- **🔒 Security**: Data encryption at rest, PII detection, GDPR compliance
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Frontend (Streamlit)                    │
+├─────────────────────────────────────────────────────────────┤
+│                    REST API (FastAPI)                        │
+├─────────────────────────────────────────────────────────────┤
+│   Authentication │ WebSocket │ Job Queue │ Monitoring       │
+├─────────────────────────────────────────────────────────────┤
+│              Database │ File Storage │ Cache                │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## 🚀 Quick Start
 
@@ -217,6 +254,41 @@ Frontend (Streamlit) → Backend Modules → External APIs
 4. **Analysis**: Entity extraction (basic or advanced)
 5. **Output**: Formatted results with download options
 
+## 🔧 Technical Infrastructure
+
+### REST API
+Access the complete REST API at `http://localhost:8000` when running the API server:
+
+```bash
+python run_api.py
+```
+
+Features:
+- OpenAPI documentation at `/docs`
+- JWT authentication with refresh tokens
+- Complete CRUD operations for all resources
+- Rate limiting and CORS protection
+
+### WebSocket Server
+Real-time features available at `ws://localhost:8000/ws`:
+- Live transcript updates
+- Collaboration events
+- Processing notifications
+
+### Background Jobs
+Async processing handled by the job queue system:
+- Export jobs (PDF, DOCX, CSV)
+- Media processing
+- Email notifications
+- Data cleanup tasks
+
+### Monitoring & Security
+- **Logging**: Structured JSON logs in `/logs` directory
+- **Metrics**: Application and system metrics collection
+- **Health Checks**: `/health` endpoint for monitoring
+- **Encryption**: AES-256 encryption for sensitive data
+- **Privacy**: PII detection and anonymization
+
 ## 🧪 Testing
 
 ### Run Tests
@@ -230,12 +302,16 @@ pytest --cov=.
 
 # Run specific test module
 pytest test_stt.py -v
+
+# Test API endpoints
+python test_api.py
 ```
 
 ### Test Data
 
 The application includes sample test files for development:
 - `temp/demo_audio.wav`: Sample audio for testing transcription
+- `test_data/`: Comprehensive test dataset
 - Various test modules for each component
 
 ## 🐳 Docker Deployment

@@ -323,8 +323,8 @@ def render_transcript_with_audio_sync(transcript_text: str, timestamps: Optional
                 file_name="transcript.txt",
                 mime="text/plain"
             )
-c
-lass AdvancedTranscriptUI:
+
+class AdvancedTranscriptUI:
     """Advanced transcript UI with language detection and editing features"""
     
     def __init__(self):
