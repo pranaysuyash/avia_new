@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "created_date": "2024-01-01",
+    "version": "1.0",
+    "description": "Edge case test dataset for robustness testing",
+    "total_cases": 6
+  },
+  "edge_cases": [
+    {
+      "id": "empty_audio",
+      "audio_file": "test_data/audio/empty_audio.wav",
+      "transcript_file": "test_data/transcripts/edge_empty_audio.txt",
+      "entities_file": "test_data/entities/edge_empty_audio.json",
+      "duration": 0.1,
+      "word_count": 0,
+      "character_count": 0,
+      "expected_entity_count": 0,
+      "expected_summary": "No content to analyze"
+    },
+    {
+      "id": "very_short",
+      "audio_file": "test_data/audio/edge_very_short.wav",
+      "transcript_file": "test_data/transcripts/edge_very_short.txt",
+      "entities_file": "test_data/entities/edge_very_short.json",
+      "duration": 1,
+      "word_count": 1,
+      "character_count": 3,
+      "expected_entity_count": 0,
+      "expected_summary": "Very brief greeting"
+    },
+    {
+      "id": "numbers_only",
+      "audio_file": "test_data/audio/edge_numbers_only.wav",
+      "transcript_file": "test_data/transcripts/edge_numbers_only.txt",
+      "entities_file": "test_data/entities/edge_numbers_only.json",
+      "duration": 10,
+      "word_count": 7,
+      "character_count": 34,
+      "expected_entity_count": 7,
+      "expected_summary": "Sequence of numbers and monetary values"
+    },
+    {
+      "id": "special_characters",
+      "audio_file": "test_data/audio/edge_special_characters.wav",
+      "transcript_file": "test_data/transcripts/edge_special_characters.txt",
+      "entities_file": "test_data/entities/edge_special_characters.json",
+      "duration": 15,
+      "word_count": 6,
+      "character_count": 77,
+      "expected_entity_count": 1,
+      "expected_summary": "Contact information with email, website, and phone number"
+    },
+    {
+      "id": "multilingual_names",
+      "audio_file": "test_data/audio/edge_multilingual_names.wav",
+      "transcript_file": "test_data/transcripts/edge_multilingual_names.txt",
+      "entities_file": "test_data/entities/edge_multilingual_names.json",
+      "duration": 20,
+      "word_count": 15,
+      "character_count": 93,
+      "expected_entity_count": 6,
+      "expected_summary": "International meeting with participants from Mexico, France, and China"
+    },
+    {
+      "id": "very_long_text",
+      "audio_file": "test_data/audio/edge_very_long_text.wav",
+      "transcript_file": "test_data/transcripts/edge_very_long_text.txt",
+      "entities_file": "test_data/entities/edge_very_long_text.json",
+      "duration": 120,
+      "word_count": 1300,
+      "character_count": 7500,
+      "expected_entity_count": 0,
+      "expected_summary": "Repetitive text with no specific entities or meaningful content"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "persons": [
+    "Jennifer Martinez",
+    "Robert Thompson"
+  ],
+  "organizations": [
+    "DataSoft Solutions",
+    "Acme Corporation"
+  ],
+  "locations": [
+    "Austin, Texas"
+  ],
+  "dates": [
+    "December 31st, 2024",
+    "December 31st, 2025"
+  ],
+  "money": [
+    "$15,000",
+    "$25,000",
+    "$10,000"
+  ],
+  "numbers": [
+    "DS-12345",
+    "500",
+    "1,000",
+    "123 Business Park Drive",
+    "78701"
+  ],
+  "key_topics": [
+    "customer support",
+    "software license",
+    "renewal",
+    "upgrade",
+    "billing"
+  ]
+}

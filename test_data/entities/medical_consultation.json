@@ -1,0 +1,39 @@
+{
+  "persons": [
+    "Mrs. Anderson",
+    "Dr. Patricia Williams",
+    "Ms. Sarah Chen"
+  ],
+  "organizations": [
+    "City General Hospital"
+  ],
+  "locations": [
+    "City General Hospital"
+  ],
+  "dates": [
+    "February 20th, 2024",
+    "January 8th",
+    "February 15th",
+    "three months ago",
+    "May 20th, 2024",
+    "next week"
+  ],
+  "money": [],
+  "numbers": [
+    "10mg",
+    "5mg",
+    "120/80",
+    "180 mg/dL",
+    "240 mg/dL",
+    "555-MEDICAL"
+  ],
+  "key_topics": [
+    "follow-up appointment",
+    "surgery",
+    "medications",
+    "blood pressure",
+    "blood sugar",
+    "cholesterol",
+    "diet plan"
+  ]
+}

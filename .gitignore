@@ -1,0 +1,55 @@
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Secrets & Environment files
+.env
+.env.production
+.env.*.local
+
+# IDE & editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Log files
+logs/
+*.log
+app_*.log
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+comprehensive_test_results.json
+test_validation_results.json
+
+# Temporary files
+temp/
+
+# Kiro specs
+.kiro/
+
+# Platform-specific
+run.bat
+
+# Environment-specific configurations
+monitoring/
+nginx/

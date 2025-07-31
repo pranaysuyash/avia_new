@@ -1,0 +1,43 @@
+# Core web framework
+streamlit>=1.28.0
+
+# OpenAI API for Whisper and GPT
+openai>=1.3.0
+
+# Local Whisper model for offline operation
+openai-whisper>=20231117
+
+# Natural Language Processing
+spacy>=3.7.0
+
+# Media processing
+ffmpeg-python>=0.2.0
+pydub>=0.25.1
+
+# Text-to-Speech
+elevenlabs>=0.2.26
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Additional dependencies for robust operation
+requests>=2.31.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Excel export functionality
+openpyxl>=3.1.0
+
+# System monitoring and health checks
+psutil>=5.9.0
+
+# Audio processing for advanced features
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-timeout>=2.1.0
+pytest-mock>=3.11.0
+pytest-xdist>=3.3.0

@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "created_date": "2024-01-01",
+    "version": "1.0",
+    "description": "Comprehensive test dataset for audio transcription and entity extraction",
+    "total_cases": 5
+  },
+  "test_cases": [
+    {
+      "id": "business_meeting",
+      "audio_file": "test_data/audio/business_meeting.wav",
+      "transcript_file": "test_data/transcripts/business_meeting.txt",
+      "entities_file": "test_data/entities/business_meeting.json",
+      "duration": 30,
+      "frequency": 440,
+      "word_count": 102,
+      "character_count": 834,
+      "expected_entity_count": 21,
+      "expected_summary": "CEO John Smith discusses Q4 results showing $2.5M revenue and 25% growth, expansion to new cities, partnerships with major tech companies, and future investment plans."
+    },
+    {
+      "id": "technical_interview",
+      "audio_file": "test_data/audio/technical_interview.wav",
+      "transcript_file": "test_data/transcripts/technical_interview.txt",
+      "entities_file": "test_data/entities/technical_interview.json",
+      "duration": 45,
+      "frequency": 523,
+      "word_count": 137,
+      "character_count": 1234,
+      "expected_entity_count": 24,
+      "expected_summary": "Dr. Rodriguez interviews Professor Kim about AI research at Stanford, discussing new neural network architecture with improved performance, healthcare applications, and research funding."
+    },
+    {
+      "id": "customer_service",
+      "audio_file": "test_data/audio/customer_service.wav",
+      "transcript_file": "test_data/transcripts/customer_service.txt",
+      "entities_file": "test_data/entities/customer_service.json",
+      "duration": 20,
+      "frequency": 330,
+      "word_count": 139,
+      "character_count": 1159,
+      "expected_entity_count": 20,
+      "expected_summary": "Customer service call where Jennifer helps Robert from Acme Corporation upgrade their software license from Premium to Platinum package."
+    },
+    {
+      "id": "medical_consultation",
+      "audio_file": "test_data/audio/medical_consultation.wav",
+      "transcript_file": "test_data/transcripts/medical_consultation.txt",
+      "entities_file": "test_data/entities/medical_consultation.json",
+      "duration": 35,
+      "frequency": 392,
+      "word_count": 158,
+      "character_count": 1332,
+      "expected_entity_count": 24,
+      "expected_summary": "Dr. Williams conducts follow-up appointment with Mrs. Anderson, reviewing post-surgery progress, medication compliance, and improved lab results."
+    },
+    {
+      "id": "educational_lecture",
+      "audio_file": "test_data/audio/educational_lecture.wav",
+      "transcript_file": "test_data/transcripts/educational_lecture.txt",
+      "entities_file": "test_data/entities/educational_lecture.json",
+      "duration": 60,
+      "frequency": 261,
+      "word_count": 201,
+      "character_count": 1794,
+      "expected_entity_count": 42,
+      "expected_summary": "Professor Gonzalez lectures on climate change impacts including Arctic ice loss, polar bear decline, coral reef bleaching, and Amazon deforestation, with assignment details."
+    }
+  ]
+}
