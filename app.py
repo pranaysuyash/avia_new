@@ -67,6 +67,17 @@ from advanced_audio_processor import (
     analyze_audio_quality, create_audio_segments
 )
 
+# Import structured analysis modules
+try:
+    from structured_analysis_ui import (
+        display_structured_analysis_interface, perform_structured_analysis,
+        display_custom_schema_creator, display_schema_validation_tool
+    )
+    STRUCTURED_ANALYSIS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Structured analysis modules not available: {e}")
+    STRUCTURED_ANALYSIS_AVAILABLE = False
+
 # Import integration capabilities (Task 23)
 try:
     from integration_manager import (
@@ -356,6 +367,23 @@ def main():
         help="Search through transcripts with advanced filters"
     )
     
+    # Integration settings (Task 23)
+    if INTEGRATIONS_AVAILABLE:
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🔗 Integration Settings")
+        
+        # Integration toggles
+        show_webhooks = st.sidebar.checkbox("🔗 Webhooks", value=False, help="Configure webhook notifications")
+        show_cloud_storage = st.sidebar.checkbox("☁️ Cloud Storage", value=False, help="Configure cloud storage providers")
+        show_plugins = st.sidebar.checkbox("🔌 Plugins", value=False, help="Manage custom plugins")
+        show_sso = st.sidebar.checkbox("🔐 SSO", value=False, help="Configure Single Sign-On")
+        
+        # Store integration settings in session state
+        st.session_state.show_webhooks = show_webhooks
+        st.session_state.show_cloud_storage = show_cloud_storage
+        st.session_state.show_plugins = show_plugins
+        st.session_state.show_sso = show_sso
+    
     # File size limit info
     st.sidebar.info(f"📁 Max file size: {Config.MAX_FILE_SIZE_MB}MB")
     
@@ -385,8 +413,72 @@ def main():
             st.header("📊 Previous Analysis Results")
             render_results_enhanced(analysis_mode)
     else:
-        # Show main interface
-        render_main_interface(analysis_mode)
+        # Check if any integration panels should be shown
+        if INTEGRATIONS_AVAILABLE and any([
+            st.session_state.get('show_webhooks', False),
+            st.session_state.get('show_cloud_storage', False), 
+            st.session_state.get('show_plugins', False),
+            st.session_state.get('show_sso', False)
+        ]):
+            render_integration_panels()
+        else:
+            # Show main interface
+            render_main_interface(analysis_mode)
+
+def render_integration_panels():
+    """Render integration management panels (Task 23)"""
+    st.header("🔗 Integration Management")
+    
+    # Show active integration panels
+    if st.session_state.get('show_webhooks', False):
+        with st.container():
+            render_webhook_settings()
+            st.markdown("---")
+    
+    if st.session_state.get('show_cloud_storage', False):
+        with st.container():
+            render_cloud_storage_settings()
+            st.markdown("---")
+    
+    if st.session_state.get('show_plugins', False):
+        with st.container():
+            render_plugin_settings()
+            st.markdown("---")
+    
+    if st.session_state.get('show_sso', False):
+        with st.container():
+            render_sso_settings()
+            st.markdown("---")
+    
+    # Integration status summary
+    if integration_manager.initialized:
+        st.success("✅ Integration systems initialized")
+        
+        # Show integration status
+        status = integration_manager.get_status()
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            webhook_status = "✅" if status['webhook_system']['running'] else "❌"
+            st.write(f"{webhook_status} **Webhooks**")
+        
+        with col2:
+            cloud_count = len(status['cloud_storage']['providers_configured'])
+            st.write(f"☁️ **Cloud Storage** ({cloud_count} providers)")
+        
+        with col3:
+            plugin_count = status['plugins']['loaded']
+            st.write(f"🔌 **Plugins** ({plugin_count} loaded)")
+        
+        with col4:
+            sso_status = "✅" if status['sso']['enabled'] else "❌"
+            st.write(f"{sso_status} **SSO**")
+    else:
+        st.warning("⚠️ Integration systems not initialized")
+        if st.button("🚀 Initialize Integration Systems"):
+            # Mock initialization
+            st.success("✅ Integration systems initialized! (Mock)")
+
 
 def render_realtime_interface():
     """Render real-time processing interface"""
@@ -1481,6 +1573,10 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
                 word_count=transcription_result.word_count()
             )
             
+            # Store audio file path for waveform visualization
+            results.audio_file_path = processed_audio_path
+            st.session_state.current_audio_path = processed_audio_path
+            
             progress.update(100, "Transcription processing complete")
             progress.next_step("Analyzing content and extracting entities...")
             
@@ -1558,6 +1654,49 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
             
             # Complete processing in session manager
             session_manager.complete_processing(results)
+            
+            # Integration hooks (Task 23)
+            if INTEGRATIONS_AVAILABLE:
+                try:
+                    # Trigger webhook for transcription completion
+                    import asyncio
+                    asyncio.create_task(trigger_transcription_completed_webhook(
+                        transcript_id=f"transcript_{int(time.time())}",
+                        file_name=getattr(audio_source, 'name', 'unknown'),
+                        duration=getattr(transcription_result, 'duration', 0),
+                        word_count=results.word_count,
+                        confidence_score=results.confidence,
+                        user_id=getattr(st.session_state, 'user_id', None)
+                    ))
+                    
+                    # Backup transcript to cloud storage
+                    asyncio.create_task(backup_transcript_to_cloud(
+                        transcript_id=f"transcript_{int(time.time())}",
+                        transcript_content=results.transcript,
+                        metadata={
+                            'analysis_mode': analysis_mode,
+                            'word_count': results.word_count,
+                            'confidence': results.confidence,
+                            'processing_time': processing_time if 'processing_time' in locals() else 0
+                        }
+                    ))
+                    
+                    # Extract custom entities using plugins
+                    custom_entities = asyncio.run(extract_custom_entities(results.transcript))
+                    if custom_entities:
+                        # Merge custom entities with existing ones
+                        if results.entities:
+                            for entity_type, entities in custom_entities.items():
+                                if entity_type not in results.entities:
+                                    results.entities[entity_type] = []
+                                results.entities[entity_type].extend([e['text'] for e in entities])
+                        else:
+                            results.entities = {k: [e['text'] for e in v] for k, v in custom_entities.items()}
+                    
+                    logger.info("Integration hooks executed successfully")
+                    
+                except Exception as integration_error:
+                    logger.warning(f"Integration hooks failed: {integration_error}")
             
             # Track analytics for admin dashboard
             try:
@@ -2118,6 +2257,20 @@ def render_enhanced_analysis(results, analysis_mode: str):
         st.info("No transcript available for analysis")
         return
     
+    # Create tabs for different analysis types
+    analysis_tab1, analysis_tab2, analysis_tab3 = st.tabs(["📋 Content Analysis", "📊 Visual Analysis", "🔍 Structured Analysis"])
+    
+    with analysis_tab1:
+        render_content_analysis(results, analysis_mode)
+    
+    with analysis_tab2:
+        render_visual_analysis(results, analysis_mode)
+    
+    with analysis_tab3:
+        render_structured_analysis_tab(results, analysis_mode)
+
+def render_content_analysis(results, analysis_mode: str):
+    """Render content analysis features"""
     # Analysis options
     col1, col2 = st.columns(2)
     
@@ -2167,6 +2320,48 @@ def render_enhanced_analysis(results, analysis_mode: str):
                 st.warning("Key insights require Advanced mode (OpenAI API)")
     
     with col2:
+        # Additional analysis options
+        st.markdown("### 🔍 Additional Analysis Options")
+        
+        if st.button("📋 Bullet Point Summary"):
+            if "Advanced" in analysis_mode:
+                try:
+                    with st.spinner("Creating bullet point summary..."):
+                        import ner_advanced
+                        summary = ner_advanced.generate_summary_with_style(results.transcript, "bullet_points")
+                        st.markdown("#### Bullet Point Summary")
+                        st.markdown(summary)
+                except Exception as e:
+                    st.error(f"Failed to generate summary: {str(e)}")
+            else:
+                st.warning("Requires Advanced mode")
+        
+        if st.button("📊 Detailed Analysis"):
+            if "Advanced" in analysis_mode:
+                try:
+                    with st.spinner("Creating detailed analysis..."):
+                        import ner_advanced
+                        analysis = ner_advanced.generate_summary_with_style(results.transcript, "detailed")
+                        st.markdown("#### Detailed Analysis")
+                        st.markdown(analysis)
+                except Exception as e:
+                    st.error(f"Failed to generate analysis: {str(e)}")
+            else:
+                st.warning("Requires Advanced mode")
+        
+        if st.button("🎭 Content Themes"):
+            if results.entities and results.entities.get('TOPIC'):
+                st.markdown("#### Content Themes")
+                for topic in results.entities['TOPIC']:
+                    st.write(f"• **{topic}**")
+            else:
+                st.info("No themes identified. Try Advanced mode for better theme extraction.")
+
+def render_visual_analysis(results, analysis_mode: str):
+    """Render visual analysis features"""
+    col1, col2 = st.columns(2)
+    
+    with col1:
         st.markdown("### 📊 Visual Analysis")
         
         # Word cloud
@@ -2210,6 +2405,9 @@ def render_enhanced_analysis(results, analysis_mode: str):
                         st.warning("No keywords extracted")
             except Exception as e:
                 st.error(f"Failed to extract keywords: {str(e)}")
+    
+    with col2:
+        st.markdown("### 🔍 Advanced Analysis")
         
         # Advanced key phrases (LLM-based)
         if st.button("🔑 Extract Key Phrases (AI)", help="Extract key phrases using AI"):
@@ -2254,57 +2452,65 @@ def render_enhanced_analysis(results, analysis_mode: str):
                 
                 for entity_type, count in entity_counts.items():
                     st.write(f"**{entity_type}**: {count} found")
+
+def render_structured_analysis_tab(results, analysis_mode: str):
+    """Render structured analysis with JSON schema validation"""
+    if "Advanced" not in analysis_mode:
+        st.warning("🔒 Structured Analysis requires Advanced mode (OpenAI API)")
+        st.info("Structured analysis provides domain-specific templates for medical, legal, business, and educational content with JSON schema validation.")
+        return
     
-    # Additional analysis options
-    st.markdown("---")
-    st.markdown("### 🔍 Additional Analysis Options")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📋 Bullet Point Summary"):
-            if "Advanced" in analysis_mode:
-                try:
-                    with st.spinner("Creating bullet point summary..."):
-                        import ner_advanced
-                        summary = ner_advanced.generate_summary_with_style(results.transcript, "bullet_points")
-                        st.markdown("#### Bullet Point Summary")
-                        st.markdown(summary)
-                except Exception as e:
-                    st.error(f"Failed to generate summary: {str(e)}")
-            else:
-                st.warning("Requires Advanced mode")
-    
-    with col2:
-        if st.button("📊 Detailed Analysis"):
-            if "Advanced" in analysis_mode:
-                try:
-                    with st.spinner("Creating detailed analysis..."):
-                        import ner_advanced
-                        analysis = ner_advanced.generate_summary_with_style(results.transcript, "detailed")
-                        st.markdown("#### Detailed Analysis")
-                        st.markdown(analysis)
-                except Exception as e:
-                    st.error(f"Failed to generate analysis: {str(e)}")
-            else:
-                st.warning("Requires Advanced mode")
-    
-    with col3:
-        if st.button("🎭 Content Themes"):
-            if results.entities and results.entities.get('TOPIC'):
-                st.markdown("#### Content Themes")
-                for topic in results.entities['TOPIC']:
-                    st.write(f"• **{topic}**")
-            else:
-                st.info("No themes identified. Try Advanced mode for better theme extraction.")
+    # Import structured analysis components
+    try:
+        from structured_analysis_ui import (
+            display_structured_analysis_interface, perform_structured_analysis,
+            display_custom_schema_creator, display_schema_validation_tool
+        )
+        
+        # Create sub-tabs for structured analysis features
+        struct_tab1, struct_tab2, struct_tab3 = st.tabs(["🔍 Analysis", "🛠️ Custom Schemas", "✅ Validation"])
+        
+        with struct_tab1:
+            # Main structured analysis interface
+            selected_template = display_structured_analysis_interface()
+            
+            st.markdown("---")
+            
+            # Perform analysis button
+            if st.button("🚀 Perform Structured Analysis", type="primary"):
+                analysis_result = perform_structured_analysis(results.transcript, selected_template)
+                
+                # Store result in session state for potential reuse
+                if analysis_result:
+                    st.session_state['structured_analysis_result'] = analysis_result
+        
+        with struct_tab2:
+            # Custom schema creator
+            display_custom_schema_creator()
+        
+        with struct_tab3:
+            # Schema validation tool
+            display_schema_validation_tool()
+            
+    except ImportError as e:
+        st.error(f"Structured analysis components not available: {str(e)}")
+        st.info("Please ensure all required dependencies are installed.")
 
 def render_interactive_transcript(results):
-    """Render interactive transcript with advanced features"""
+    """Render interactive transcript with advanced features including waveform visualization"""
     st.subheader("🎯 Interactive Transcript")
     
     if not results.transcript:
         st.info("No transcript available for interactive features")
         return
+    
+    # Import waveform visualization
+    try:
+        from waveform_visualizer import waveform_visualizer, audio_navigator, create_clickable_waveform_html
+        waveform_available = True
+    except ImportError as e:
+        logger.warning(f"Waveform visualization not available: {e}")
+        waveform_available = False
     
     # Language detection and multi-language options
     col1, col2, col3 = st.columns(3)
@@ -2320,6 +2526,43 @@ def render_interactive_transcript(results):
     with col3:
         if st.button("🌐 Translate Transcript", help="Translate to different language"):
             st.info("Translation feature would be available here")
+    
+    # Waveform Visualization Section
+    if waveform_available:
+        st.markdown("---")
+        st.markdown("### 🌊 Audio Waveform & Navigation")
+        
+        # Check if we have the original audio file path
+        audio_file_path = getattr(results, 'audio_file_path', None)
+        if not audio_file_path and hasattr(st.session_state, 'current_audio_path'):
+            audio_file_path = st.session_state.current_audio_path
+        
+        if audio_file_path and os.path.exists(audio_file_path):
+            try:
+                # Waveform generation options
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    waveform_type = st.selectbox(
+                        "Waveform Type",
+                        ["Standard Waveform", "Timeline with Markers", "Interactive Navigation"],
+                        help="Choose the type of waveform visualization"
+                    )
+                
+                with col2:
+                    if st.button("🌊 Generate Waveform", type="primary"):
+                        with st.spinner("Generating waveform visualization..."):
+                            render_waveform_visualization(audio_file_path, results, waveform_type)
+                
+                # Display existing waveform if available
+                if hasattr(st.session_state, 'waveform_image_path') and st.session_state.waveform_image_path:
+                    render_existing_waveform(results)
+                
+            except Exception as e:
+                st.error(f"Waveform visualization error: {str(e)}")
+                logger.error(f"Waveform error: {e}")
+        else:
+            st.info("🌊 Waveform visualization requires the original audio file. Upload a new file to enable this feature.")
     
     # Enhanced transcript features
     st.markdown("---")
@@ -2429,6 +2672,203 @@ def render_interactive_transcript(results):
                 )
                 st.markdown("#### Search Results")
                 st.markdown(highlighted_text)
+
+def render_waveform_visualization(audio_file_path: str, results, waveform_type: str):
+    """Render waveform visualization based on selected type"""
+    try:
+        from waveform_visualizer import waveform_visualizer, audio_navigator, create_clickable_waveform_html
+        
+        # Get speaker and transcript data if available
+        speaker_segments = getattr(results, 'speaker_segments', None)
+        transcript_segments = getattr(results, 'transcript_segments', None)
+        
+        if waveform_type == "Standard Waveform":
+            # Generate standard waveform
+            waveform_path = waveform_visualizer.generate_waveform_image(
+                audio_file_path,
+                speaker_segments=speaker_segments,
+                transcript_segments=transcript_segments
+            )
+            
+            st.image(waveform_path, caption="Audio Waveform", use_column_width=True)
+            st.session_state.waveform_image_path = waveform_path
+            
+        elif waveform_type == "Timeline with Markers":
+            # Generate timeline waveform with markers
+            timeline_path = waveform_visualizer.create_waveform_with_timeline(
+                audio_file_path,
+                transcript_data=transcript_segments,
+                speaker_data=speaker_segments
+            )
+            
+            st.image(timeline_path, caption="Audio Waveform with Timeline", use_column_width=True)
+            st.session_state.waveform_image_path = timeline_path
+            
+            # Add timeline navigation controls
+            render_timeline_controls(audio_file_path)
+            
+        elif waveform_type == "Interactive Navigation":
+            # Generate interactive waveform
+            waveform_path = waveform_visualizer.generate_waveform_image(audio_file_path)
+            
+            # Get audio duration
+            import media
+            media_info = media.get_media_info(audio_file_path)
+            duration = media_info.get('duration', 0)
+            
+            # Create clickable HTML
+            clickable_html = create_clickable_waveform_html(waveform_path, duration)
+            st.components.v1.html(clickable_html, height=300)
+            
+            # Add navigation controls
+            render_audio_navigation_controls(audio_file_path, duration)
+            
+            st.session_state.waveform_image_path = waveform_path
+        
+        st.success("✅ Waveform visualization generated successfully!")
+        
+    except Exception as e:
+        st.error(f"Failed to generate waveform: {str(e)}")
+        logger.error(f"Waveform generation failed: {e}")
+
+def render_existing_waveform(results):
+    """Render existing waveform if available"""
+    try:
+        waveform_path = st.session_state.waveform_image_path
+        
+        if os.path.exists(waveform_path):
+            st.markdown("#### 🌊 Current Waveform")
+            st.image(waveform_path, use_column_width=True)
+            
+            # Add waveform controls
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if st.button("🔄 Regenerate", help="Regenerate waveform"):
+                    if hasattr(st.session_state, 'current_audio_path'):
+                        render_waveform_visualization(
+                            st.session_state.current_audio_path, 
+                            results, 
+                            "Standard Waveform"
+                        )
+            
+            with col2:
+                if st.button("📥 Download Waveform", help="Download waveform image"):
+                    with open(waveform_path, 'rb') as f:
+                        st.download_button(
+                            label="Download PNG",
+                            data=f.read(),
+                            file_name="waveform.png",
+                            mime="image/png"
+                        )
+            
+            with col3:
+                if st.button("🗑️ Clear Waveform", help="Clear current waveform"):
+                    if 'waveform_image_path' in st.session_state:
+                        del st.session_state.waveform_image_path
+                    st.rerun()
+        
+    except Exception as e:
+        st.error(f"Error displaying waveform: {str(e)}")
+
+def render_timeline_controls(audio_file_path: str):
+    """Render timeline navigation controls"""
+    try:
+        from waveform_visualizer import audio_navigator
+        
+        # Initialize navigation
+        audio_navigator.initialize_navigation(audio_file_path)
+        nav_data = audio_navigator.get_navigation_controls()
+        
+        st.markdown("#### ⏯️ Timeline Navigation")
+        
+        # Time slider
+        current_time = st.slider(
+            "Current Position",
+            min_value=0.0,
+            max_value=nav_data['total_duration'],
+            value=0.0,
+            step=0.1,
+            format="%.1fs",
+            help="Drag to navigate through the audio timeline"
+        )
+        
+        # Segment navigation
+        if nav_data['segments']:
+            segment_options = [seg['label'] for seg in nav_data['segments']]
+            selected_segment = st.selectbox(
+                "Jump to Segment",
+                options=segment_options,
+                help="Select a segment to jump to that position"
+            )
+            
+            if selected_segment:
+                # Find the selected segment
+                for seg in nav_data['segments']:
+                    if seg['label'] == selected_segment:
+                        st.info(f"Selected: {selected_segment} (Duration: {seg['duration']:.1f}s)")
+                        break
+        
+        # Display current position info
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Current Time", f"{current_time:.1f}s")
+        with col2:
+            st.metric("Total Duration", nav_data['formatted_duration'])
+        with col3:
+            progress = (current_time / nav_data['total_duration']) * 100 if nav_data['total_duration'] > 0 else 0
+            st.metric("Progress", f"{progress:.1f}%")
+        
+    except Exception as e:
+        st.error(f"Timeline controls error: {str(e)}")
+
+def render_audio_navigation_controls(audio_file_path: str, duration: float):
+    """Render interactive audio navigation controls"""
+    try:
+        st.markdown("#### 🎮 Audio Navigation Controls")
+        
+        # Playback controls (placeholder - would need actual audio player integration)
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            if st.button("⏮️", help="Previous segment"):
+                st.info("Previous segment navigation")
+        
+        with col2:
+            if st.button("⏯️", help="Play/Pause"):
+                st.info("Play/Pause functionality")
+        
+        with col3:
+            if st.button("⏹️", help="Stop"):
+                st.info("Stop playback")
+        
+        with col4:
+            if st.button("⏭️", help="Next segment"):
+                st.info("Next segment navigation")
+        
+        with col5:
+            playback_speed = st.selectbox("Speed", ["0.5x", "0.75x", "1x", "1.25x", "1.5x", "2x"], index=2)
+        
+        # Position display
+        st.markdown("**Click on the waveform above to navigate to specific positions**")
+        
+        # Audio segments info
+        if duration > 0:
+            segments = int(duration / 10) + 1  # 10-second segments
+            st.info(f"📊 Audio divided into {segments} segments of ~10 seconds each")
+            
+            # Segment quick navigation
+            if segments > 1:
+                segment_cols = st.columns(min(segments, 6))  # Max 6 columns
+                for i in range(min(segments, 6)):
+                    with segment_cols[i]:
+                        start_time = i * 10
+                        end_time = min((i + 1) * 10, duration)
+                        if st.button(f"Seg {i+1}\n({start_time}s-{end_time:.0f}s)", key=f"seg_{i}"):
+                            st.info(f"Navigate to segment {i+1}: {start_time}s - {end_time:.0f}s")
+        
+    except Exception as e:
+        st.error(f"Navigation controls error: {str(e)}")
 
 def render_results(analysis_mode: str):
     """Legacy render_results function - redirects to enhanced version"""

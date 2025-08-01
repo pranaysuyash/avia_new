@@ -8,7 +8,8 @@ import asyncio
 from pathlib import Path
 
 from .diarization_manager import DiarizationManager, DiarizationResult, SpeakerSegment
-from .providers import PyannoteProvider, SimpleVADProvider, MockProvider
+from .providers import PyannoteProvider, SimpleVADProvider, MockProvider, WhisperXProvider
+from .speaker_profiler import SpeakerProfiler
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +19,12 @@ class TranscriptionDiarizationIntegrator:
     
     def __init__(self):
         self.diarization_manager = DiarizationManager()
+        self.speaker_profiler = SpeakerProfiler()
         self.providers = {
             'pyannote': PyannoteProvider,
             'simple_vad': SimpleVADProvider,
-            'mock': MockProvider
+            'mock': MockProvider,
+            'whisperx': WhisperXProvider
         }
         
     def get_provider(self, provider_name: str, config: Dict[str, Any] = None) -> Optional[Any]:
@@ -108,6 +111,99 @@ class TranscriptionDiarizationIntegrator:
                     lines.append(f"{timestamp} {segment_text}")
         
         return '\n'.join(lines)
+    
+    async def process_with_speaker_profiling(self,
+                                           audio_path: str,
+                                           transcript: str,
+                                           provider_name: str = 'whisperx',
+                                           config: Dict[str, Any] = None,
+                                           recording_id: str = None) -> Tuple[str, DiarizationResult, Dict[str, Any]]:
+        """Process audio with diarization and speaker profiling/recognition"""
+        # Run standard diarization
+        enhanced_transcript, diarization_result = await self.process_with_diarization(
+            audio_path, transcript, provider_name, config
+        )
+        
+        # Extract speaker embeddings and characteristics if using WhisperX
+        speaker_profiles = {}
+        if provider_name == 'whisperx':
+            provider = self.get_provider(provider_name, config)
+            if provider and hasattr(provider, 'extract_speaker_embeddings'):
+                try:
+                    # Extract embeddings
+                    embeddings = provider.extract_speaker_embeddings(audio_path, diarization_result.segments)
+                    
+                    # Create or update profiles
+                    for speaker_id in diarization_result.speakers.keys():
+                        if speaker_id in embeddings:
+                            embedding = embeddings[speaker_id]
+                            
+                            # Get voice characteristics from provider
+                            voice_characteristics = provider._analyze_voice_characteristics(embedding)
+                            
+                            # Get speaking patterns
+                            speaker_segments = [s for s in diarization_result.segments if s.speaker_id == speaker_id]
+                            speaking_patterns = provider._analyze_speaking_pattern(speaker_segments)
+                            
+                            # Try to recognize existing speaker
+                            recognized_speaker, confidence = self.speaker_profiler.recognize_speaker(
+                                embedding, voice_characteristics
+                            )
+                            
+                            if recognized_speaker and confidence > 0.85:
+                                # Update existing profile
+                                profile = self.speaker_profiler.update_profile(
+                                    recognized_speaker,
+                                    new_embedding=embedding,
+                                    new_characteristics=voice_characteristics,
+                                    new_patterns=speaking_patterns,
+                                    speaking_time=diarization_result.speakers[speaker_id].total_time
+                                )
+                                
+                                # Update speaker ID in results
+                                self._update_speaker_id_in_result(diarization_result, speaker_id, recognized_speaker)
+                                
+                                # Log recognition
+                                if recording_id:
+                                    self.speaker_profiler.log_recognition(
+                                        recording_id, speaker_id, recognized_speaker, confidence, audio_path
+                                    )
+                                
+                                speaker_profiles[recognized_speaker] = profile
+                            else:
+                                # Create new profile
+                                profile = self.speaker_profiler.create_profile(
+                                    speaker_id,
+                                    embedding,
+                                    voice_characteristics,
+                                    speaking_patterns
+                                )
+                                speaker_profiles[speaker_id] = profile
+                                
+                                # Log as new speaker
+                                if recording_id:
+                                    self.speaker_profiler.log_recognition(
+                                        recording_id, speaker_id, None, 0.0, audio_path
+                                    )
+                
+                except Exception as e:
+                    logger.error(f"Failed to process speaker profiling: {e}")
+        
+        return enhanced_transcript, diarization_result, speaker_profiles
+    
+    def _update_speaker_id_in_result(self, result: DiarizationResult, old_id: str, new_id: str):
+        """Update speaker ID throughout the diarization result"""
+        # Update segments
+        for segment in result.segments:
+            if segment.speaker_id == old_id:
+                segment.speaker_id = new_id
+        
+        # Update speakers dict
+        if old_id in result.speakers and old_id != new_id:
+            speaker_info = result.speakers[old_id]
+            speaker_info.speaker_id = new_id
+            result.speakers[new_id] = speaker_info
+            del result.speakers[old_id]
     
     def create_enhanced_export_data(self,
                                   transcript: str,

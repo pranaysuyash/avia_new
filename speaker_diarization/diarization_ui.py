@@ -227,7 +227,7 @@ def render_diarization_controls(key_prefix: str = "diarization"):
     with col1:
         provider = st.selectbox(
             "Diarization Provider",
-            options=["pyannote", "simple_vad", "mock"],
+            options=["whisperx", "pyannote", "simple_vad", "mock"],
             key=f"{key_prefix}_provider",
             help="Choose the speaker diarization method"
         )
@@ -304,6 +304,254 @@ def render_speaker_merge_controls(result: DiarizationResult, key_prefix: str = "
             result.merge_speakers(speaker1, speaker2)
             st.success(f"Merged {speaker_labels[speaker2]} into {speaker_labels[speaker1]}")
             st.experimental_rerun()
+
+
+def render_speaker_profiling_controls(profiler, key_prefix: str = "profiling"):
+    """Render speaker profiling and recognition controls"""
+    st.subheader("Speaker Profiling & Recognition")
+    
+    # Get all profiles
+    profiles = profiler.get_all_profiles()
+    
+    if profiles:
+        st.write(f"**{len(profiles)} speaker profiles available**")
+        
+        # Profile management
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("View All Profiles", key=f"{key_prefix}_view_all"):
+                st.session_state[f"{key_prefix}_show_profiles"] = True
+        
+        with col2:
+            if st.button("Export Profiles", key=f"{key_prefix}_export"):
+                export_path = f"speaker_profiles_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                if profiler.export_profiles(export_path):
+                    st.success(f"Profiles exported to {export_path}")
+                else:
+                    st.error("Failed to export profiles")
+        
+        with col3:
+            uploaded_file = st.file_uploader(
+                "Import Profiles",
+                type=['json'],
+                key=f"{key_prefix}_import"
+            )
+            if uploaded_file:
+                import tempfile
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp_file:
+                    tmp_file.write(uploaded_file.getvalue())
+                    if profiler.import_profiles(tmp_file.name):
+                        st.success("Profiles imported successfully")
+                        st.experimental_rerun()
+                    else:
+                        st.error("Failed to import profiles")
+        
+        # Show profiles if requested
+        if st.session_state.get(f"{key_prefix}_show_profiles", False):
+            render_speaker_profiles_table(profiles, profiler, key_prefix)
+    else:
+        st.info("No speaker profiles available. Process audio with WhisperX to create profiles.")
+
+
+def render_speaker_profiles_table(profiles: Dict, profiler, key_prefix: str):
+    """Render table of speaker profiles"""
+    st.subheader("Speaker Profiles")
+    
+    # Create DataFrame for display
+    profile_data = []
+    for speaker_id, profile in profiles.items():
+        profile_data.append({
+            'Speaker ID': speaker_id,
+            'Name': profile.name or 'Unnamed',
+            'Total Time': f"{profile.total_speaking_time:.1f}s",
+            'Recordings': profile.recording_count,
+            'Confidence': f"{profile.recognition_confidence:.0%}",
+            'Last Updated': profile.last_updated[:10] if profile.last_updated else 'Unknown',
+            'Voice Type': profile.voice_characteristics.get('voice_type', 'Unknown')
+        })
+    
+    df = pd.DataFrame(profile_data)
+    st.dataframe(df, use_container_width=True)
+    
+    # Profile management actions
+    st.subheader("Profile Management")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Rename Speaker**")
+        speaker_to_rename = st.selectbox(
+            "Select Speaker",
+            options=list(profiles.keys()),
+            key=f"{key_prefix}_rename_select"
+        )
+        new_name = st.text_input(
+            "New Name",
+            value=profiles[speaker_to_rename].name or "",
+            key=f"{key_prefix}_new_name"
+        )
+        if st.button("Rename", key=f"{key_prefix}_rename_btn"):
+            profile = profiles[speaker_to_rename]
+            profile.name = new_name
+            profiler._save_profile(profile)
+            st.success(f"Renamed speaker to: {new_name}")
+            st.experimental_rerun()
+    
+    with col2:
+        st.write("**Merge Speakers**")
+        primary_speaker = st.selectbox(
+            "Primary Speaker (keep)",
+            options=list(profiles.keys()),
+            key=f"{key_prefix}_merge_primary"
+        )
+        secondary_options = [s for s in profiles.keys() if s != primary_speaker]
+        if secondary_options:
+            secondary_speaker = st.selectbox(
+                "Secondary Speaker (merge into primary)",
+                options=secondary_options,
+                key=f"{key_prefix}_merge_secondary"
+            )
+            if st.button("Merge Speakers", key=f"{key_prefix}_merge_btn"):
+                if profiler.merge_profiles(primary_speaker, secondary_speaker):
+                    st.success(f"Merged {secondary_speaker} into {primary_speaker}")
+                    st.experimental_rerun()
+                else:
+                    st.error("Failed to merge speakers")
+    
+    # Delete profile
+    st.write("**Delete Profile**")
+    speaker_to_delete = st.selectbox(
+        "Select Speaker to Delete",
+        options=list(profiles.keys()),
+        key=f"{key_prefix}_delete_select"
+    )
+    if st.button("Delete Profile", key=f"{key_prefix}_delete_btn", type="secondary"):
+        if profiler.delete_profile(speaker_to_delete):
+            st.success(f"Deleted profile: {speaker_to_delete}")
+            st.experimental_rerun()
+        else:
+            st.error("Failed to delete profile")
+
+
+def render_speaker_timeline_visualization(result: DiarizationResult, height: int = 300):
+    """Enhanced timeline visualization with speaker profiling information"""
+    if not result.segments:
+        st.info("No speaker segments to display")
+        return
+    
+    # Create enhanced timeline figure
+    fig = go.Figure()
+    
+    # Add a trace for each speaker with enhanced information
+    y_positions = {speaker_id: i for i, speaker_id in enumerate(result.speakers.keys())}
+    
+    for speaker_id, speaker_info in result.speakers.items():
+        segments = [seg for seg in result.segments if seg.speaker_id == speaker_id]
+        
+        if not segments:
+            continue
+        
+        # Create rectangles for each segment with enhanced hover info
+        for segment in segments:
+            # Enhanced hover text with voice characteristics
+            hover_text = f"{speaker_info.label or speaker_id}<br>"
+            hover_text += f"{segment.start_time:.1f}s - {segment.end_time:.1f}s<br>"
+            hover_text += f"Duration: {segment.duration:.1f}s<br>"
+            hover_text += f"Confidence: {segment.confidence:.0%}"
+            
+            if segment.text:
+                hover_text += f"<br>Text: {segment.text[:50]}..."
+            
+            fig.add_shape(
+                type="rect",
+                x0=segment.start_time,
+                x1=segment.end_time,
+                y0=y_positions[speaker_id] - 0.4,
+                y1=y_positions[speaker_id] + 0.4,
+                fillcolor=speaker_info.color,
+                opacity=0.8,
+                line=dict(width=1, color=speaker_info.color)
+            )
+            
+            # Add invisible trace for hover
+            fig.add_trace(go.Scatter(
+                x=[(segment.start_time + segment.end_time) / 2],
+                y=[y_positions[speaker_id]],
+                mode='markers',
+                marker=dict(size=0.1, opacity=0),
+                hovertext=hover_text,
+                hoverinfo='text',
+                showlegend=False
+            ))
+    
+    # Update layout with enhanced styling
+    fig.update_layout(
+        title="Enhanced Speaker Timeline with Voice Profiling",
+        xaxis=dict(
+            title="Time (seconds)",
+            range=[0, result.audio_duration],
+            tickformat=".0f",
+            showgrid=True,
+            gridcolor='lightgray'
+        ),
+        yaxis=dict(
+            title="Speakers",
+            tickvals=list(y_positions.values()),
+            ticktext=[f"{speaker.label or sid} ({speaker.total_time:.1f}s)" 
+                     for sid, speaker in result.speakers.items()],
+            range=[-0.5, len(y_positions) - 0.5],
+            showgrid=True,
+            gridcolor='lightgray'
+        ),
+        height=height,
+        hovermode='closest',
+        showlegend=False,
+        margin=dict(l=150, r=20, t=60, b=40),
+        plot_bgcolor='white'
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def render_voice_characteristics_analysis(profiles: Dict, key_prefix: str = "voice_analysis"):
+    """Render voice characteristics analysis"""
+    if not profiles:
+        return
+    
+    st.subheader("Voice Characteristics Analysis")
+    
+    # Voice type distribution
+    voice_types = {}
+    for profile in profiles.values():
+        voice_type = profile.voice_characteristics.get('voice_type', 'Unknown')
+        voice_types[voice_type] = voice_types.get(voice_type, 0) + 1
+    
+    if voice_types:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Pie chart of voice types
+            fig = px.pie(
+                values=list(voice_types.values()),
+                names=list(voice_types.keys()),
+                title="Voice Type Distribution"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # Speaking time distribution
+            speaking_times = [profile.total_speaking_time for profile in profiles.values()]
+            speaker_names = [profile.name or profile.speaker_id for profile in profiles.values()]
+            
+            fig = px.bar(
+                x=speaker_names,
+                y=speaking_times,
+                title="Total Speaking Time by Speaker",
+                labels={'x': 'Speaker', 'y': 'Speaking Time (seconds)'}
+            )
+            fig.update_xaxis(tickangle=45)
+            st.plotly_chart(fig, use_container_width=True)
 
 
 def format_time_for_export(seconds: float) -> str:

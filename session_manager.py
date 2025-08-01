@@ -62,6 +62,9 @@ class TranscriptionResults:
     word_count: int = 0
     entity_confidence: Dict[str, Any] = None
     sentiment: Dict[str, Any] = None
+    audio_file_path: str = ""  # Path to processed audio file for waveform visualization
+    speaker_segments: list = None  # Speaker diarization segments
+    transcript_segments: list = None  # Transcript segments with timestamps
     
     def __post_init__(self):
         if self.entities is None:
@@ -70,6 +73,10 @@ class TranscriptionResults:
             self.entity_confidence = {}
         if self.sentiment is None:
             self.sentiment = {}
+        if self.speaker_segments is None:
+            self.speaker_segments = []
+        if self.transcript_segments is None:
+            self.transcript_segments = []
 
 @dataclass
 class AdvancedTranscriptionState:
