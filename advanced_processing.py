@@ -116,11 +116,37 @@ def process_audio_with_advanced_features(audio_source, analysis_mode: str = "Adv
         
     except Exception as e:
         logger.error(f"Advanced processing failed: {e}")
-        error_message = handle_error(e, {
-            "operation": "advanced_transcription",
-            "audio_source": str(type(audio_source))
-        })
-        st.error(f"❌ Advanced processing failed: {error_message}")
+        
+        # Check for specific error types
+        error_str = str(e)
+        if "moov atom not found" in error_str:
+            st.error("❌ The uploaded file is incomplete or corrupted.")
+            with st.expander("💡 How to fix this issue", expanded=True):
+                st.write("• The file upload may have been interrupted")
+                st.write("• Try uploading the file again")
+                st.write("• Ensure the file is completely downloaded before uploading")
+                st.write("• Try converting the file to a standard format (MP4 with H.264)")
+        elif "Invalid data found" in error_str:
+            st.error("❌ The file contains invalid or corrupted data.")
+            with st.expander("💡 How to fix this issue", expanded=True):
+                st.write("• The file may be corrupted during download or transfer")
+                st.write("• Try re-downloading the original file")
+                st.write("• Use a media converter to re-encode the file")
+                st.write("• Try a different file format")
+        elif "Failed to load audio" in error_str:
+            st.error("❌ Unable to load audio from the file.")
+            with st.expander("💡 How to fix this issue", expanded=True):
+                st.write("• Check that the file contains audio")
+                st.write("• Try converting to a standard audio format (MP3, WAV)")
+                st.write("• Ensure the file is not DRM-protected")
+                st.write("• Try a different file")
+        else:
+            # Generic error handling
+            error_message = handle_error(e, {
+                "operation": "advanced_transcription",
+                "audio_source": str(type(audio_source))
+            })
+            st.error(f"❌ Advanced processing failed: {error_message}")
         
         # Clean up on error
         if 'temp_path' in locals():

@@ -1,0 +1,108 @@
+{
+  "name": "transcription-desktop",
+  "version": "1.0.0",
+  "description": "Desktop app for Audio/Video Transcription and Entity Extraction",
+  "main": "src/main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run start-python\" \"wait-on http://localhost:8501 && electron .\"",
+    "start-python": "cd .. && (source venv/bin/activate 2>/dev/null || true) && python -m streamlit run app.py --server.port 8501 --server.headless true",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --publish=never",
+    "clean": "rimraf dist build",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.transcriptionapp.desktop",
+    "productName": "Transcription App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../",
+        "to": "python-backend",
+        "filter": [
+          "**/*",
+          "!mobile_app/**/*",
+          "!desktop_app/**/*",
+          "!venv/**/*",
+          "!__pycache__/**/*",
+          "!*.pyc",
+          "!.git/**/*",
+          "!.env.example"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.4",
+    "electron-log": "^4.4.8",
+    "axios": "^1.5.0",
+    "node-machine-id": "^1.1.12",
+    "find-free-port": "^2.0.0"
+  },
+  "devDependencies": {
+    "electron": "^26.2.4",
+    "electron-builder": "^24.6.4",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.0.1",
+    "rimraf": "^5.0.5"
+  },
+  "keywords": [
+    "transcription",
+    "desktop",
+    "electron",
+    "audio",
+    "video",
+    "speech-to-text",
+    "entity-extraction"
+  ],
+  "author": "Transcription App Team",
+  "license": "MIT"
+}

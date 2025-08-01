@@ -121,7 +121,7 @@ create_responsive_layout()
 def handle_special_routes():
     """Handle special routes including health checks and share links"""
     # Check for special routes via query parameters
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params
     
     # Handle share links first (before authentication)
     if 'share' in query_params:

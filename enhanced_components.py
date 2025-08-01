@@ -14,165 +14,21 @@ logger = logging.getLogger(__name__)
 def enhanced_file_uploader(
     label: str,
     accepted_types: List[str],
-    max_size_mb: int = 100,
+    max_size_mb: int = 2048,
     help_text: str = None,
     key: str = None
 ) -> Optional[Any]:
     """Enhanced file uploader with drag-and-drop styling and validation"""
     
-    # Create custom styling for the file uploader
-    uploader_css = f"""
-    <style>
-    .enhanced-uploader {{
-        border: 2px dashed var(--border-color);
-        border-radius: 16px;
-        padding: 2rem;
-        text-align: center;
-        background: var(--surface-color);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-    }}
+    # Use Streamlit's native file uploader directly
+    uploaded_file = st.file_uploader(
+        label=label,
+        type=accepted_types,
+        help=help_text,
+        key=key
+    )
     
-    .enhanced-uploader:hover {{
-        border-color: var(--primary-color);
-        background: var(--surface-variant-color);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px var(--shadow-color);
-    }}
-    
-    .enhanced-uploader.drag-active {{
-        border-color: var(--success-color);
-        background: linear-gradient(135deg, var(--success-color)10, var(--primary-color)10);
-        animation: pulse 1s infinite;
-    }}
-    
-    .upload-icon {{
-        font-size: 3rem;
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-        display: block;
-    }}
-    
-    .upload-text {{
-        color: var(--text-primary-color);
-        font-size: 1.1rem;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-    }}
-    
-    .upload-subtext {{
-        color: var(--text-secondary-color);
-        font-size: 0.9rem;
-        margin-bottom: 1rem;
-    }}
-    
-    .upload-specs {{
-        background: var(--surface-variant-color);
-        border-radius: 8px;
-        padding: 0.75rem;
-        margin-top: 1rem;
-        font-size: 0.8rem;
-        color: var(--text-secondary-color);
-    }}
-    
-    @keyframes pulse {{
-        0% {{ transform: scale(1) translateY(-2px); }}
-        50% {{ transform: scale(1.02) translateY(-2px); }}
-        100% {{ transform: scale(1) translateY(-2px); }}
-    }}
-    </style>
-    """
-    
-    st.markdown(uploader_css, unsafe_allow_html=True)
-    
-    # Create the enhanced uploader UI
-    with st.container():
-        # Display custom upload area
-        types_str = ", ".join(accepted_types).upper()
-        
-        upload_html = f"""
-        <div class="enhanced-uploader" id="enhanced-uploader-{key or 'default'}">
-            <div class="upload-icon">📁</div>
-            <div class="upload-text">Drag & Drop Your File Here</div>
-            <div class="upload-subtext">or click to browse</div>
-            <div class="upload-specs">
-                <strong>Supported:</strong> {types_str} • <strong>Max Size:</strong> {max_size_mb}MB
-            </div>
-        </div>
-        """
-        
-        st.markdown(upload_html, unsafe_allow_html=True)
-        
-        # Add JavaScript for enhanced drag-and-drop
-        drag_drop_js = f"""
-        <script>
-        (function() {{
-            const uploader = document.getElementById('enhanced-uploader-{key or "default"}');
-            if (!uploader) return;
-            
-            let dragCounter = 0;
-            
-            uploader.addEventListener('dragenter', function(e) {{
-                e.preventDefault();
-                dragCounter++;
-                this.classList.add('drag-active');
-            }});
-            
-            uploader.addEventListener('dragleave', function(e) {{
-                e.preventDefault();
-                dragCounter--;
-                if (dragCounter === 0) {{
-                    this.classList.remove('drag-active');
-                }}
-            }});
-            
-            uploader.addEventListener('dragover', function(e) {{
-                e.preventDefault();
-            }});
-            
-            uploader.addEventListener('drop', function(e) {{
-                e.preventDefault();
-                dragCounter = 0;
-                this.classList.remove('drag-active');
-                
-                // Add success animation
-                this.style.borderColor = 'var(--success-color)';
-                this.style.background = 'linear-gradient(135deg, var(--success-color)20, var(--success-color)10)';
-                
-                setTimeout(() => {{
-                    this.style.borderColor = 'var(--border-color)';
-                    this.style.background = 'var(--surface-color)';
-                }}, 2000);
-            }});
-        }})();
-        </script>
-        """
-        
-        st.markdown(drag_drop_js, unsafe_allow_html=True)
-        
-        # Standard Streamlit file uploader (hidden with CSS)
-        uploader_style = """
-        <style>
-        .stFileUploader {
-            opacity: 0;
-            height: 0;
-            overflow: hidden;
-        }
-        </style>
-        """
-        st.markdown(uploader_style, unsafe_allow_html=True)
-        
-        uploaded_file = st.file_uploader(
-            label,
-            type=accepted_types,
-            help=help_text,
-            key=key,
-            label_visibility="collapsed"
-        )
-        
-        return uploaded_file
+    return uploaded_file
 
 def enhanced_progress_indicator(
     progress: int,
@@ -255,7 +111,7 @@ def enhanced_metric_display(
     show_delta: bool = True,
     animated: bool = True
 ) -> None:
-    """Enhanced metric display with cards and animations"""
+    """Enhanced metric display with native Streamlit metrics"""
     
     # Create responsive columns
     cols = st.columns(columns)
@@ -268,64 +124,13 @@ def enhanced_metric_display(
             help_text = metric.get('help', None)
             icon = metric.get('icon', '📊')
             
-            # Create metric card
-            card_html = f"""
-            <div style="
-                background: var(--surface-color);
-                border: 1px solid var(--border-color);
-                border-radius: 16px;
-                padding: 1.5rem;
-                text-align: center;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 2px 8px var(--shadow-color);
-                margin-bottom: 1rem;
-                position: relative;
-                overflow: hidden;
-                {'animation: slideInUp 0.6s ease-out;' if animated else ''}
-                animation-delay: {i * 0.1}s;
-                animation-fill-mode: both;
-            " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px var(--shadow-color)';" 
-               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px var(--shadow-color)';">
-                
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">{icon}</div>
-                <div style="
-                    font-size: 0.8rem;
-                    color: var(--text-secondary-color);
-                    margin-bottom: 0.5rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    font-weight: 500;
-                ">{title}</div>
-                <div style="
-                    font-size: 1.8rem;
-                    font-weight: 700;
-                    color: var(--text-primary-color);
-                    margin-bottom: 0.25rem;
-                ">{value}</div>
-                {f'<div style="color: {"var(--success-color)" if not str(delta).startswith("-") else "var(--error-color)"}; font-size: 0.85rem; font-weight: 500;">{delta}</div>' if delta else ''}
-                {f'<div style="color: var(--text-secondary-color); font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.8;">{help_text}</div>' if help_text else ''}
-            </div>
-            """
-            
-            st.markdown(card_html, unsafe_allow_html=True)
-    
-    # Add animation CSS
-    if animated:
-        animation_css = """
-        <style>
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        </style>
-        """
-        st.markdown(animation_css, unsafe_allow_html=True)
+            # Use native Streamlit metric with icon in label
+            st.metric(
+                label=f"{icon} {title}",
+                value=value,
+                delta=delta,
+                help=help_text
+            )
 
 def enhanced_entity_display(
     entities: Dict[str, List[str]],
@@ -411,89 +216,32 @@ def enhanced_loading_state(
     
     tips_to_show = tips or default_tips
     
-    # Loading animation
-    loading_html = f"""
-    <div style="
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem 2rem;
-        text-align: center;
-        background: var(--surface-color);
-        border-radius: 16px;
-        border: 1px solid var(--border-color);
-        margin: 2rem 0;
-    ">
-        {f'<div style="font-size: 3rem; margin-bottom: 1rem; animation: spin 2s linear infinite;">⚡</div>' if show_spinner else ''}
-        <div style="
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-primary-color);
-            margin-bottom: 0.5rem;
-        ">{text}</div>
-        <div style="
-            color: var(--text-secondary-color);
-            font-size: 0.9rem;
-            margin-bottom: 2rem;
-        ">Please wait while we process your content...</div>
-        
-        {f'''
-        <div style="
-            background: var(--surface-variant-color);
-            border-radius: 12px;
-            padding: 1rem;
-            max-width: 400px;
-            margin-top: 1rem;
-        ">
-            <div style="
-                color: var(--text-secondary-color);
-                font-size: 0.8rem;
-                margin-bottom: 0.5rem;
-                font-weight: 500;
-            ">💡 Did you know?</div>
-            <div id="rotating-tip" style="
-                color: var(--text-primary-color);
-                font-size: 0.85rem;
-                line-height: 1.4;
-            ">{tips_to_show[0]}</div>
-        </div>
-        ''' if show_tips and tips_to_show else ''}
-    </div>
-    
-    <style>
-    @keyframes spin {{
-        from {{ transform: rotate(0deg); }}
-        to {{ transform: rotate(360deg); }}
-    }}
-    </style>
-    """
-    
-    st.markdown(loading_html, unsafe_allow_html=True)
-    
-    # Add tip rotation JavaScript
-    if show_tips and tips_to_show:
-        tip_rotation_js = f"""
-        <script>
-        (function() {{
-            const tips = {tips_to_show};
-            const tipElement = document.getElementById('rotating-tip');
-            let currentTip = 0;
+    # Use Streamlit's native components for cleaner display
+    with st.container():
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if show_spinner:
+                st.markdown(
+                    """
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="font-size: 3rem; animation: spin 2s linear infinite;">⚡</div>
+                    </div>
+                    <style>
+                    @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
             
-            if (tipElement) {{
-                setInterval(() => {{
-                    currentTip = (currentTip + 1) % tips.length;
-                    tipElement.style.opacity = '0';
-                    setTimeout(() => {{
-                        tipElement.textContent = tips[currentTip];
-                        tipElement.style.opacity = '1';
-                    }}, 300);
-                }}, 3000);
-            }}
-        }})();
-        </script>
-        """
-        st.markdown(tip_rotation_js, unsafe_allow_html=True)
+            st.markdown(f"### {text}")
+            st.markdown("Please wait while we process your content...")
+            
+            if show_tips and tips_to_show:
+                with st.container():
+                    st.info(f"💡 **Tip:** {tips_to_show[0]}")
 
 def enhanced_audio_player(
     audio_bytes: bytes,

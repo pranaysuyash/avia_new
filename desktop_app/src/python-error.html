@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Backend Error - Transcription App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .error-container {
+            text-align: center;
+            max-width: 700px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+        
+        .setup-steps {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+        }
+        
+        .setup-steps h3 {
+            margin-top: 0;
+            color: #fff;
+        }
+        
+        .setup-steps ol {
+            padding-left: 1.2rem;
+        }
+        
+        .setup-steps li {
+            margin-bottom: 0.8rem;
+            line-height: 1.5;
+        }
+        
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+            word-break: break-all;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        
+        .action-button {
+            background: white;
+            color: #ff6b6b;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .action-button.secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .platform-specific {
+            display: none;
+        }
+        
+        .platform-specific.active {
+            display: block;
+        }
+        
+        .platform-tabs {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        
+        .platform-tab {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .platform-tab.active {
+            background: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">🐍</div>
+        <h1>Python Backend Error</h1>
+        <p>
+            The Python backend failed to start. This is required to run the transcription service.
+            Please follow the setup instructions below to resolve this issue.
+        </p>
+        
+        <div class="setup-steps">
+            <h3>Quick Setup Guide</h3>
+            
+            <div class="platform-tabs">
+                <button class="platform-tab active" onclick="showPlatform('windows')">Windows</button>
+                <button class="platform-tab" onclick="showPlatform('mac')">macOS</button>
+                <button class="platform-tab" onclick="showPlatform('linux')">Linux</button>
+            </div>
+            
+            <div id="windows" class="platform-specific active">
+                <ol>
+                    <li>Install Python 3.8+ from <a href="https://python.org" style="color: #fff;">python.org</a></li>
+                    <li>Open Command Prompt as Administrator</li>
+                    <li>Navigate to the application directory:
+                        <div class="code-block">cd "C:\Path\To\Transcription App"</div>
+                    </li>
+                    <li>Install dependencies:
+                        <div class="code-block">pip install -r requirements.txt</div>
+                    </li>
+                    <li>Restart the application</li>
+                </ol>
+            </div>
+            
+            <div id="mac" class="platform-specific">
+                <ol>
+                    <li>Install Python 3.8+ using Homebrew:
+                        <div class="code-block">brew install python</div>
+                    </li>
+                    <li>Open Terminal</li>
+                    <li>Navigate to the application directory:
+                        <div class="code-block">cd "/Applications/Transcription App.app/Contents/Resources/python-backend"</div>
+                    </li>
+                    <li>Install dependencies:
+                        <div class="code-block">pip3 install -r requirements.txt</div>
+                    </li>
+                    <li>Restart the application</li>
+                </ol>
+            </div>
+            
+            <div id="linux" class="platform-specific">
+                <ol>
+                    <li>Install Python 3.8+ using your package manager:
+                        <div class="code-block">sudo apt install python3 python3-pip  # Ubuntu/Debian<br>sudo yum install python3 python3-pip      # CentOS/RHEL</div>
+                    </li>
+                    <li>Open Terminal</li>
+                    <li>Navigate to the application directory:
+                        <div class="code-block">cd "/opt/transcription-app/python-backend"</div>
+                    </li>
+                    <li>Install dependencies:
+                        <div class="code-block">pip3 install -r requirements.txt</div>
+                    </li>
+                    <li>Restart the application</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-button" onclick="window.location.reload()">
+                Try Again
+            </button>
+            <a href="https://github.com/your-repo/transcription-app/blob/main/README.md" class="action-button secondary" target="_blank">
+                Full Documentation
+            </a>
+        </div>
+        
+        <div style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.8;">
+            <strong>Still having issues?</strong><br>
+            Check the console logs for detailed error messages or contact support.
+        </div>
+    </div>
+
+    <script>
+        function showPlatform(platform) {
+            // Hide all platform-specific content
+            document.querySelectorAll('.platform-specific').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.platform-tab').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show selected platform
+            document.getElementById(platform).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Auto-detect platform and show appropriate instructions
+        const platform = navigator.platform.toLowerCase();
+        if (platform.includes('win')) {
+            showPlatform('windows');
+        } else if (platform.includes('mac')) {
+            showPlatform('mac');
+        } else {
+            showPlatform('linux');
+        }
+    </script>
+</body>
+</html>

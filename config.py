@@ -21,7 +21,7 @@ class Config:
     
     # Application Settings
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-    MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "100"))
+    MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "2048"))  # 2GB default
     TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
     
     # Admin Configuration
@@ -81,8 +81,8 @@ class Config:
             warnings.append("Missing ELEVENLABS_API_KEY (admin TTS features disabled)")
         
         # Check file size limit
-        if cls.MAX_FILE_SIZE_MB <= 0 or cls.MAX_FILE_SIZE_MB > 1000:
-            issues.append("MAX_FILE_SIZE_MB should be between 1 and 1000")
+        if cls.MAX_FILE_SIZE_MB <= 0 or cls.MAX_FILE_SIZE_MB > 5120:
+            issues.append("MAX_FILE_SIZE_MB should be between 1 and 5120 (5GB)")
         
         # Check log level
         valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -126,7 +126,7 @@ class Config:
 ## Optional Configuration
 
 - LOG_LEVEL: Set to DEBUG, INFO, WARNING, ERROR, or CRITICAL (default: INFO)
-- MAX_FILE_SIZE_MB: Maximum upload size in MB (default: 100)
+- MAX_FILE_SIZE_MB: Maximum upload size in MB (default: 2048, max: 5120)
 - TEMP_DIR: Directory for temporary files (default: ./temp)
 - ADMIN_PASSWORD: Password for admin panel access (optional)
 - WHISPER_MODEL: Whisper model size - tiny, base, small, medium, large (default: base)
@@ -138,7 +138,7 @@ class Config:
 OPENAI_API_KEY=sk-your-openai-key-here
 ELEVENLABS_API_KEY=your-elevenlabs-key-here
 LOG_LEVEL=INFO
-MAX_FILE_SIZE_MB=100
+MAX_FILE_SIZE_MB=2048
 TEMP_DIR=./temp
 ADMIN_PASSWORD=your-secure-password
 WHISPER_MODEL=base

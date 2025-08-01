@@ -65,6 +65,7 @@ class TranscriptionResults:
     audio_file_path: str = ""  # Path to processed audio file for waveform visualization
     speaker_segments: list = None  # Speaker diarization segments
     transcript_segments: list = None  # Transcript segments with timestamps
+    timestamps: list = None  # Word-level timestamps
     
     def __post_init__(self):
         if self.entities is None:
@@ -77,6 +78,8 @@ class TranscriptionResults:
             self.speaker_segments = []
         if self.transcript_segments is None:
             self.transcript_segments = []
+        if self.timestamps is None:
+            self.timestamps = []
 
 @dataclass
 class AdvancedTranscriptionState:

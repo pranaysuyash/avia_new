@@ -303,7 +303,7 @@ def render_speaker_merge_controls(result: DiarizationResult, key_prefix: str = "
         if st.button("Merge", key=f"{key_prefix}_merge_button"):
             result.merge_speakers(speaker1, speaker2)
             st.success(f"Merged {speaker_labels[speaker2]} into {speaker_labels[speaker1]}")
-            st.experimental_rerun()
+            st.rerun()
 
 
 def render_speaker_profiling_controls(profiler, key_prefix: str = "profiling"):
@@ -343,7 +343,7 @@ def render_speaker_profiling_controls(profiler, key_prefix: str = "profiling"):
                     tmp_file.write(uploaded_file.getvalue())
                     if profiler.import_profiles(tmp_file.name):
                         st.success("Profiles imported successfully")
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Failed to import profiles")
         
@@ -396,7 +396,7 @@ def render_speaker_profiles_table(profiles: Dict, profiler, key_prefix: str):
             profile.name = new_name
             profiler._save_profile(profile)
             st.success(f"Renamed speaker to: {new_name}")
-            st.experimental_rerun()
+            st.rerun()
     
     with col2:
         st.write("**Merge Speakers**")
@@ -415,7 +415,7 @@ def render_speaker_profiles_table(profiles: Dict, profiler, key_prefix: str):
             if st.button("Merge Speakers", key=f"{key_prefix}_merge_btn"):
                 if profiler.merge_profiles(primary_speaker, secondary_speaker):
                     st.success(f"Merged {secondary_speaker} into {primary_speaker}")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("Failed to merge speakers")
     
@@ -429,7 +429,7 @@ def render_speaker_profiles_table(profiles: Dict, profiler, key_prefix: str):
     if st.button("Delete Profile", key=f"{key_prefix}_delete_btn", type="secondary"):
         if profiler.delete_profile(speaker_to_delete):
             st.success(f"Deleted profile: {speaker_to_delete}")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Failed to delete profile")
 
@@ -560,3 +560,182 @@ def format_time_for_export(seconds: float) -> str:
     minutes = int((seconds % 3600) // 60)
     secs = seconds % 60
     return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
+
+
+class DiarizationUI:
+    """Main diarization UI class"""
+    
+    def __init__(self):
+        from .diarization_manager import DiarizationManager
+        from .providers.mock_provider import MockProvider
+        self.manager = DiarizationManager()
+        
+        # Set up mock provider for testing
+        mock_provider = MockProvider({"processing_delay": 0.1})
+        self.manager.set_provider(mock_provider)
+    
+    def render_diarization_interface(self):
+        """Main diarization interface"""
+        st.header("🎤 Speaker Diarization")
+        st.markdown("Identify and separate different speakers in audio files")
+        
+        # File upload
+        uploaded_file = st.file_uploader(
+            "Upload Audio File",
+            type=['wav', 'mp3', 'm4a', 'flac'],
+            help="Upload an audio file for speaker diarization"
+        )
+        
+        if not uploaded_file:
+            st.info("Upload an audio file to analyze speakers")
+            return
+        
+        # Diarization settings
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            min_segment_duration = st.slider(
+                "Minimum Segment Duration (seconds)",
+                min_value=0.5,
+                max_value=5.0,
+                value=1.0,
+                step=0.5
+            )
+        
+        with col2:
+            max_speakers = st.number_input(
+                "Maximum Speakers",
+                min_value=2,
+                max_value=10,
+                value=4
+            )
+        
+        # Process audio
+        if st.button("Analyze Speakers", type="primary"):
+            with st.spinner("Analyzing speakers..."):
+                try:
+                    # Save uploaded file temporarily
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp_file:
+                        tmp_file.write(uploaded_file.getvalue())
+                        audio_path = tmp_file.name
+                    
+                    # Run diarization
+                    import asyncio
+                    result = asyncio.run(self.manager.process_audio(
+                        audio_path,
+                        min_segment_duration=min_segment_duration
+                    ))
+                    
+                    st.success(f"Speaker analysis completed!")
+                    
+                    # Display results
+                    self._display_diarization_results(result)
+                    
+                    # Cleanup
+                    import os
+                    os.unlink(audio_path)
+                    
+                except Exception as e:
+                    st.error(f"Speaker analysis failed: {str(e)}")
+    
+    def _display_diarization_results(self, result):
+        """Display diarization analysis results"""
+        # Overview metrics
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Speakers Detected", len(result.speakers))
+        
+        with col2:
+            st.metric("Total Segments", len(result.segments))
+        
+        with col3:
+            st.metric("Audio Duration", f"{result.audio_duration:.1f}s")
+        
+        # Speaker timeline visualization
+        if result.segments:
+            st.subheader("Speaker Timeline")
+            render_speaker_timeline(result, height=300)
+        
+        # Speaker breakdown
+        st.subheader("Speaker Breakdown")
+        
+        for speaker_id in result.speakers:
+            speaker_segments = [seg for seg in result.segments if seg.speaker_id == speaker_id]
+            total_time = sum(seg.duration for seg in speaker_segments)
+            
+            with st.expander(f"🎤 {speaker_id} - {total_time:.1f}s total"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.metric("Segments", len(speaker_segments))
+                    st.metric("Speaking Time", f"{total_time:.1f}s")
+                
+                with col2:
+                    avg_confidence = sum(seg.confidence for seg in speaker_segments) / len(speaker_segments)
+                    st.metric("Avg Confidence", f"{avg_confidence:.1%}")
+                    
+                    speaking_ratio = (total_time / result.audio_duration) * 100
+                    st.metric("Speaking Ratio", f"{speaking_ratio:.1f}%")
+                
+                # Show segments
+                st.markdown("**Segments:**")
+                for i, segment in enumerate(speaker_segments[:5]):  # Show first 5 segments
+                    st.write(f"{i+1}. {segment.start_time:.1f}s - {segment.end_time:.1f}s ({segment.duration:.1f}s)")
+                    if segment.text:
+                        st.caption(f"Text: {segment.text}")
+                
+                if len(speaker_segments) > 5:
+                    st.caption(f"... and {len(speaker_segments) - 5} more segments")
+        
+        # Export options
+        st.subheader("Export Options")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Export Timeline Data"):
+                # Convert to export format
+                export_data = {
+                    'speakers': list(result.speakers),
+                    'segments': [seg.to_dict() for seg in result.segments],
+                    'metadata': result.metadata,
+                    'audio_duration': result.audio_duration
+                }
+                
+                import json
+                st.download_button(
+                    label="Download JSON",
+                    data=json.dumps(export_data, indent=2),
+                    file_name=f"speaker_diarization_{len(result.speakers)}_speakers.json",
+                    mime="application/json"
+                )
+        
+        with col2:
+            if st.button("Export Speaker Stats"):
+                # Create speaker statistics
+                stats_data = []
+                for speaker_id in result.speakers:
+                    speaker_segments = [seg for seg in result.segments if seg.speaker_id == speaker_id]
+                    total_time = sum(seg.duration for seg in speaker_segments)
+                    avg_confidence = sum(seg.confidence for seg in speaker_segments) / len(speaker_segments)
+                    
+                    stats_data.append({
+                        'Speaker': speaker_id,
+                        'Segments': len(speaker_segments),
+                        'Total Time (s)': round(total_time, 1),
+                        'Avg Confidence': f"{avg_confidence:.1%}",
+                        'Speaking Ratio': f"{(total_time / result.audio_duration) * 100:.1f}%"
+                    })
+                
+                import pandas as pd
+                df = pd.DataFrame(stats_data)
+                csv = df.to_csv(index=False)
+                
+                st.download_button(
+                    label="Download CSV",
+                    data=csv,
+                    file_name=f"speaker_stats_{len(result.speakers)}_speakers.csv",
+                    mime="text/csv"
+                )

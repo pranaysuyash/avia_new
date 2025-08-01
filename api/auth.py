@@ -1,251 +1,210 @@
 """
-Authentication endpoints for the API
+API Authentication and Authorization
+Handles JWT tokens, API keys, and permission validation
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
+from fastapi import HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
-import jwt
+import os
+import sys
 import logging
+from datetime import datetime
 
-from database import get_db_session, User
-from auth.auth_manager import AuthManager
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from security_manager import SecurityManager
 
 logger = logging.getLogger(__name__)
 
-# Router setup
-auth_router = APIRouter()
+# Security schemes
+security_scheme = HTTPBearer()
 
-# OAuth2 setup
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
-
-# JWT settings
-SECRET_KEY = "your-secret-key-here"  # Should be in environment variables
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+# Global security manager
+security_manager = SecurityManager()
 
 
-# Pydantic models
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-
-class UserResponse(BaseModel):
-    id: int
-    email: str
-    username: str
-    created_at: datetime
-    is_active: bool
-    team_memberships: list = []
-
-
-# Helper functions
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create JWT access token"""
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+class APIAuthManager:
+    """Manage API authentication and authorization"""
     
-    to_encode.update({"exp": expire, "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-def create_refresh_token(data: dict):
-    """Create JWT refresh token"""
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-def verify_token(token: str, token_type: str = "access") -> Dict[str, Any]:
-    """Verify and decode JWT token"""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        if payload.get("type") != token_type:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token type"
-            )
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired"
+    def __init__(self):
+        self.security_manager = security_manager
+    
+    def validate_jwt_token(self, token: str) -> Optional[str]:
+        """Validate JWT token and return user ID"""
+        try:
+            user_id = self.security_manager.access_control.validate_token(token)
+            if user_id:
+                # Log successful authentication
+                self.security_manager.audit_logger.log_authentication(
+                    user_id, True, "API"
+                )
+                return user_id
+            else:
+                return None
+        except Exception as e:
+            logger.error(f"JWT validation error: {e}")
+            return None
+    
+    def validate_api_key(self, api_key: str) -> Optional[str]:
+        """Validate API key and return user ID"""
+        try:
+            user_id = self.security_manager.access_control.validate_api_key(api_key)
+            if user_id:
+                # Log successful API key authentication
+                self.security_manager.audit_logger.log_authentication(
+                    user_id, True, "API_KEY"
+                )
+                return user_id
+            else:
+                return None
+        except Exception as e:
+            logger.error(f"API key validation error: {e}")
+            return None
+    
+    def check_permission(self, user_id: str, permission: str) -> bool:
+        """Check if user has required permission"""
+        has_permission = self.security_manager.access_control.check_permission(
+            user_id, permission
         )
-    except jwt.JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
+        
+        # Log access attempt
+        self.security_manager.audit_logger.log_access_attempt(
+            user_id, "API", permission, has_permission
         )
+        
+        return has_permission
+    
+    def check_rate_limit(self, user_id: str) -> bool:
+        """Check if user is within rate limits"""
+        return self.security_manager.access_control.check_rate_limit(user_id)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+# Global auth manager
+auth_manager = APIAuthManager()
+
+
+async def get_current_user_jwt(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme)
+) -> str:
     """Get current user from JWT token"""
-    payload = verify_token(token)
-    user_id = payload.get("sub")
+    token = credentials.credentials
+    user_id = auth_manager.validate_jwt_token(token)
     
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
-        )
-    
-    db = next(get_db_session())
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is disabled"
-        )
-    
-    return user
-
-
-# Endpoints
-@auth_router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest):
-    """User login endpoint"""
-    db = next(get_db_session())
-    auth_manager = AuthManager(db)
-    
-    # Authenticate user
-    user = auth_manager.authenticate(request.email, request.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
-        )
-    
-    # Create tokens
-    access_token = create_access_token(data={"sub": str(user.id)})
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
-    # Log activity
-    auth_manager.log_activity(user.id, "api_login", {"ip": "api"})
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
-    )
-
-
-@auth_router.post("/token", response_model=TokenResponse)
-async def token(form_data: OAuth2PasswordRequestForm = Depends()):
-    """OAuth2 compatible token endpoint"""
-    db = next(get_db_session())
-    auth_manager = AuthManager(db)
-    
-    # Authenticate user
-    user = auth_manager.authenticate(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create tokens
-    access_token = create_access_token(data={"sub": str(user.id)})
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+    return user_id
+
+
+async def get_current_user_api_key(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme)
+) -> str:
+    """Get current user from API key"""
+    if not credentials.scheme == "ApiKey":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication scheme. Use 'ApiKey <key>'",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
     
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
-    )
-
-
-@auth_router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(request: RefreshRequest):
-    """Refresh access token"""
-    # Verify refresh token
-    payload = verify_token(request.refresh_token, token_type="refresh")
-    user_id = payload.get("sub")
+    api_key = credentials.credentials
+    user_id = auth_manager.validate_api_key(api_key)
     
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "ApiKey"},
         )
     
-    # Check if user still exists and is active
-    db = next(get_db_session())
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    return user_id
+
+
+async def get_current_user_flexible(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme)
+) -> str:
+    """Get current user from either JWT token or API key"""
+    if credentials.scheme.lower() == "bearer":
+        # Try JWT token
+        user_id = auth_manager.validate_jwt_token(credentials.credentials)
+        if user_id:
+            return user_id
+    elif credentials.scheme.lower() == "apikey":
+        # Try API key
+        user_id = auth_manager.validate_api_key(credentials.credentials)
+        if user_id:
+            return user_id
     
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive"
-        )
-    
-    # Create new tokens
-    access_token = create_access_token(data={"sub": str(user.id)})
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer, ApiKey"},
     )
 
 
-@auth_router.post("/logout")
-async def logout(current_user: User = Depends(get_current_user)):
-    """Logout endpoint (mainly for logging purposes)"""
-    db = next(get_db_session())
-    auth_manager = AuthManager(db)
-    
-    # Log activity
-    auth_manager.log_activity(current_user.id, "api_logout", {})
-    
-    return {"message": "Successfully logged out"}
+def require_permission(permission: str):
+    """Decorator to require specific permission"""
+    def permission_checker(user_id: str = Depends(get_current_user_flexible)):
+        if not auth_manager.check_permission(user_id, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission '{permission}' required"
+            )
+        return user_id
+    return permission_checker
 
 
-@auth_router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
-    """Get current user information"""
-    # Get team memberships
-    team_memberships = []
-    for membership in current_user.team_memberships:
-        team_memberships.append({
-            "team_id": membership.team_id,
-            "team_name": membership.team.name,
-            "role": membership.role
-        })
-    
-    return UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        username=current_user.username,
-        created_at=current_user.created_at,
-        is_active=current_user.is_active,
-        team_memberships=team_memberships
-    )
+def require_admin():
+    """Require admin permission"""
+    return require_permission("admin")
+
+
+def require_write():
+    """Require write permission"""
+    return require_permission("write")
+
+
+def require_read():
+    """Require read permission"""
+    return require_permission("read")
+
+
+def require_export():
+    """Require export permission"""
+    return require_permission("export")
+
+
+# Convenience dependency functions
+jwt_required = Depends(get_current_user_jwt)
+api_key_required = Depends(get_current_user_api_key)
+auth_required = Depends(get_current_user_flexible)
+admin_required = Depends(require_admin())
+write_required = Depends(require_write())
+read_required = Depends(require_read())
+export_required = Depends(require_export())
+
+
+def create_api_response(data: Any, message: str = "Success") -> Dict[str, Any]:
+    """Create standardized API response"""
+    return {
+        "success": True,
+        "message": message,
+        "data": data,
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+def create_error_response(error: str, status_code: int = 400) -> Dict[str, Any]:
+    """Create standardized error response"""
+    return {
+        "success": False,
+        "error": error,
+        "status_code": status_code,
+        "timestamp": datetime.now().isoformat()
+    }

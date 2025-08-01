@@ -375,7 +375,7 @@ class ErrorHandler:
                 file_path=context.get("file_path"),
                 file_size=context.get("file_size"),
                 suggestions=[
-                    f"Reduce file size to under {context.get('max_size', 100)}MB",
+                    f"Reduce file size to under {context.get('max_size', 2048)}MB",
                     "Compress the audio/video file",
                     "Split large files into smaller segments"
                 ],

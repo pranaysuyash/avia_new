@@ -20,7 +20,7 @@ SUPPORTED_AUDIO_FORMATS = {'.mp3', '.wav', '.m4a', '.flac', '.aac'}
 SUPPORTED_VIDEO_FORMATS = {'.mp4', '.avi', '.mov', '.mkv', '.webm'}
 SUPPORTED_FORMATS = SUPPORTED_AUDIO_FORMATS | SUPPORTED_VIDEO_FORMATS
 
-def validate_media_file(file_path: str, max_size_mb: int = 100) -> bool:
+def validate_media_file(file_path: str, max_size_mb: int = 2048) -> bool:
     """
     Validate uploaded media file format and integrity
     
@@ -104,16 +104,45 @@ def validate_media_file(file_path: str, max_size_mb: int = 100) -> bool:
             return True
             
         except ffmpeg.Error as e:
-            raise MediaProcessingError(
-                message=f"File appears to be corrupted: {file_path}. FFmpeg error: {str(e)}",
-                error_code=ErrorCode.FILE_CORRUPTED,
-                user_message="The media file appears to be corrupted or unreadable.",
-                media_type=file_ext,
-                suggestions=[
+            error_output = str(e)
+            
+            # Check for specific error patterns
+            if "moov atom not found" in error_output:
+                error_msg = "The file is incomplete or corrupted (missing moov atom)."
+                suggestions = [
+                    "The file upload may have been interrupted",
+                    "Try uploading the file again",
+                    "Ensure the file is completely downloaded before uploading",
+                    "Try a different file or format"
+                ]
+            elif "Invalid data found" in error_output:
+                error_msg = "The file contains invalid or corrupted data."
+                suggestions = [
+                    "The file may be corrupted or incomplete",
+                    "Try re-encoding the file with a tool like HandBrake or FFmpeg",
+                    "Upload a different version of the file"
+                ]
+            elif "could not find codec parameters" in error_output:
+                error_msg = "The file codec is not recognized or corrupted."
+                suggestions = [
+                    "Try converting the file to a standard format (MP4 with H.264)",
+                    "Use a media converter tool to re-encode the file",
+                    "Upload a different file"
+                ]
+            else:
+                error_msg = "The media file appears to be corrupted or unreadable."
+                suggestions = [
                     "Try uploading a different file",
-                    "Check that the original file is not corrupted",
+                    "Check that the original file plays correctly",
                     "Convert the file to a different format"
                 ]
+            
+            raise MediaProcessingError(
+                message=f"File validation failed: {file_path}. FFmpeg error: {error_output}",
+                error_code=ErrorCode.FILE_CORRUPTED,
+                user_message=error_msg,
+                media_type=file_ext,
+                suggestions=suggestions
             )
     
     except Exception as e:
@@ -123,7 +152,7 @@ def validate_media_file(file_path: str, max_size_mb: int = 100) -> bool:
         app_error = handle_error(e, {"file_path": file_path, "operation": "validation"})
         raise app_error
 
-def extract_audio(video_file: str, max_size_mb: int = 100) -> str:
+def extract_audio(video_file: str, max_size_mb: int = 2048) -> str:
     """
     Extract audio track from video file using FFmpeg
     

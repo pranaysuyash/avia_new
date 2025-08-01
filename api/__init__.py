@@ -1,20 +1,6 @@
 """
-REST API for Audio/Video Transcription App
-Built with FastAPI for high performance and automatic documentation
+Comprehensive API and Developer Platform
+Provides REST API endpoints for all application features
 """
 
-from .app import create_app
-from .auth import auth_router
-from .transcripts import transcripts_router
-from .teams import teams_router
-from .media import media_router
-from .users import users_router
-
-__all__ = [
-    'create_app',
-    'auth_router',
-    'transcripts_router',
-    'teams_router',
-    'media_router',
-    'users_router'
-]
+__version__ = "1.0.0"

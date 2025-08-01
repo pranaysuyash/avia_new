@@ -60,6 +60,20 @@ from script_templates import script_template_manager
 from search.search_ui import SearchUI
 from speaker_diarization.diarization_ui import DiarizationUI
 
+# Import video processing modules
+from video_ui import VideoUI
+
+# Import content insights modules
+from content_insights_ui import ContentInsightsUI
+
+# Import export modules
+from export_ui import ExportUI
+
+# Import theme and security modules
+from theme_manager import theme_manager, apply_custom_theme
+from security_ui import SecurityUI, render_privacy_notice
+from security_manager import security_manager
+
 # Import advanced audio processing modules
 from advanced_audio_processor import (
     AdvancedAudioProcessor, AudioQualityAnalyzer, NoiseReducer, AudioTrimmer,
@@ -75,8 +89,23 @@ try:
     )
     STRUCTURED_ANALYSIS_AVAILABLE = True
 except ImportError as e:
-    logger.warning(f"Structured analysis modules not available: {e}")
+    # Logger not yet available, use print
+    print(f"Warning: Structured analysis modules not available: {e}")
     STRUCTURED_ANALYSIS_AVAILABLE = False
+
+# Import AI customization modules
+try:
+    from ai_customization_ui import (
+        render_ai_customization_ui, render_customization_test_panel
+    )
+    AI_CUSTOMIZATION_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: AI customization modules not available: {e}")
+    AI_CUSTOMIZATION_AVAILABLE = False
+
+# Setup logging and configuration first
+Config.setup_logging()
+logger = logging.getLogger(__name__)
 
 # Import integration capabilities (Task 23)
 try:
@@ -92,10 +121,6 @@ try:
 except ImportError as e:
     logger.warning(f"Integration modules not available: {e}")
     INTEGRATIONS_AVAILABLE = False
-
-# Setup logging and configuration
-Config.setup_logging()
-logger = logging.getLogger(__name__)
 
 # Configure page
 st.set_page_config(
@@ -119,7 +144,7 @@ create_responsive_layout()
 def handle_health_endpoints():
     """Handle health check and monitoring endpoints"""
     # Check for health check endpoints via query parameters
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params
     
     if 'health' in query_params:
         # Simple health check endpoint
@@ -141,6 +166,57 @@ def handle_health_endpoints():
 
 def main():
     """Main application entry point"""
+    
+    # Initialize security manager
+    security_manager.initialize()
+    
+    # Apply custom theme and accessibility features - FORCE MAXIMUM VISIBILITY
+    apply_custom_theme()
+    
+    # Emergency visibility fix - AGGRESSIVE CSS
+    st.markdown("""
+    <style>
+    /* EMERGENCY TEXT VISIBILITY FIX */
+    * {
+        color: #000000 !important;
+    }
+    
+    .stMarkdown, .stMarkdown *, .stText, .stText *, 
+    p, div, span, label, h1, h2, h3, h4, h5, h6 {
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Sidebar text */
+    .css-1d391kg, .css-1d391kg *, 
+    [data-testid="stSidebar"], [data-testid="stSidebar"] * {
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Input labels */
+    .stSelectbox > label, .stFileUploader > label, 
+    .stSlider > label, .stCheckbox > label {
+        color: #000000 !important;
+        font-weight: bold !important;
+        font-size: 1.2em !important;
+    }
+    
+    /* File uploader area */
+    .stFileUploader {
+        border: 3px solid #0066cc !important;
+        border-radius: 8px !important;
+        padding: 1rem !important;
+    }
+    
+    /* Headers */
+    h1, h2, h3 {
+        color: #000000 !important;
+        font-weight: bold !important;
+        font-size: 1.5em !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     # Handle health check endpoints first
     handle_health_endpoints()
@@ -167,6 +243,9 @@ def main():
         session_manager.clear_error()
     
     # Sidebar navigation
+    # Theme selector in sidebar
+    theme_manager.render_theme_selector()
+    
     st.sidebar.title("Configuration")
     
     # API key status
@@ -208,175 +287,121 @@ def main():
     if "Advanced" in analysis_mode and not api_status["openai"]:
         st.sidebar.warning("⚠️ Advanced mode requires OpenAI API key")
     
-    # Batch processing toggle
-    batch_mode = st.sidebar.checkbox(
-        "Batch Processing",
-        value=False,
-        help="""**Batch Processing Features:**
-
-📦 **Multiple File Upload:**
-• Process 5-20 files simultaneously
-• Support for mixed audio/video formats
-• Progress tracking for each file
-
-📊 **Queue Management:**
-• Automatic job scheduling
-• Real-time progress monitoring
-• Error handling and retry logic
-
-📥 **Batch Export:**
-• Export results in multiple formats (JSON, CSV, Excel, ZIP)
-• Comprehensive processing reports
-• Individual transcript files
-
-⚡ **Efficiency:**
-• Parallel processing capabilities
-• Optimized resource usage
-• Background processing support
-
-💡 **Perfect for:** Content creators, researchers, businesses processing meeting recordings""",
-        key="batch_mode_toggle"
-    )
-    
-    # Admin panel toggle with enhanced help
-    admin_mode = st.sidebar.checkbox(
-        "Admin Panel",
-        value=False,
-        help="""**Admin Features:**
-
-🎭 **Script Generation:**
-• Create realistic dialogue from prompts
-• Multiple style options (formal, casual, interview)
-• AI-powered content creation
-
-🔊 **Text-to-Speech:**
-• Convert scripts to natural speech
-• Multiple voice presets
-• High-quality audio synthesis
-
-🔄 **Testing Integration:**
-• Test generated content through analysis pipeline
-• Verify transcription accuracy
-• Demo system capabilities
-
-⚠️ **Requirements:** Both OpenAI and ElevenLabs API keys needed""",
-        disabled=not (api_status["openai"] and api_status["elevenlabs"])
-    )
+    # Processing Modes Section
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("⚙️ Processing Modes", expanded=False):
+        # Batch processing toggle
+        batch_mode = st.checkbox(
+            "📦 Batch Processing",
+            value=False,
+            help="Process multiple files simultaneously with queue management",
+            key="batch_mode_toggle"
+        )
+        
+        # Admin panel toggle
+        admin_mode = st.checkbox(
+            "🔐 Admin Panel",
+            value=False,
+            help="Access admin features for content generation and testing",
+            disabled=not (api_status["openai"] and api_status["elevenlabs"])
+        )
+        
+        # Security panel toggle
+        security_mode = st.checkbox(
+            "🛡️ Security & Privacy",
+            value=False,
+            help="Access security management, user controls, and privacy settings"
+        )
+        
+        if batch_mode:
+            st.info("Batch mode: Upload 5-20 files for parallel processing")
+        
+        if admin_mode and not (api_status["openai"] and api_status["elevenlabs"]):
+            st.warning("Admin panel requires both OpenAI and ElevenLabs API keys")
     
     # Advanced Audio Processing Options
     st.sidebar.markdown("---")
-    st.sidebar.subheader("🎛️ Advanced Audio Processing")
-    
-    # Audio enhancement options
-    enable_audio_enhancement = st.sidebar.checkbox(
-        "Enable Audio Enhancement",
-        value=True,
-        help="""**Audio Enhancement Features:**
-
-🔇 **Noise Reduction:**
-• Remove background noise and static
-• Spectral subtraction algorithms
-• Improve speech clarity
-
-🔊 **Volume Normalization:**
-• Consistent audio levels
-• Dynamic range compression
-• Optimal transcription quality
-
-✂️ **Smart Trimming:**
-• Remove silence from beginning/end
-• Preserve natural speech flow
-• Reduce processing time
-
-📊 **Quality Analysis:**
-• Signal-to-noise ratio measurement
-• Audio quality scoring
-• Optimization recommendations
-
-💡 **Benefits:** Better transcription accuracy, cleaner audio output"""
-    )
-    
-    # Audio segmentation options
-    enable_segmentation = st.sidebar.checkbox(
-        "Enable Audio Segmentation",
-        value=False,
-        help="""**Audio Segmentation Features:**
-
-🎯 **Smart Segmentation:**
-• Automatic silence-based splitting
-• Configurable segment lengths
-• Overlap handling for continuity
-
-📑 **Chapter Creation:**
-• Auto-generate audio chapters
-• Manual bookmark placement
-• Timeline navigation
-
-🔄 **Batch Processing:**
-• Process long files in chunks
-• Parallel segment processing
-• Improved memory efficiency
-
-📊 **Segment Analysis:**
-• Individual segment quality metrics
-• Speaker change detection
-• Content density mapping
-
-💡 **Perfect for:** Long recordings, meetings, lectures, podcasts"""
-    )
-    
-    # Real-time processing options
-    enable_realtime = st.sidebar.checkbox(
-        "Real-time Processing",
-        value=False,
-        help="""**Real-time Processing Features:**
-
-🎤 **Live Transcription:**
-• Stream audio processing
-• Real-time text output
-• Voice activity detection
-
-📊 **Live Analytics:**
-• Real-time quality monitoring
-• Speech detection indicators
-• Processing performance metrics
-
-🔄 **Streaming Support:**
-• Continuous audio input
-• Buffered processing
-• Low-latency output
-
-⚡ **Use Cases:**
-• Live meetings and conferences
-• Real-time captioning
-• Interactive applications
-
-⚠️ **Note:** Experimental feature - requires stable audio input"""
-    )
+    with st.sidebar.expander("🎛️ Audio Processing", expanded=False):
+        # Audio enhancement options
+        enable_audio_enhancement = st.checkbox(
+            "🔊 Audio Enhancement",
+            value=True,
+            help="Noise reduction and voice enhancement"
+        )
+        
+        # Audio segmentation options
+        enable_segmentation = st.checkbox(
+            "✂️ Audio Segmentation", 
+            value=False,
+            help="Smart splitting and chapter detection"
+        )
+        
+        # Real-time processing options
+        enable_realtime = st.checkbox(
+            "🎙️ Real-time Processing",
+            value=False,
+            help="Live transcription (experimental)"
+        )
     
     # Store audio processing preferences in session state
     st.session_state.audio_enhancement_enabled = enable_audio_enhancement
     st.session_state.audio_segmentation_enabled = enable_segmentation
     st.session_state.realtime_processing_enabled = enable_realtime
     
-    # Search feature toggle
+    # Advanced Features Section
     st.sidebar.markdown("---")
-    enable_search = st.sidebar.checkbox(
-        "🔍 Advanced Search",
-        value=False,
-        help="Search through transcripts with advanced filters"
-    )
+    with st.sidebar.expander("🚀 Advanced Features", expanded=False):
+        # Search feature toggle
+        enable_search = st.checkbox(
+            "🔍 Advanced Search",
+            value=False,
+            help="Search with filters and navigation"
+        )
+        
+        # Video processing toggle
+        enable_video_processing = st.checkbox(
+            "🎬 Video Processing",
+            value=False,
+            help="Video analysis and frame extraction"
+        )
+        
+        # Content insights toggle
+        enable_content_insights = st.checkbox(
+            "🧠 AI Content Insights",
+            value=False,
+            help="AI-powered analysis and insights"
+        )
+        
+        # Export and sharing toggle
+        enable_export_sharing = st.checkbox(
+            "📤 Export & Sharing",
+            value=False,
+            help="Multiple export formats and sharing"
+        )
+        
+        # Real-time collaboration toggle
+        enable_collaboration = st.checkbox(
+            "👥 Real-time Collaboration",
+            value=False,
+            help="Live editing and comments"
+        )
+        
+        # AI Model Customization toggle
+        enable_ai_customization = st.checkbox(
+            "🤖 AI Model Customization",
+            value=False,
+            help="Custom vocabularies, voice profiles, and entity types"
+        )
     
     # Integration settings (Task 23)
     if INTEGRATIONS_AVAILABLE:
         st.sidebar.markdown("---")
-        st.sidebar.subheader("🔗 Integration Settings")
-        
-        # Integration toggles
-        show_webhooks = st.sidebar.checkbox("🔗 Webhooks", value=False, help="Configure webhook notifications")
-        show_cloud_storage = st.sidebar.checkbox("☁️ Cloud Storage", value=False, help="Configure cloud storage providers")
-        show_plugins = st.sidebar.checkbox("🔌 Plugins", value=False, help="Manage custom plugins")
-        show_sso = st.sidebar.checkbox("🔐 SSO", value=False, help="Configure Single Sign-On")
+        with st.sidebar.expander("🔗 Integrations", expanded=False):
+            # Integration toggles
+            show_webhooks = st.checkbox("🔗 Webhooks", value=False)
+            show_cloud_storage = st.checkbox("☁️ Cloud Storage", value=False)
+            show_plugins = st.checkbox("🔌 Plugins", value=False)
+            show_sso = st.checkbox("🔐 SSO", value=False)
         
         # Store integration settings in session state
         st.session_state.show_webhooks = show_webhooks
@@ -384,14 +409,134 @@ def main():
         st.session_state.show_plugins = show_plugins
         st.session_state.show_sso = show_sso
     
-    # File size limit info
-    st.sidebar.info(f"📁 Max file size: {Config.MAX_FILE_SIZE_MB}MB")
+    # Help and Info Section
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("ℹ️ Help & Info", expanded=False):
+        st.markdown(f"""
+        **File Limits:**
+        • Max size: {Config.MAX_FILE_SIZE_MB}MB
+        • Formats: MP3, WAV, M4A, MP4, AVI, MOV
+        
+        **Quick Tips:**
+        • Use Advanced+ mode for best results
+        • Clear audio produces better transcripts
+        • Batch mode processes multiple files
+        
+        **Shortcuts:**
+        • Drag & drop files to upload
+        • Click timestamps to navigate
+        • Export in multiple formats
+        """)
     
     # Main content area - show appropriate interface based on mode
     if enable_search:
         # Show search interface
         search_ui = SearchUI()
         search_ui.render_search_interface()
+    elif enable_video_processing:
+        # Show video processing interface
+        video_ui = VideoUI()
+        video_ui.render_video_tools()
+    elif enable_content_insights:
+        # Show content insights interface
+        insights_ui = ContentInsightsUI()
+        
+        # Get transcript from session if available
+        transcript_text = None
+        speaker_segments = None
+        
+        if session_manager.has_results():
+            results = session_manager.get_results()
+            transcript_text = results.transcript
+            # Convert speaker segments if available
+            if hasattr(results, 'speaker_segments') and results.speaker_segments:
+                speaker_segments = [
+                    {
+                        'speaker_id': seg.get('speaker', 'Unknown'),
+                        'start_time': seg.get('start', 0),
+                        'duration': seg.get('end', 0) - seg.get('start', 0),
+                        'text': seg.get('text', ''),
+                        'confidence': seg.get('confidence', 0.0)
+                    }
+                    for seg in results.speaker_segments
+                ]
+        
+        insights_ui.render_insights_analyzer(transcript_text, speaker_segments)
+    elif enable_collaboration:
+        # Show real-time collaboration interface
+        try:
+            from collaboration_ui import CollaborationUI
+            
+            # Get current user and transcript info
+            user_id = st.session_state.get('user_id', 'default_user')
+            
+            # Get transcript ID from current session
+            transcript_id = None
+            if session_manager.has_results():
+                results = session_manager.get_results()
+                transcript_id = f"transcript_{results.session_id}"
+            else:
+                transcript_id = "demo_transcript"
+            
+            # Store in session state for collaboration
+            st.session_state.current_transcript_id = transcript_id
+            
+            # Render collaboration panel
+            CollaborationUI.render_collaboration_panel(transcript_id, user_id)
+            
+            # Also show live transcription panel if no active collaboration
+            if not st.session_state.get('active_collaboration'):
+                st.markdown("---")
+                CollaborationUI.render_live_transcription_panel()
+                
+        except ImportError:
+            st.error("Collaboration features not available. Please check installation.")
+            st.info("Install required packages: `pip install websockets python-socketio`")
+    elif enable_ai_customization:
+        # Show AI Model Customization interface
+        if AI_CUSTOMIZATION_AVAILABLE:
+            render_ai_customization_ui()
+            
+            # Add test panel for trying customizations
+            st.markdown("---")
+            render_customization_test_panel()
+        else:
+            st.error("AI Model Customization features not available. Please check installation.")
+            st.info("Install required packages and restart the application.")
+    elif enable_export_sharing:
+        # Show export and sharing interface
+        export_ui = ExportUI()
+        
+        # Get transcript data from session if available
+        transcript_data = None
+        
+        if session_manager.has_results():
+            results = session_manager.get_results()
+            
+            # Build comprehensive transcript data
+            transcript_data = {
+                'id': f"transcript_{results.session_id}",
+                'title': f"Transcript - {results.created_at.strftime('%Y-%m-%d %H:%M')}",
+                'transcript': results.transcript,
+                'duration': getattr(results, 'duration', 0),
+                'language': getattr(results, 'language', 'en'),
+                'confidence': getattr(results, 'confidence', 0.0),
+                'created_at': results.created_at.isoformat(),
+                'speakers': getattr(results, 'speakers', []),
+                'entities': results.advanced_entities if hasattr(results, 'advanced_entities') else [],
+                'speaker_segments': getattr(results, 'speaker_segments', []),
+                'processing_time': getattr(results, 'processing_time', 0),
+                'file_info': {
+                    'original_filename': getattr(results, 'original_filename', 'unknown'),
+                    'file_size': getattr(results, 'file_size', 0)
+                }
+            }
+            
+            # Add insights if available
+            if hasattr(results, 'insights'):
+                transcript_data['insights'] = results.insights
+        
+        export_ui.render_export_interface(transcript_data)
     elif batch_mode:
         # Show batch processing interface
         render_batch_interface(analysis_mode)
@@ -412,6 +557,16 @@ def main():
             st.markdown("---")
             st.header("📊 Previous Analysis Results")
             render_results_enhanced(analysis_mode)
+    
+    elif security_mode:
+        # Show security management interface
+        render_security_panel()
+        
+        # Show previous results if available
+        if session_manager.has_results():
+            st.markdown("---")
+            st.header("📊 Previous Analysis Results")
+            render_results_enhanced(analysis_mode)
     else:
         # Check if any integration panels should be shown
         if INTEGRATIONS_AVAILABLE and any([
@@ -422,6 +577,9 @@ def main():
         ]):
             render_integration_panels()
         else:
+            # Add privacy notice
+            render_privacy_notice()
+            
             # Show main interface
             render_main_interface(analysis_mode)
 
@@ -564,7 +722,7 @@ def render_main_interface(analysis_mode: str):
                 'format': uploaded_file.name.split('.')[-1].lower()
             }
             
-            # Try to get media duration if possible
+            # Try to get media duration and validate file
             try:
                 # Save temp file to get duration
                 temp_dir = utils.ensure_temp_directory()
@@ -577,6 +735,36 @@ def render_main_interface(analysis_mode: str):
                 
                 # Reset file pointer for later use
                 uploaded_file.seek(0)
+                
+                # Validate file integrity first
+                try:
+                    media.validate_media_file(temp_path, Config.MAX_FILE_SIZE_MB)
+                    
+                    # Encrypt the file if security is enabled
+                    if security_manager.is_encryption_enabled():
+                        encrypted_path = temp_path + ".enc"
+                        security_manager.encryption_manager.encrypt_file(temp_path, encrypted_path)
+                        # Log the encryption event
+                        security_manager.audit_logger.log_security_event(
+                            "FILE_ENCRYPTED",
+                            {"file": uploaded_file.name, "size": uploaded_file.size}
+                        )
+                        # Note: Keep using temp_path for processing, handle encryption transparently
+                        
+                except Exception as e:
+                    # Clean up temp file
+                    utils.cleanup_file(temp_path)
+                    
+                    # Display user-friendly error
+                    st.error(f"❌ {getattr(e, 'user_message', 'File validation failed')}")
+                    if hasattr(e, 'suggestions') and e.suggestions:
+                        with st.expander("💡 How to fix this issue", expanded=True):
+                            for suggestion in e.suggestions:
+                                st.write(f"• {suggestion}")
+                    
+                    # Clear the uploaded file
+                    uploaded_file = None
+                    st.stop()
                 
                 # Get media info including duration
                 media_info = media.get_media_info(temp_path)
@@ -594,8 +782,13 @@ def render_main_interface(analysis_mode: str):
                 utils.cleanup_file(temp_path)
                 
             except Exception as e:
-                logger.warning(f"Could not get media duration: {e}")
+                logger.warning(f"Could not process uploaded file: {e}")
                 file_info['duration'] = 0
+                if "moov atom not found" in str(e) or "Invalid data found" in str(e):
+                    st.error("❌ The uploaded file appears to be corrupted or incomplete.")
+                    st.info("💡 Please try uploading the file again or use a different file.")
+                    uploaded_file = None
+                    st.stop()
             
             # Enhanced file validation feedback
             st.success(f"✅ File uploaded: {uploaded_file.name}")
@@ -617,11 +810,16 @@ def render_main_interface(analysis_mode: str):
             ]
             
             if file_info.get('duration', 0) > 0:
+                duration_seconds = file_info['duration']
+                minutes = int(duration_seconds // 60)
+                seconds = int(duration_seconds % 60)
+                duration_str = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
+                
                 file_metrics.append({
                     "title": "Duration",
-                    "value": f"{file_info['duration']:.1f}s",
+                    "value": duration_str,
                     "icon": "⏱️",
-                    "help": "Estimated audio duration"
+                    "help": f"Total: {duration_seconds:.1f} seconds"
                 })
             
             enhanced_metric_display(file_metrics, columns=len(file_metrics), animated=True)
@@ -692,6 +890,18 @@ def render_main_interface(analysis_mode: str):
         
         if process_button:
             if validate_processing_requirements(analysis_mode):
+                # Log processing start event
+                user_info = security_manager.get_current_user_info()
+                security_manager.audit_logger.log_user_action(
+                    user_info.get('username', 'anonymous'),
+                    "TRANSCRIPTION_STARTED",
+                    {
+                        "mode": analysis_mode,
+                        "file": uploaded_file.name if uploaded_file else "recorded_audio",
+                        "size": uploaded_file.size if uploaded_file else len(recorded_audio_bytes) if recorded_audio else 0
+                    }
+                )
+                
                 # Clear previous results if auto-clear is enabled
                 preferences = session_manager.get_preferences()
                 if preferences.auto_clear_results:
@@ -896,6 +1106,18 @@ def render_admin_panel():
     
     with tab5:
         render_admin_controls_tab()
+
+def render_security_panel():
+    """Render the security and privacy management panel"""
+    
+    st.header("🛡️ Security & Privacy Management")
+    
+    # Display privacy notice if first time
+    render_privacy_notice()
+    
+    # Create security UI instance and render
+    security_ui = SecurityUI(security_manager)
+    security_ui.render()
 
 def render_script_generation_tab():
     """Render the script generation tab of admin panel"""
@@ -1556,10 +1778,17 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
             # Determine whether to use API based on analysis mode and availability
             use_api = "Advanced" in analysis_mode and Config.validate_api_keys()["openai"]
             
-            progress.update(20, f"Transcribing with {'OpenAI Whisper API' if use_api else 'local Whisper model'}...")
-            logger.info(f"Starting transcription with API: {use_api}")
+            # Enable timestamps in Advanced mode
+            enable_timestamps = "Advanced" in analysis_mode
             
-            transcription_result = stt.transcribe_detailed(processed_audio_path, use_api=use_api)
+            progress.update(20, f"Transcribing with {'OpenAI Whisper API' if use_api else 'local Whisper model'}...")
+            logger.info(f"Starting transcription with API: {use_api}, timestamps: {enable_timestamps}")
+            
+            transcription_result = stt.transcribe_detailed(
+                processed_audio_path, 
+                use_api=use_api,
+                enable_timestamps=enable_timestamps
+            )
             
             progress.update(90, "Transcription complete, processing results...")
             
@@ -1572,6 +1801,11 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
                 language=transcription_result.language,
                 word_count=transcription_result.word_count()
             )
+            
+            # Store timestamps if available
+            if hasattr(transcription_result, 'timestamps') and transcription_result.timestamps:
+                results.timestamps = transcription_result.timestamps
+                logger.info(f"Stored {len(transcription_result.timestamps)} timestamp segments")
             
             # Store audio file path for waveform visualization
             results.audio_file_path = processed_audio_path
@@ -1761,34 +1995,30 @@ def render_audio_quality_analysis():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            enhanced_metric_display(
+            st.metric(
                 "Quality Score",
                 f"{metrics.quality_score:.1f}/100",
-                delta=None,
                 help="Overall audio quality assessment"
             )
         
         with col2:
-            enhanced_metric_display(
+            st.metric(
                 "Signal-to-Noise Ratio",
                 f"{metrics.snr_db:.1f} dB",
-                delta=None,
                 help="Higher values indicate cleaner audio"
             )
         
         with col3:
-            enhanced_metric_display(
+            st.metric(
                 "Dynamic Range",
                 f"{metrics.dynamic_range_db:.1f} dB",
-                delta=None,
                 help="Audio dynamic range measurement"
             )
         
         with col4:
-            enhanced_metric_display(
+            st.metric(
                 "Spectral Centroid",
                 f"{metrics.spectral_centroid:.0f} Hz",
-                delta=None,
                 help="Average frequency content"
             )
         
@@ -2653,11 +2883,69 @@ def render_interactive_transcript(results):
         if st.button("🎯 Word-Level Timestamps", help="Generate word-level timestamps"):
             if "Advanced" in st.session_state.get('analysis_mode', 'Basic'):
                 try:
-                    with st.spinner("Generating word-level timestamps..."):
-                        st.success("✅ Word-level timestamps would be generated here")
-                        st.info("This feature requires re-processing with timestamp extraction enabled")
+                    # Check if we already have timestamps
+                    timestamps = getattr(results, 'timestamps', None)
+                    
+                    if timestamps:
+                        # Display existing timestamps
+                        st.success("✅ Word-level timestamps available")
+                        
+                        # Create expandable sections for each segment
+                        with st.expander("📝 View Word-Level Timestamps", expanded=True):
+                            for idx, segment in enumerate(timestamps[:10]):  # Show first 10 segments
+                                st.markdown(f"**Segment {idx + 1}** ({segment['start']:.2f}s - {segment['end']:.2f}s)")
+                                st.markdown(f"*{segment['text']}*")
+                                
+                                # Show word-level timestamps if available
+                                if 'words' in segment and segment['words']:
+                                    word_data = []
+                                    for word in segment['words']:
+                                        word_data.append({
+                                            'Word': word['word'],
+                                            'Start': f"{word['start']:.2f}s",
+                                            'End': f"{word['end']:.2f}s",
+                                            'Duration': f"{word['end'] - word['start']:.2f}s"
+                                        })
+                                    
+                                    # Display as a dataframe
+                                    import pandas as pd
+                                    df = pd.DataFrame(word_data)
+                                    st.dataframe(df, use_container_width=True, height=200)
+                                
+                                st.divider()
+                            
+                            if len(timestamps) > 10:
+                                st.info(f"Showing first 10 segments of {len(timestamps)} total")
+                    else:
+                        # Need to re-process with timestamps
+                        with st.spinner("Re-processing with word-level timestamps..."):
+                            # Get the audio file path from session state
+                            audio_path = getattr(results, 'audio_file_path', None)
+                            
+                            if audio_path and os.path.exists(audio_path):
+                                # Re-transcribe with timestamps enabled
+                                import stt
+                                
+                                transcription_result = stt.transcribe_detailed(
+                                    audio_path, 
+                                    use_api=True,
+                                    enable_timestamps=True
+                                )
+                                
+                                # Update results with timestamps
+                                if hasattr(transcription_result, 'timestamps') and transcription_result.timestamps:
+                                    results.timestamps = transcription_result.timestamps
+                                    st.session_state.transcription_results = results
+                                    st.success("✅ Word-level timestamps generated successfully!")
+                                    st.rerun()
+                                else:
+                                    st.warning("No word-level timestamps were generated. Try using a different model.")
+                            else:
+                                st.error("Audio file not found. Please re-upload and process the file.")
+                                
                 except Exception as e:
                     st.error(f"Timestamp generation failed: {str(e)}")
+                    logger.error(f"Timestamp generation error: {e}", exc_info=True)
             else:
                 st.warning("Word-level timestamps require Advanced mode")
     

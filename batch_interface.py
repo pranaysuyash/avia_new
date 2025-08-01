@@ -173,7 +173,7 @@ def render_batch_upload_interface(analysis_mode: str):
                 
                 This job will use standard API calls. For OpenAI batch processing benefits:
                 • Use 3+ files minimum
-                • Keep total size under 100MB
+                • Keep total size under 2GB
                 • Ensure OpenAI API key is configured
                 """)
         
@@ -203,7 +203,7 @@ def render_batch_upload_interface(analysis_mode: str):
             st.markdown("""
             **Optimal Batch Processing:**
             - Upload 5-20 files per batch for best performance
-            - Keep individual files under 100MB when possible
+            - Keep individual files under 2GB
             - Mix of short and long files processes more efficiently
             - Use consistent audio quality across files
             

@@ -208,48 +208,14 @@ def create_processing_steps() -> List[ProcessingStep]:
         )
     ]
 
-def show_file_validation_feedback(file_info: Dict[str, Any], max_size_mb: int = 100):
-    """Show detailed file validation feedback"""
+def show_file_validation_feedback(file_info: Dict[str, Any], max_size_mb: int = 2048):
+    """Show file validation feedback (only warnings/errors)"""
     
     # File size validation
     size_mb = file_info.get('size_mb', 0)
-    size_status = "✅" if size_mb <= max_size_mb else "❌"
-    size_color = "normal" if size_mb <= max_size_mb else "red"
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "File Size",
-            f"{size_mb:.1f} MB",
-            delta=f"Limit: {max_size_mb} MB",
-            delta_color=size_color
-        )
-    
-    # Duration validation (if available)
     duration = file_info.get('duration', 0)
-    if duration > 0:
-        with col2:
-            duration_status = "✅" if duration <= 3600 else "⚠️"  # Warn for files > 1 hour
-            duration_color = "normal" if duration <= 3600 else "orange"
-            
-            st.metric(
-                "Duration",
-                f"{duration/60:.1f} min",
-                delta="Long files take more time" if duration > 3600 else None,
-                delta_color=duration_color if duration > 3600 else "normal"
-            )
     
-    # Format validation
-    format_name = file_info.get('format', 'unknown')
-    with col3:
-        st.metric(
-            "Format",
-            format_name.upper(),
-            delta="Supported" if format_name != 'unknown' else "Unknown"
-        )
-    
-    # Show warnings or errors
+    # Only show warnings or errors, not duplicate metrics
     if size_mb > max_size_mb:
         st.error(f"❌ File size ({size_mb:.1f} MB) exceeds the maximum limit of {max_size_mb} MB")
         st.info("💡 **Suggestions:**")
@@ -259,7 +225,10 @@ def show_file_validation_feedback(file_info: Dict[str, Any], max_size_mb: int = 
         return False
     
     if duration > 3600:  # 1 hour
-        st.warning(f"⚠️ Long file detected ({duration/60:.1f} minutes)")
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        duration_str = f"{minutes}m {seconds}s"
+        st.warning(f"⚠️ Long file detected ({duration_str})")
         st.info("💡 **Note:** Processing may take several minutes for long files")
     
     return True
@@ -283,6 +252,7 @@ def show_processing_tips():
         - Small files (< 5 MB): 30-60 seconds
         - Medium files (5-25 MB): 1-3 minutes  
         - Large files (25-100 MB): 3-10 minutes
+        - Very large files (100MB-2GB): 10-60+ minutes
         
         🔄 **What's Happening:**
         1. File validation and format conversion

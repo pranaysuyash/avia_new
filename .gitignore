@@ -44,6 +44,14 @@ test_validation_results.json
 # Temporary files
 temp/
 
+# Node modules and build artifacts
+desktop_app/node_modules/
+mobile_app/node_modules/
+desktop_app/dist/
+mobile_app/.expo/
+package-lock.json
+yarn.lock
+
 # Kiro specs
 .kiro/
 

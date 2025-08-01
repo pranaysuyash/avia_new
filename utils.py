@@ -30,7 +30,7 @@ def cleanup_temp_files(file_paths: List[str]) -> None:
         except Exception as e:
             logger.warning(f"Failed to clean up file {file_path}: {e}")
 
-def validate_file_size(file_path: str, max_size_mb: int = 100) -> bool:
+def validate_file_size(file_path: str, max_size_mb: int = 2048) -> bool:
     """Validate file size is within limits"""
     try:
         if not os.path.exists(file_path):

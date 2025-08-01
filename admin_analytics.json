@@ -1,11 +1,11 @@
 {
   "usage_stats": {
-    "total_transcriptions": 1,
-    "total_processing_time": 120.5,
-    "total_files_processed": 1,
-    "total_words_transcribed": 500,
-    "api_calls_whisper": 1,
-    "api_calls_openai": 1,
+    "total_transcriptions": 5,
+    "total_processing_time": 299.54951906204224,
+    "total_files_processed": 5,
+    "total_words_transcribed": 4770,
+    "api_calls_whisper": 5,
+    "api_calls_openai": 3,
     "api_calls_elevenlabs": 0,
     "storage_used_mb": 0.0,
     "active_users": 0
@@ -22,12 +22,12 @@
   "daily_stats": [
     {
       "date": "2025-08-01",
-      "transcriptions": 1,
-      "processing_time": 120.5,
-      "words_transcribed": 500,
+      "transcriptions": 5,
+      "processing_time": 299.54951906204224,
+      "words_transcribed": 4770,
       "api_calls": {
-        "whisper": 1,
-        "openai": 1,
+        "whisper": 5,
+        "openai": 3,
         "elevenlabs": 0
       }
     }
@@ -37,8 +37,13 @@
       "transcriptions": 1,
       "processing_time": 120.5,
       "last_activity": "2025-08-01T07:41:33.729121"
+    },
+    "anonymous": {
+      "transcriptions": 4,
+      "processing_time": 179.04951906204224,
+      "last_activity": "2025-08-01T18:48:31.298553"
     }
   },
   "processing_history": [],
-  "last_updated": "2025-08-01T07:41:33.729131"
+  "last_updated": "2025-08-01T18:48:31.298577"
 }
