@@ -56,12 +56,31 @@ from admin_analytics import admin_analytics
 from voice_library import voice_library_manager
 from script_templates import script_template_manager
 
+# Import search and diarization modules
+from search.search_ui import SearchUI
+from speaker_diarization.diarization_ui import DiarizationUI
+
 # Import advanced audio processing modules
 from advanced_audio_processor import (
     AdvancedAudioProcessor, AudioQualityAnalyzer, NoiseReducer, AudioTrimmer,
     RealTimeStreamProcessor, AudioBookmarkManager, enhance_audio_for_transcription,
     analyze_audio_quality, create_audio_segments
 )
+
+# Import integration capabilities (Task 23)
+try:
+    from integration_manager import (
+        integration_manager, trigger_transcription_completed_webhook,
+        backup_transcript_to_cloud, extract_custom_entities
+    )
+    from webhooks.webhook_ui import render_webhook_settings
+    from cloud_storage.storage_ui import render_cloud_storage_settings  
+    from plugins.plugin_ui import render_plugin_settings
+    from sso.sso_ui import render_sso_settings
+    INTEGRATIONS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Integration modules not available: {e}")
+    INTEGRATIONS_AVAILABLE = False
 
 # Setup logging and configuration
 Config.setup_logging()
@@ -329,11 +348,23 @@ def main():
     st.session_state.audio_segmentation_enabled = enable_segmentation
     st.session_state.realtime_processing_enabled = enable_realtime
     
+    # Search feature toggle
+    st.sidebar.markdown("---")
+    enable_search = st.sidebar.checkbox(
+        "🔍 Advanced Search",
+        value=False,
+        help="Search through transcripts with advanced filters"
+    )
+    
     # File size limit info
     st.sidebar.info(f"📁 Max file size: {Config.MAX_FILE_SIZE_MB}MB")
     
     # Main content area - show appropriate interface based on mode
-    if batch_mode:
+    if enable_search:
+        # Show search interface
+        search_ui = SearchUI()
+        search_ui.render_search_interface()
+    elif batch_mode:
         # Show batch processing interface
         render_batch_interface(analysis_mode)
         

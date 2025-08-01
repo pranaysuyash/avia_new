@@ -9,8 +9,9 @@ from pathlib import Path
 from tts import (
     synthesize_speech, list_available_voices, estimate_synthesis_cost,
     get_voice_by_name, validate_voice_settings, cleanup_tts_files,
-    TTSError, DEFAULT_VOICE_ID, DEFAULT_VOICE_SETTINGS, VOICE_PRESETS
+    DEFAULT_VOICE_ID, DEFAULT_VOICE_SETTINGS, VOICE_PRESETS
 )
+from errors import TTSError, ErrorCode
 from elevenlabs import VoiceSettings
 
 class TestTTSModule:
@@ -182,7 +183,7 @@ class TestTTSModule:
         result = get_voice_by_name("NonExistent")
         assert result is None
     
-    @patch("tts.list_available_voices", side_effect=TTSError("API Error"))
+    @patch("tts.list_available_voices", side_effect=TTSError("API Error", ErrorCode.API_SERVICE_UNAVAILABLE, "Failed to list voices"))
     def test_get_voice_by_name_api_error(self, mock_list_voices):
         """Test voice search handles API errors"""
         result = get_voice_by_name("Rachel")

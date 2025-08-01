@@ -9,9 +9,9 @@ from ner_advanced import (
     generate_script,
     analyze_sentiment,
     get_fallback_suggestions,
-    AdvancedNERError,
     _make_gpt_request_with_retry
 )
+from errors import NERError as AdvancedNERError
 
 class TestAdvancedNER:
     """Test suite for advanced NER functionality"""

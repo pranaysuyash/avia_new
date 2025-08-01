@@ -74,10 +74,18 @@ def synthesize_speech(text: str, voice_id: str = DEFAULT_VOICE_ID,
         
         # Validate input
         if not text or not text.strip():
-            raise TTSError("Text cannot be empty")
+            raise TTSError(
+                "Text cannot be empty",
+                ErrorCode.VALIDATION_ERROR,
+                "Please provide text to convert to speech"
+            )
         
         if len(text) > 5000:  # ElevenLabs character limit
-            raise TTSError("Text too long (max 5000 characters)")
+            raise TTSError(
+                "Text too long (max 5000 characters)",
+                ErrorCode.VALIDATION_ERROR,
+                "Text must be less than 5000 characters. Please shorten your text."
+            )
         
         # Use default voice settings if none provided
         if voice_settings is None:
@@ -115,7 +123,11 @@ def synthesize_speech(text: str, voice_id: str = DEFAULT_VOICE_ID,
     except Exception as e:
         error_msg = f"Speech synthesis failed: {str(e)}"
         logger.error(error_msg)
-        raise TTSError(error_msg) from e
+        raise TTSError(
+            error_msg,
+            ErrorCode.TTS_SYNTHESIS_ERROR,
+            "Failed to generate speech. Please try again or use a different voice."
+        ) from e
 
 def list_available_voices() -> List[Dict]:
     """
@@ -155,7 +167,11 @@ def list_available_voices() -> List[Dict]:
     except Exception as e:
         error_msg = f"Failed to list voices: {str(e)}"
         logger.error(error_msg)
-        raise TTSError(error_msg) from e
+        raise TTSError(
+            error_msg,
+            ErrorCode.TTS_SYNTHESIS_ERROR,
+            "Failed to generate speech. Please try again or use a different voice."
+        ) from e
 
 def get_voice_by_name(voice_name: str) -> Optional[Dict]:
     """
@@ -228,7 +244,11 @@ def get_synthesis_history() -> List[Dict]:
     except Exception as e:
         error_msg = f"Failed to get synthesis history: {str(e)}"
         logger.error(error_msg)
-        raise TTSError(error_msg) from e
+        raise TTSError(
+            error_msg,
+            ErrorCode.TTS_SYNTHESIS_ERROR,
+            "Failed to generate speech. Please try again or use a different voice."
+        ) from e
 
 def validate_voice_settings(settings: Dict) -> VoiceSettings:
     """
@@ -265,7 +285,11 @@ def validate_voice_settings(settings: Dict) -> VoiceSettings:
         )
         
     except Exception as e:
-        raise TTSError(f"Invalid voice settings: {str(e)}") from e
+        raise TTSError(
+            f"Invalid voice settings: {str(e)}",
+            ErrorCode.VALIDATION_ERROR,
+            "Invalid voice settings provided. Please check your settings."
+        ) from e
 
 def cleanup_tts_files(max_age_hours: int = 24):
     """

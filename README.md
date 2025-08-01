@@ -28,6 +28,9 @@ A comprehensive enterprise-ready platform that transforms audio and video conten
 - **📤 Enhanced Export**: 8+ formats including PDF, DOCX, CSV with templates
 - **🔍 Batch Processing**: Process multiple files with progress tracking
 - **📈 Analytics & Reporting**: Usage metrics and team insights
+- **🔎 Advanced Search**: Full-text search with filters, facets, and saved searches
+- **🎙️ Speaker Diarization**: Identify and label different speakers in audio
+- **🎵 Advanced Audio Processing**: Noise reduction, voice enhancement, and quality analysis
 
 ### 🔧 Technical Infrastructure
 - **🚀 REST API**: Complete FastAPI backend with JWT authentication
