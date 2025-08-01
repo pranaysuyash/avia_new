@@ -15,8 +15,32 @@ ENV/
 
 # Secrets & Environment files
 .env
+.env.*
 .env.production
 .env.*.local
+*.key
+*.pem
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets.json
+credentials.json
+config.secret.json
+auth.json
+
+# Security files
+encryption.key
+encryption.salt
+anonymization.salt
+access_control.json
+security_audit.log
+*.enc
+
+# API keys and tokens
+api_keys.json
+tokens.json
+oauth_tokens.json
 
 # IDE & editor files
 .vscode/
@@ -33,6 +57,20 @@ Thumbs.db
 logs/
 *.log
 app_*.log
+mcp-shell.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+transcription_app.db
+search_index.db
+
+# Session and cache files
+session_store/
+cache/
+*.session
+*.cache
 
 # Test artifacts
 .pytest_cache/
