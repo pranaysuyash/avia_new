@@ -1,0 +1,44 @@
+{
+  "usage_stats": {
+    "total_transcriptions": 1,
+    "total_processing_time": 120.5,
+    "total_files_processed": 1,
+    "total_words_transcribed": 500,
+    "api_calls_whisper": 1,
+    "api_calls_openai": 1,
+    "api_calls_elevenlabs": 0,
+    "storage_used_mb": 0.0,
+    "active_users": 0
+  },
+  "cost_tracking": {
+    "whisper_cost": 0.0,
+    "openai_cost": 0.0,
+    "elevenlabs_cost": 0.0,
+    "storage_cost": 0.0,
+    "total_cost": 0.0,
+    "cost_per_minute": 0.0,
+    "cost_per_user": 0.0
+  },
+  "daily_stats": [
+    {
+      "date": "2025-08-01",
+      "transcriptions": 1,
+      "processing_time": 120.5,
+      "words_transcribed": 500,
+      "api_calls": {
+        "whisper": 1,
+        "openai": 1,
+        "elevenlabs": 0
+      }
+    }
+  ],
+  "user_activity": {
+    "test_user": {
+      "transcriptions": 1,
+      "processing_time": 120.5,
+      "last_activity": "2025-08-01T07:41:33.729121"
+    }
+  },
+  "processing_history": [],
+  "last_updated": "2025-08-01T07:41:33.729131"
+}

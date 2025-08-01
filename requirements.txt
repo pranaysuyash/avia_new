@@ -50,6 +50,10 @@ websockets>=12.0
 socketio>=5.10.0
 python-socketio>=5.10.0
 
+# Analytics and visualization
+plotly>=5.17.0
+psutil>=5.9.0
+
 # Testing dependencies
 pytest>=7.4.0
 pytest-cov>=4.1.0

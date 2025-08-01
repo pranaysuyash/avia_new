@@ -1,0 +1,95 @@
+{
+  "voices": [
+    {
+      "id": "professional_male",
+      "name": "Professional Male",
+      "description": "Clear, authoritative male voice for business content",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "settings": {
+        "stability": 0.8,
+        "similarity_boost": 0.7,
+        "style": 0.0
+      },
+      "category": "Professional",
+      "is_custom": false,
+      "created_date": "2025-08-01T07:41:33.734636",
+      "usage_count": 0
+    },
+    {
+      "id": "professional_female",
+      "name": "Professional Female",
+      "description": "Clear, confident female voice for presentations",
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "settings": {
+        "stability": 0.8,
+        "similarity_boost": 0.7,
+        "style": 0.0
+      },
+      "category": "Professional",
+      "is_custom": false,
+      "created_date": "2025-08-01T07:41:33.734645",
+      "usage_count": 0
+    },
+    {
+      "id": "conversational_male",
+      "name": "Conversational Male",
+      "description": "Friendly, casual male voice for informal content",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "settings": {
+        "stability": 0.6,
+        "similarity_boost": 0.8,
+        "style": 0.2
+      },
+      "category": "Conversational",
+      "is_custom": false,
+      "created_date": "2025-08-01T07:41:33.734647",
+      "usage_count": 0
+    },
+    {
+      "id": "conversational_female",
+      "name": "Conversational Female",
+      "description": "Warm, approachable female voice for casual content",
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "settings": {
+        "stability": 0.6,
+        "similarity_boost": 0.8,
+        "style": 0.2
+      },
+      "category": "Conversational",
+      "is_custom": false,
+      "created_date": "2025-08-01T07:41:33.734649",
+      "usage_count": 0
+    },
+    {
+      "id": "narrative_male",
+      "name": "Narrative Male",
+      "description": "Engaging male voice for storytelling and narration",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "settings": {
+        "stability": 0.7,
+        "similarity_boost": 0.9,
+        "style": 0.4
+      },
+      "category": "Narrative",
+      "is_custom": false,
+      "created_date": "2025-08-01T07:41:33.734651",
+      "usage_count": 0
+    },
+    {
+      "id": "narrative_female",
+      "name": "Narrative Female",
+      "description": "Expressive female voice for stories and audiobooks",
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "settings": {
+        "stability": 0.7,
+        "similarity_boost": 0.9,
+        "style": 0.4
+      },
+      "category": "Narrative",
+      "is_custom": false,
+      "created_date": "2025-08-01T07:41:33.734653",
+      "usage_count": 0
+    }
+  ],
+  "last_updated": "2025-08-01T07:41:33.736234"
+}

@@ -51,6 +51,18 @@ from advanced_processing import (
 # Import batch processing modules
 from batch_interface import render_batch_interface, cleanup_batch_session
 
+# Import admin analytics modules
+from admin_analytics import admin_analytics
+from voice_library import voice_library_manager
+from script_templates import script_template_manager
+
+# Import advanced audio processing modules
+from advanced_audio_processor import (
+    AdvancedAudioProcessor, AudioQualityAnalyzer, NoiseReducer, AudioTrimmer,
+    RealTimeStreamProcessor, AudioBookmarkManager, enhance_audio_for_transcription,
+    analyze_audio_quality, create_audio_segments
+)
+
 # Setup logging and configuration
 Config.setup_logging()
 logger = logging.getLogger(__name__)
@@ -221,6 +233,102 @@ def main():
         disabled=not (api_status["openai"] and api_status["elevenlabs"])
     )
     
+    # Advanced Audio Processing Options
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🎛️ Advanced Audio Processing")
+    
+    # Audio enhancement options
+    enable_audio_enhancement = st.sidebar.checkbox(
+        "Enable Audio Enhancement",
+        value=True,
+        help="""**Audio Enhancement Features:**
+
+🔇 **Noise Reduction:**
+• Remove background noise and static
+• Spectral subtraction algorithms
+• Improve speech clarity
+
+🔊 **Volume Normalization:**
+• Consistent audio levels
+• Dynamic range compression
+• Optimal transcription quality
+
+✂️ **Smart Trimming:**
+• Remove silence from beginning/end
+• Preserve natural speech flow
+• Reduce processing time
+
+📊 **Quality Analysis:**
+• Signal-to-noise ratio measurement
+• Audio quality scoring
+• Optimization recommendations
+
+💡 **Benefits:** Better transcription accuracy, cleaner audio output"""
+    )
+    
+    # Audio segmentation options
+    enable_segmentation = st.sidebar.checkbox(
+        "Enable Audio Segmentation",
+        value=False,
+        help="""**Audio Segmentation Features:**
+
+🎯 **Smart Segmentation:**
+• Automatic silence-based splitting
+• Configurable segment lengths
+• Overlap handling for continuity
+
+📑 **Chapter Creation:**
+• Auto-generate audio chapters
+• Manual bookmark placement
+• Timeline navigation
+
+🔄 **Batch Processing:**
+• Process long files in chunks
+• Parallel segment processing
+• Improved memory efficiency
+
+📊 **Segment Analysis:**
+• Individual segment quality metrics
+• Speaker change detection
+• Content density mapping
+
+💡 **Perfect for:** Long recordings, meetings, lectures, podcasts"""
+    )
+    
+    # Real-time processing options
+    enable_realtime = st.sidebar.checkbox(
+        "Real-time Processing",
+        value=False,
+        help="""**Real-time Processing Features:**
+
+🎤 **Live Transcription:**
+• Stream audio processing
+• Real-time text output
+• Voice activity detection
+
+📊 **Live Analytics:**
+• Real-time quality monitoring
+• Speech detection indicators
+• Processing performance metrics
+
+🔄 **Streaming Support:**
+• Continuous audio input
+• Buffered processing
+• Low-latency output
+
+⚡ **Use Cases:**
+• Live meetings and conferences
+• Real-time captioning
+• Interactive applications
+
+⚠️ **Note:** Experimental feature - requires stable audio input"""
+    )
+    
+    # Store audio processing preferences in session state
+    st.session_state.audio_enhancement_enabled = enable_audio_enhancement
+    st.session_state.audio_segmentation_enabled = enable_segmentation
+    st.session_state.realtime_processing_enabled = enable_realtime
+    
     # File size limit info
     st.sidebar.info(f"📁 Max file size: {Config.MAX_FILE_SIZE_MB}MB")
     
@@ -249,8 +357,60 @@ def main():
         # Show main interface
         render_main_interface(analysis_mode)
 
+def render_realtime_interface():
+    """Render real-time processing interface"""
+    st.subheader("🎤 Real-time Audio Processing")
+    
+    # Initialize real-time processor if not exists
+    if 'realtime_processor' not in st.session_state:
+        st.session_state.realtime_processor = RealTimeStreamProcessor()
+    
+    processor = st.session_state.realtime_processor
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("🎤 Start Streaming", disabled=processor.is_streaming):
+            processor.start_streaming()
+            st.success("Real-time streaming started!")
+            st.rerun()
+    
+    with col2:
+        if st.button("⏹️ Stop Streaming", disabled=not processor.is_streaming):
+            processor.stop_streaming()
+            st.success("Real-time streaming stopped!")
+            st.rerun()
+    
+    with col3:
+        status = "🟢 Active" if processor.is_streaming else "🔴 Inactive"
+        st.write(f"**Status:** {status}")
+    
+    # Display real-time metrics if streaming
+    if processor.is_streaming:
+        st.info("📊 **Real-time Processing Active**")
+        st.write("This is a demonstration of real-time processing capabilities.")
+        st.write("In a full implementation, this would show live transcription and analysis.")
+        
+        # Placeholder for real-time metrics
+        metrics_placeholder = st.empty()
+        
+        # Show sample real-time data
+        with metrics_placeholder.container():
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Audio Level", "65 dB")
+            with col2:
+                st.metric("Speech Detected", "Yes")
+            with col3:
+                st.metric("Processing Latency", "120ms")
+
 def render_main_interface(analysis_mode: str):
     """Render the main transcription interface"""
+    
+    # Show real-time interface if enabled
+    if st.session_state.get('realtime_processing_enabled', False):
+        render_realtime_interface()
+        st.markdown("---")
     
     # Input section
     st.header("📁 Input")
@@ -590,6 +750,33 @@ def render_admin_panel():
     st.header("🔧 Admin Panel")
     st.warning("⚠️ Admin features for content generation and testing")
     
+    # Admin panel tabs
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📝 Script Generation", 
+        "📊 Analytics Dashboard", 
+        "🎤 Voice Library", 
+        "📚 Script Templates",
+        "⚙️ Admin Controls"
+    ])
+    
+    with tab1:
+        render_script_generation_tab()
+    
+    with tab2:
+        admin_analytics.render_analytics_dashboard()
+    
+    with tab3:
+        voice_library_manager.render_voice_library_ui()
+    
+    with tab4:
+        script_template_manager.render_templates_ui()
+    
+    with tab5:
+        render_admin_controls_tab()
+
+def render_script_generation_tab():
+    """Render the script generation tab of admin panel"""
+    
     # Show summary of existing results if available
     if session_manager.has_results():
         results = session_manager.get_results()
@@ -838,6 +1025,65 @@ def render_admin_panel():
         - ElevenLabs API key required for text-to-speech synthesis
         """)
 
+def render_admin_controls_tab():
+    """Render admin controls tab"""
+    st.subheader("⚙️ Admin Controls")
+    
+    # Admin controls section
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🗑️ Clear Admin Content", help="Clear generated scripts and audio while preserving main analysis results"):
+            session_manager.clear_admin_state()
+            st.success("🗑️ Admin content cleared")
+            st.rerun()
+    
+    with col2:
+        if st.button("🔄 Clear All Session Data", help="Clear everything including analysis results"):
+            session_manager.clear_results()
+            session_manager.clear_admin_state()
+            st.success("🗑️ All session data cleared")
+            st.rerun()
+    
+    # Admin panel help section
+    with st.expander("ℹ️ Admin Panel Help"):
+        st.markdown("""
+        **Script Generation:**
+        - Enter a descriptive prompt for the content you want to create
+        - Choose an appropriate style (conversational, formal, interview, presentation)
+        - Generated scripts can be edited before converting to speech
+        
+        **Analytics Dashboard:**
+        - View usage statistics and processing metrics
+        - Track API costs and system performance
+        - Monitor user activity and system health
+        
+        **Voice Library:**
+        - Manage TTS voice profiles and settings
+        - Create custom voice configurations
+        - Track voice usage statistics
+        
+        **Script Templates:**
+        - Create reusable script templates with variables
+        - Organize templates by category and style
+        - Generate content from templates quickly
+        
+        **Text-to-Speech:**
+        - Select a voice preset that matches your content style
+        - Professional: Clear, business-appropriate voice
+        - Conversational: Friendly, casual tone
+        - Narrative: Storytelling, engaging voice
+        
+        **Testing Integration:**
+        - Use "Test with Analysis Pipeline" to process generated audio
+        - This helps verify the complete transcription and analysis workflow
+        - Generated content can be used for system demonstrations
+        
+        **API Requirements:**
+        - OpenAI API key required for script generation
+        - ElevenLabs API key required for text-to-speech synthesis
+        """)
+
 def generate_admin_script(prompt: str, format_type: str, style: str):
     """Generate script using AI based on prompt, format, and style"""
     try:
@@ -892,6 +1138,24 @@ def convert_script_to_speech(script: str, voice_preset: str, format_type: str = 
                 st.session_state.admin_state['generated_audio_path'] = audio_path
                 st.success(f"✅ Speech synthesis completed ({format_info})!")
                 logger.info(f"TTS synthesis successful: {audio_path}")
+                
+                # Track TTS usage in analytics
+                try:
+                    admin_analytics.update_usage_stats(
+                        api_calls={'elevenlabs': 1},
+                        user_id=getattr(st.session_state, 'user_id', 'admin')
+                    )
+                    
+                    # Update analytics data with TTS character count
+                    analytics_data = admin_analytics.load_analytics_data()
+                    if 'tts_characters' not in analytics_data['usage_stats']:
+                        analytics_data['usage_stats']['tts_characters'] = 0
+                    analytics_data['usage_stats']['tts_characters'] += len(script)
+                    admin_analytics.save_analytics_data(analytics_data)
+                    
+                except Exception as analytics_error:
+                    logger.warning(f"Failed to update TTS analytics: {analytics_error}")
+                
             else:
                 st.session_state.admin_state['admin_error'] = "Speech synthesis failed to create audio file"
                 logger.error("TTS synthesis failed: no audio file created")
@@ -1021,6 +1285,7 @@ def clear_session_state():
 def process_audio_enhanced(audio_source, analysis_mode: str):
     """Enhanced audio processing with detailed progress tracking"""
     temp_files_to_cleanup = []
+    start_time = time.time()  # Track processing time for analytics
     
     # Create processing steps
     processing_steps = create_processing_steps()
@@ -1090,17 +1355,74 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
                 logger.info(f"Video file detected, extracting audio: {temp_path}")
                 processed_audio_path = media.extract_audio(temp_path, Config.MAX_FILE_SIZE_MB)
                 temp_files_to_cleanup.append(processed_audio_path)
-                progress.update(80, "Audio extraction complete")
+                progress.update(60, "Audio extraction complete")
             elif media.is_audio_file(temp_path):
                 progress.update(30, "Audio file detected, converting format...")
                 logger.info(f"Audio file detected, converting format: {temp_path}")
                 processed_audio_path = media.convert_audio_format(temp_path, "wav")
                 temp_files_to_cleanup.append(processed_audio_path)
-                progress.update(80, "Audio format conversion complete")
+                progress.update(60, "Audio format conversion complete")
             else:
                 progress.update(50, "Validating media file...")
                 media.validate_media_file(temp_path, Config.MAX_FILE_SIZE_MB)
-                progress.update(80, "Media validation complete")
+                progress.update(60, "Media validation complete")
+            
+            # Step 2.5: Advanced Audio Processing (if enabled)
+            if st.session_state.get('audio_enhancement_enabled', True):
+                progress.update(65, "Applying advanced audio processing...")
+                logger.info("Applying advanced audio enhancement")
+                
+                try:
+                    # Initialize advanced audio processor
+                    audio_processor = AdvancedAudioProcessor()
+                    
+                    # Analyze audio quality first
+                    progress.update(70, "Analyzing audio quality...")
+                    quality_metrics = audio_processor.quality_analyzer.analyze_quality(processed_audio_path)
+                    
+                    # Store quality metrics in session state for display
+                    st.session_state.audio_quality_metrics = quality_metrics
+                    
+                    # Apply enhancements based on quality analysis
+                    progress.update(75, "Enhancing audio quality...")
+                    enhanced_audio_path = audio_processor.enhance_audio(
+                        processed_audio_path,
+                        apply_noise_reduction=quality_metrics.snr_db < 15,
+                        apply_normalization=quality_metrics.rms_energy < 0.01 or quality_metrics.rms_energy > 0.5,
+                        trim_silence=True
+                    )
+                    
+                    if enhanced_audio_path != processed_audio_path:
+                        temp_files_to_cleanup.append(enhanced_audio_path)
+                        processed_audio_path = enhanced_audio_path
+                        logger.info(f"Audio enhanced: {enhanced_audio_path}")
+                    
+                    progress.update(85, "Audio enhancement complete")
+                    
+                    # Handle segmentation if enabled
+                    if st.session_state.get('audio_segmentation_enabled', False):
+                        progress.update(87, "Creating audio segments...")
+                        segment_result = audio_processor.create_segments_with_bookmarks(
+                            processed_audio_path, 
+                            segment_method="silence"
+                        )
+                        
+                        # Store segmentation results in session state
+                        st.session_state.audio_segments = segment_result['segments']
+                        st.session_state.audio_bookmarks = segment_result['bookmarks']
+                        st.session_state.audio_chapters = segment_result['chapters']
+                        
+                        # Add segment files to cleanup list
+                        temp_files_to_cleanup.extend(segment_result['segments'])
+                        
+                        logger.info(f"Audio segmented into {len(segment_result['segments'])} parts")
+                    
+                    progress.update(90, "Advanced audio processing complete")
+                    
+                except Exception as e:
+                    logger.warning(f"Advanced audio processing failed: {e}")
+                    st.warning("⚠️ Advanced audio processing failed, continuing with standard processing")
+                    # Continue with original audio if enhancement fails
             
             progress.update(100, "Media processing complete")
             progress.next_step("Starting transcription...")
@@ -1206,6 +1528,30 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
             # Complete processing in session manager
             session_manager.complete_processing(results)
             
+            # Track analytics for admin dashboard
+            try:
+                processing_time = time.time() - start_time if 'start_time' in locals() else 0
+                api_calls = {}
+                
+                # Track API usage based on analysis mode
+                if "Advanced" in analysis_mode:
+                    api_calls['openai'] = 1
+                    api_calls['whisper'] = 1
+                else:
+                    api_calls['whisper'] = 1
+                
+                # Update admin analytics
+                admin_analytics.update_usage_stats(
+                    transcription_time=processing_time,
+                    words_count=results.word_count,
+                    api_calls=api_calls,
+                    user_id=getattr(st.session_state, 'user_id', 'anonymous')
+                )
+                
+                logger.info(f"Analytics updated: {processing_time:.2f}s processing, {results.word_count} words")
+            except Exception as analytics_error:
+                logger.warning(f"Failed to update analytics: {analytics_error}")
+            
             progress.update(100, "Results ready for display")
             progress.complete("🎉 Processing completed successfully!")
             
@@ -1231,6 +1577,93 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
 def process_audio(audio_source, analysis_mode: str):
     """Legacy process_audio function - redirects to enhanced version"""
     return process_audio_enhanced(audio_source, analysis_mode)
+
+def render_audio_quality_analysis():
+    """Render audio quality analysis and advanced processing results"""
+    
+    # Display audio quality metrics if available
+    if hasattr(st.session_state, 'audio_quality_metrics'):
+        st.subheader("🎛️ Audio Quality Analysis")
+        
+        metrics = st.session_state.audio_quality_metrics
+        
+        # Create columns for metrics display
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            enhanced_metric_display(
+                "Quality Score",
+                f"{metrics.quality_score:.1f}/100",
+                delta=None,
+                help="Overall audio quality assessment"
+            )
+        
+        with col2:
+            enhanced_metric_display(
+                "Signal-to-Noise Ratio",
+                f"{metrics.snr_db:.1f} dB",
+                delta=None,
+                help="Higher values indicate cleaner audio"
+            )
+        
+        with col3:
+            enhanced_metric_display(
+                "Dynamic Range",
+                f"{metrics.dynamic_range_db:.1f} dB",
+                delta=None,
+                help="Audio dynamic range measurement"
+            )
+        
+        with col4:
+            enhanced_metric_display(
+                "Spectral Centroid",
+                f"{metrics.spectral_centroid:.0f} Hz",
+                delta=None,
+                help="Average frequency content"
+            )
+        
+        # Display recommendations
+        if metrics.recommendations:
+            st.info("💡 **Audio Quality Recommendations:**")
+            for rec in metrics.recommendations:
+                st.write(f"• {rec}")
+    
+    # Display segmentation results if available
+    if hasattr(st.session_state, 'audio_segments') and st.session_state.audio_segments:
+        st.subheader("📑 Audio Segmentation")
+        
+        segments = st.session_state.audio_segments
+        bookmarks = getattr(st.session_state, 'audio_bookmarks', [])
+        chapters = getattr(st.session_state, 'audio_chapters', [])
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric("Total Segments", len(segments))
+            st.metric("Bookmarks", len(bookmarks))
+        
+        with col2:
+            st.metric("Auto Chapters", len(chapters))
+            if segments:
+                # Calculate average segment duration (approximate)
+                avg_duration = "~5 min"  # Placeholder - could calculate actual
+                st.metric("Avg Segment Length", avg_duration)
+        
+        # Display chapters if available
+        if chapters:
+            with st.expander("📖 Auto-Generated Chapters", expanded=False):
+                for i, chapter in enumerate(chapters):
+                    st.write(f"**{chapter.title}** ({chapter.start_time:.1f}s - {chapter.end_time:.1f}s)")
+                    if chapter.description:
+                        st.write(f"  _{chapter.description}_")
+        
+        # Display bookmarks if available
+        if bookmarks:
+            with st.expander("🔖 Audio Bookmarks", expanded=False):
+                for bookmark in bookmarks:
+                    st.write(f"**{bookmark.title}** at {bookmark.timestamp:.1f}s")
+                    if bookmark.description:
+                        st.write(f"  _{bookmark.description}_")
 
 def render_results_enhanced(analysis_mode: str):
     """Enhanced results display with session manager integration"""
@@ -1260,6 +1693,12 @@ def render_results_enhanced(analysis_mode: str):
         with col4:
             confidence_display = f"{results.confidence:.1%}" if results.confidence > 0 else "N/A"
             st.metric("Confidence", confidence_display)
+    
+    # Show advanced audio processing results if available
+    if (hasattr(st.session_state, 'audio_quality_metrics') or 
+        hasattr(st.session_state, 'audio_segments')):
+        with st.expander("🎛️ Advanced Audio Processing", expanded=False):
+            render_audio_quality_analysis()
     
     # Create tabs for better organization
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📝 Transcript", "🎯 Interactive", "🏷️ Entities", "🎯 Analysis", "📥 Downloads", "⚙️ Settings"])

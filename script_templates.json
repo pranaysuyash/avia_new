@@ -1,0 +1,121 @@
+{
+  "templates": [
+    {
+      "id": "business_presentation",
+      "name": "Business Presentation",
+      "description": "Professional presentation template for business content",
+      "category": "Business",
+      "template_text": "Good morning, everyone. Today I'd like to discuss {topic}.\n\n{introduction}\n\nLet me start by outlining the key points we'll cover:\n1. {point_1}\n2. {point_2}\n3. {point_3}\n\n{main_content}\n\nIn conclusion, {conclusion}\n\nThank you for your attention. Are there any questions?",
+      "variables": [
+        "topic",
+        "introduction",
+        "point_1",
+        "point_2",
+        "point_3",
+        "main_content",
+        "conclusion"
+      ],
+      "style": "formal",
+      "format_type": "monologue",
+      "created_date": "2025-08-01T07:41:33.739720",
+      "usage_count": 0,
+      "is_default": true
+    },
+    {
+      "id": "interview_format",
+      "name": "Interview Format",
+      "description": "Two-person interview template with questions and responses",
+      "category": "Interview",
+      "template_text": "Interviewer: Welcome to our show. Today we're joined by {guest_name}, {guest_title}. Thank you for being here.\n\nGuest: Thank you for having me.\n\nInterviewer: Let's start with {opening_question}\n\nGuest: {opening_response}\n\nInterviewer: That's fascinating. Can you tell us more about {follow_up_topic}?\n\nGuest: {detailed_response}\n\nInterviewer: {additional_questions}\n\nGuest: {final_thoughts}\n\nInterviewer: Thank you so much for your time and insights.\n\nGuest: My pleasure. Thank you for having me.",
+      "variables": [
+        "guest_name",
+        "guest_title",
+        "opening_question",
+        "opening_response",
+        "follow_up_topic",
+        "detailed_response",
+        "additional_questions",
+        "final_thoughts"
+      ],
+      "style": "conversational",
+      "format_type": "dialogue",
+      "created_date": "2025-08-01T07:41:33.739729",
+      "usage_count": 0,
+      "is_default": true
+    },
+    {
+      "id": "educational_content",
+      "name": "Educational Content",
+      "description": "Educational content template for tutorials and lessons",
+      "category": "Education",
+      "template_text": "Welcome to today's lesson on {subject}.\n\nLearning Objectives:\nBy the end of this session, you will be able to:\n- {objective_1}\n- {objective_2}\n- {objective_3}\n\nLet's begin with the basics. {introduction_content}\n\nNow, let's dive deeper into {main_topic}. {detailed_explanation}\n\nHere's a practical example: {example}\n\nKey takeaways from today's lesson:\n1. {takeaway_1}\n2. {takeaway_2}\n3. {takeaway_3}\n\nFor your next steps, I recommend {recommendations}.\n\nThank you for learning with us today!",
+      "variables": [
+        "subject",
+        "objective_1",
+        "objective_2",
+        "objective_3",
+        "introduction_content",
+        "main_topic",
+        "detailed_explanation",
+        "example",
+        "takeaway_1",
+        "takeaway_2",
+        "takeaway_3",
+        "recommendations"
+      ],
+      "style": "educational",
+      "format_type": "monologue",
+      "created_date": "2025-08-01T07:41:33.739731",
+      "usage_count": 0,
+      "is_default": true
+    },
+    {
+      "id": "podcast_intro",
+      "name": "Podcast Introduction",
+      "description": "Podcast episode introduction template",
+      "category": "Media",
+      "template_text": "Welcome to {podcast_name}, the podcast where we {podcast_description}.\n\nI'm your host, {host_name}.\n\nIn today's episode, we're exploring {episode_topic}. {episode_description}\n\n{guest_introduction}\n\nBefore we dive in, a quick reminder to {call_to_action}.\n\nNow, let's get started with {opening_segment}.",
+      "variables": [
+        "podcast_name",
+        "podcast_description",
+        "host_name",
+        "episode_topic",
+        "episode_description",
+        "guest_introduction",
+        "call_to_action",
+        "opening_segment"
+      ],
+      "style": "conversational",
+      "format_type": "monologue",
+      "created_date": "2025-08-01T07:41:33.739733",
+      "usage_count": 0,
+      "is_default": true
+    },
+    {
+      "id": "product_demo",
+      "name": "Product Demonstration",
+      "description": "Product demo and walkthrough template",
+      "category": "Marketing",
+      "template_text": "Hello, and welcome to this demonstration of {product_name}.\n\nToday, I'll show you how {product_name} can {main_benefit}.\n\nLet me start by showing you the key features:\n\nFeature 1: {feature_1_description}\nAs you can see, {feature_1_demo}\n\nFeature 2: {feature_2_description}\nHere's how it works: {feature_2_demo}\n\nFeature 3: {feature_3_description}\nLet me demonstrate: {feature_3_demo}\n\nThe real power of {product_name} becomes clear when you {use_case_example}.\n\n{closing_statement}\n\nTo learn more or get started, {call_to_action}.",
+      "variables": [
+        "product_name",
+        "main_benefit",
+        "feature_1_description",
+        "feature_1_demo",
+        "feature_2_description",
+        "feature_2_demo",
+        "feature_3_description",
+        "feature_3_demo",
+        "use_case_example",
+        "closing_statement",
+        "call_to_action"
+      ],
+      "style": "professional",
+      "format_type": "monologue",
+      "created_date": "2025-08-01T07:41:33.739735",
+      "usage_count": 0,
+      "is_default": true
+    }
+  ],
+  "last_updated": "2025-08-01T07:41:33.741432"
+}
