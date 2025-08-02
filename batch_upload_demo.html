@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Upload Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f9fafb; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Batch File Processing</h1>
+        
+        <!-- Modal Preview -->
+        <div class="bg-white rounded-xl shadow-xl">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-900">
+                        Batch File Processing
+                    </h2>
+                    <button class="p-2 hover:bg-gray-100 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6">
+                <!-- Drop Zone -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer bg-gray-50">
+                    <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="text-lg font-medium text-gray-900 mb-2">
+                        Drop files here or click to browse
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        Supports audio (MP3, WAV, M4A) and video (MP4, MOV, AVI) files
+                    </p>
+                </div>
+
+                <!-- Settings -->
+                <div class="mt-6 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Language
+                        </label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900">
+                            <option>Auto-detect</option>
+                            <option>English</option>
+                            <option>Spanish</option>
+                            <option>French</option>
+                            <option>German</option>
+                            <option>Chinese</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Model
+                        </label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900">
+                            <option>Tiny (Fast)</option>
+                            <option selected>Base (Balanced)</option>
+                            <option>Small (Accurate)</option>
+                            <option>Medium (High Quality)</option>
+                            <option>Large (Best Quality)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" id="diarization" checked class="mr-2">
+                        <label for="diarization" class="text-sm font-medium text-gray-700">
+                            Enable Speaker Diarization
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" id="entities" checked class="mr-2">
+                        <label for="entities" class="text-sm font-medium text-gray-700">
+                            Extract Named Entities
+                        </label>
+                    </div>
+                </div>
+
+                <!-- File List -->
+                <div class="mt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">
+                            Files (5)
+                        </h3>
+                        <div class="text-sm text-gray-600">
+                            Total size: 125.3 MB
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                        <!-- Completed File -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">
+                                        meeting_recording_01.mp3
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        15.2 MB
+                                    </p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-green-600">Completed</p>
+                        </div>
+
+                        <!-- Processing File -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">
+                                        interview_session.wav
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        32.8 MB
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="w-32">
+                                <div class="bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full transition-all" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pending File -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">
+                                        conference_call.m4a
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        28.1 MB
+                                    </p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500">Pending</p>
+                        </div>
+
+                        <!-- Error File -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">
+                                        podcast_episode.mp4
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        45.2 MB
+                                    </p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-red-600">File too large</p>
+                        </div>
+
+                        <!-- Pending File -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">
+                                        training_video.mov
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        4.0 MB
+                                    </p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500">Pending</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Summary -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium text-blue-900">
+                            Processing Files
+                        </p>
+                        <p class="text-sm text-blue-700">
+                            1 / 5 completed
+                        </p>
+                    </div>
+                    <div class="bg-blue-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all" style="width: 20%"></div>
+                    </div>
+                    <p class="text-xs text-red-600 mt-2">
+                        1 file failed to process
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-600">
+                        Processing up to 3 files simultaneously
+                    </p>
+                    <div class="flex items-center space-x-3">
+                        <button class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                            Cancel
+                        </button>
+                        <button class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg font-medium cursor-not-allowed">
+                            Processing...
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Description -->
+        <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold mb-4">Batch Processing Features</h2>
+            <ul class="space-y-2">
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Drag and drop multiple audio/video files</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Process up to 100 files in a single batch</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Parallel processing with configurable concurrency</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Real-time progress tracking for each file</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Automatic retry on transient failures</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Detailed error reporting for failed files</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Batch-wide settings for language, model, and features</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

@@ -13,11 +13,11 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from ..auth import (
+from api.auth import (
     auth_required, admin_required, create_api_response, 
     auth_manager, security_manager
 )
-from ..models import (
+from api.models import (
     LoginRequest, LoginResponse, APIKeyRequest, APIKeyResponse,
     UserCreateRequest, UserResponse, SecurityStatusResponse
 )

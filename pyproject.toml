@@ -1,0 +1,155 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "audio-video-transcription-app"
+version = "0.1.0"
+description = "AI-powered audio/video transcription and entity extraction application"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    # Core web framework
+    "streamlit>=1.28.0",
+    
+    # OpenAI API for Whisper and GPT
+    "openai>=1.3.0",
+    
+    # Local Whisper model for offline operation
+    "openai-whisper>=20231117",
+    
+    # Natural Language Processing - Fixed version compatibility
+    "spacy>=3.7.0,<3.8.0",
+    "pydantic>=1.10.0,<2.0.0",
+    "textblob>=0.17.1",
+    
+    # Media processing
+    "ffmpeg-python>=0.2.0",
+    "pydub>=0.25.1",
+    
+    # Video processing
+    "opencv-python>=4.8.0",
+    "Pillow>=10.0.0",
+    
+    # Export and sharing
+    "reportlab>=4.0.0",
+    "python-docx>=1.1.0",
+    
+    # Text-to-Speech
+    "elevenlabs>=0.2.26",
+    
+    # Environment variable management
+    "python-dotenv>=1.0.0",
+    
+    # Additional dependencies for robust operation
+    "requests>=2.31.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    
+    # Excel export functionality
+    "openpyxl>=3.1.0",
+    
+    # System monitoring and health checks
+    "psutil>=5.9.0",
+    
+    # Audio processing for advanced features
+    "librosa>=0.10.0",
+    "soundfile>=0.12.0",
+    
+    # Analytics and visualization
+    "plotly>=5.17.0",
+    "matplotlib>=3.7.0",
+    
+    # JSON Schema validation
+    "jsonschema>=4.19.0",
+    
+    # Machine Learning
+    "scikit-learn>=1.0.0",
+    
+    # Security and encryption
+    "cryptography>=41.0.0",
+    
+    # API Framework
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "python-multipart>=0.0.6",
+    
+    # Semantic search and embeddings
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing dependencies
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-mock>=3.11.0",
+    "pytest-xdist>=3.3.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+advanced = [
+    # Enhanced speaker diarization with WhisperX
+    "whisperx>=3.1.0",
+    "torch>=1.9.0",
+    "torchaudio>=0.9.0",
+    "speechbrain>=0.5.0",
+    "pyannote.audio>=3.1.0",
+]
+
+database = [
+    # Database and Authentication
+    "sqlalchemy>=2.0.0",
+    "passlib>=1.7.4",
+    "bcrypt>=4.0.0",
+    "pyjwt>=2.8.0",
+    "email-validator>=2.1.0",
+]
+
+websocket = [
+    # WebSocket Support for Real-time Features
+    "websockets>=12.0",
+    "python-socketio>=5.10.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-mock>=3.11.0",
+    "pytest-xdist>=3.3.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "."]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88

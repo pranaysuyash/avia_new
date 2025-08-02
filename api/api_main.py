@@ -20,14 +20,19 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from security_manager import SecurityManager
-from .auth import APIAuthManager, api_key_required, jwt_required
-from .models import *
-from .endpoints.transcription import router as transcription_router
-from .endpoints.search import router as search_router
-from .endpoints.export import router as export_router
-from .endpoints.insights import router as insights_router
-from .endpoints.video import router as video_router
-from .endpoints.security import router as security_router
+from api.auth import APIAuthManager, api_key_required, jwt_required
+from api.models import *
+from api.endpoints.auth import router as auth_router
+from api.endpoints.transcription import router as transcription_router
+try:
+    from api.endpoints.search import router as search_router
+except ImportError:
+    # Use mock search if real search not available
+    from api.endpoints.search_mock import router as search_router
+from api.endpoints.export import router as export_router
+from api.endpoints.insights import router as insights_router
+from api.endpoints.video import router as video_router
+from api.endpoints.security import router as security_router
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -165,6 +170,7 @@ def create_api_app() -> FastAPI:
         }
     
     # Include API routers
+    app.include_router(auth_router, prefix="/api/v1")
     app.include_router(transcription_router, prefix="/api/v1")
     app.include_router(search_router, prefix="/api/v1")
     app.include_router(export_router, prefix="/api/v1")

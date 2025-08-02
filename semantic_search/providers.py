@@ -31,9 +31,6 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         
         if not self.api_key:
             raise ValueError("OpenAI API key is required")
-            
-        # Set up OpenAI client
-        openai.api_key = self.api_key
         
     def generate_embeddings(self, texts: List[str]) -> np.ndarray:
         """Generate embeddings for a list of texts"""
@@ -62,36 +59,48 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         """Generate embeddings for a batch of texts with retry logic"""
         for attempt in range(self.max_retries):
             try:
-                response = openai.Embedding.create(
+                # Use the new OpenAI client API
+                from openai import OpenAI
+                client = OpenAI(api_key=self.api_key)
+                
+                response = client.embeddings.create(
                     input=texts,
                     model=self.model
                 )
                 
                 # Extract embeddings from response
-                embeddings = [item['embedding'] for item in response['data']]
+                embeddings = [item.embedding for item in response.data]
                 
                 logger.info(f"Generated {len(embeddings)} embeddings using {self.model}")
                 return embeddings
                 
-            except openai.error.RateLimitError as e:
-                if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"Rate limit hit, retrying in {delay}s...")
-                    time.sleep(delay)
-                else:
-                    raise e
-                    
-            except openai.error.APIError as e:
-                if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"API error, retrying in {delay}s: {e}")
-                    time.sleep(delay)
-                else:
-                    raise e
-                    
             except Exception as e:
-                logger.error(f"Unexpected error generating embeddings: {e}")
-                raise e
+                error_str = str(e).lower()
+                
+                # Handle rate limiting
+                if "rate limit" in error_str:
+                    if attempt < self.max_retries - 1:
+                        delay = self.retry_delay * (2 ** attempt)
+                        logger.warning(f"Rate limit hit, retrying in {delay}s...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        raise e
+                
+                # Handle API errors
+                elif "api" in error_str or "request" in error_str:
+                    if attempt < self.max_retries - 1:
+                        delay = self.retry_delay * (2 ** attempt)
+                        logger.warning(f"API error, retrying in {delay}s: {e}")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        raise e
+                
+                # Other errors
+                else:
+                    logger.error(f"Unexpected error generating embeddings: {e}")
+                    raise e
     
     def _clean_text(self, text: str) -> str:
         """Clean text for embedding generation"""

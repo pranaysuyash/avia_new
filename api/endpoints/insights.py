@@ -14,8 +14,8 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from ..auth import auth_required, read_required, create_api_response
-from ..models import (
+from api.auth import auth_required, read_required, create_api_response
+from api.models import (
     InsightRequest, InsightResponse, InsightResult,
     SentimentAnalysis, TopicAnalysis, ContentSummary
 )

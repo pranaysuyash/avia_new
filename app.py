@@ -58,6 +58,7 @@ from script_templates import script_template_manager
 
 # Import search and diarization modules
 from search.search_ui import SearchUI
+from search.analytics_ui import AnalyticsUI
 from speaker_diarization.diarization_ui import DiarizationUI
 
 # Import video processing modules
@@ -358,6 +359,13 @@ def main():
             help="Search with filters and navigation"
         )
         
+        # Semantic search toggle
+        enable_semantic_search = st.checkbox(
+            "🧠 Semantic Search & Library",
+            value=False,
+            help="AI-powered semantic search and transcript library"
+        )
+        
         # Video processing toggle
         enable_video_processing = st.checkbox(
             "🎬 Video Processing",
@@ -391,6 +399,13 @@ def main():
             "🤖 AI Model Customization",
             value=False,
             help="Custom vocabularies, voice profiles, and entity types"
+        )
+        
+        # Analytics Dashboard toggle
+        enable_analytics = st.checkbox(
+            "📊 Analytics Dashboard",
+            value=False,
+            help="Advanced search analytics, trend analysis, and topic modeling"
         )
     
     # Integration settings (Task 23)
@@ -429,7 +444,16 @@ def main():
         """)
     
     # Main content area - show appropriate interface based on mode
-    if enable_search:
+    if enable_semantic_search:
+        # Show semantic search interface
+        try:
+            from semantic_search.semantic_ui import render_semantic_search_page
+            render_semantic_search_page()
+        except ImportError as e:
+            st.error("Semantic search features not available. Please check installation.")
+            st.info("Install required packages: `pip install sentence-transformers numpy`")
+            logger.error(f"Semantic search import error: {e}")
+    elif enable_search:
         # Show search interface
         search_ui = SearchUI()
         search_ui.render_search_interface()
@@ -503,6 +527,18 @@ def main():
         else:
             st.error("AI Model Customization features not available. Please check installation.")
             st.info("Install required packages and restart the application.")
+    elif enable_analytics:
+        # Show Analytics Dashboard interface
+        try:
+            analytics_ui = AnalyticsUI()
+            analytics_ui.render_analytics_dashboard()
+        except ImportError as e:
+            st.error("Analytics Dashboard features not available. Please check installation.")
+            st.info("Install required packages: `pip install plotly pandas numpy`")
+            logger.error(f"Analytics UI import error: {e}")
+        except Exception as e:
+            st.error(f"Error loading Analytics Dashboard: {str(e)}")
+            logger.error(f"Analytics UI error: {e}")
     elif enable_export_sharing:
         # Show export and sharing interface
         export_ui = ExportUI()
@@ -1889,6 +1925,46 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
             # Complete processing in session manager
             session_manager.complete_processing(results)
             
+            # Add to semantic search library (Task 28)
+            try:
+                from semantic_search.integration import semantic_integration
+                
+                # Prepare file info
+                file_info = {
+                    'file_name': getattr(audio_source, 'name', 'unknown'),
+                    'file_path': processed_audio_path,
+                    'file_size': getattr(audio_source, 'size', None),
+                    'duration': getattr(transcription_result, 'duration', None)
+                }
+                
+                # Prepare analysis results
+                analysis_data = {
+                    'entities': results.entities,
+                    'confidence': results.confidence,
+                    'model_used': results.model_used,
+                    'processing_time': results.processing_time,
+                    'word_count': results.word_count
+                }
+                
+                if hasattr(results, 'summary') and results.summary:
+                    analysis_data['summary'] = results.summary
+                
+                # Add speaker segments if available
+                speaker_segments = getattr(results, 'speaker_segments', None)
+                
+                # Add to semantic search library
+                semantic_integration.add_transcription_result(
+                    transcript_text=results.transcript,
+                    file_info=file_info,
+                    analysis_results=analysis_data,
+                    speaker_segments=speaker_segments
+                )
+                
+                logger.info("Added transcription result to semantic search library")
+                
+            except Exception as e:
+                logger.warning(f"Failed to add to semantic search library: {e}")
+            
             # Integration hooks (Task 23)
             if INTEGRATIONS_AVAILABLE:
                 try:
@@ -2187,6 +2263,80 @@ def render_results_settings(preferences):
     else:
         st.info("No processing history available")
 
+def render_semantic_search_widget(results):
+    """Render semantic search widget for finding similar content"""
+    try:
+        from semantic_search.integration import semantic_integration
+        
+        st.markdown("---")
+        st.subheader("🔍 Find Similar Content")
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            search_query = st.text_input(
+                "Search for similar transcripts",
+                placeholder="e.g., 'meeting about project deadlines' or 'customer feedback discussion'",
+                help="Use natural language to find transcripts with similar content"
+            )
+        
+        with col2:
+            search_limit = st.selectbox("Results", [5, 10, 15], index=0)
+        
+        if search_query and st.button("Find Similar", type="secondary"):
+            with st.spinner("Searching for similar content..."):
+                similar_results = semantic_integration.search_similar_content(search_query, search_limit)
+                
+                if similar_results:
+                    st.write(f"**Found {len(similar_results)} similar transcripts:**")
+                    
+                    for i, result in enumerate(similar_results, 1):
+                        with st.expander(f"📄 {result['title']} (Similarity: {result['similarity_score']:.3f})"):
+                            col1, col2 = st.columns([2, 1])
+                            
+                            with col1:
+                                st.write("**Preview:**")
+                                st.write(result['content_preview'])
+                            
+                            with col2:
+                                if result['category']:
+                                    st.write(f"**Category:** {result['category']}")
+                                if result['duration']:
+                                    st.write(f"**Duration:** {result['duration']/60:.1f} min")
+                                if result['created_at']:
+                                    created_date = result['created_at'][:10]  # Just the date part
+                                    st.write(f"**Created:** {created_date}")
+                else:
+                    st.info("No similar content found. Try different search terms.")
+        
+        # Show recommendations based on current transcript
+        if st.button("Get Recommendations", type="secondary"):
+            with st.spinner("Generating recommendations..."):
+                # Use current transcript as context for recommendations
+                recommendations = semantic_integration.get_transcript_recommendations(limit=5)
+                
+                if recommendations:
+                    st.write("**Recommended transcripts you might find interesting:**")
+                    
+                    for rec in recommendations:
+                        with st.expander(f"💡 {rec['title']}"):
+                            st.write(rec['content_preview'])
+                            if rec['category']:
+                                st.write(f"**Category:** {rec['category']}")
+                else:
+                    st.info("No recommendations available yet. Process more transcripts to get personalized suggestions.")
+        
+        # Show library stats
+        stats = semantic_integration.get_library_stats()
+        if stats and stats.get('total_transcripts', 0) > 0:
+            st.write(f"📚 **Library:** {stats['total_transcripts']} transcripts, {stats.get('total_duration_hours', 0):.1f} hours total")
+        
+    except ImportError:
+        st.info("💡 Enable semantic search in Advanced Features to find similar content and get recommendations!")
+    except Exception as e:
+        logger.error(f"Error in semantic search widget: {e}")
+        st.error("Semantic search temporarily unavailable")
+
 def render_transcript_display_enhanced(results, preferences):
     """Enhanced transcript display with user preferences"""
     st.subheader("📝 Full Transcript")
@@ -2242,6 +2392,9 @@ def render_transcript_display_enhanced(results, preferences):
             )
     else:
         st.info("No transcript available")
+    
+    # Semantic search widget
+    render_semantic_search_widget(results)
 
 def render_basic_entities_display_enhanced(results, preferences):
     """Enhanced basic entities display"""

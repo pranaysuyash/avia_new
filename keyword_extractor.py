@@ -78,7 +78,7 @@ class RAKEKeywordExtractor:
         """Generate candidate keywords by splitting on stop words and punctuation"""
         # Clean and normalize text
         text = re.sub(r'[^\w\s]', ' ', text.lower())
-        words = text.split()
+        words = [word.strip() for word in text.split() if word.strip()]
         
         # Split into candidate keyword phrases
         candidate_keywords = []
@@ -126,18 +126,29 @@ class RAKEKeywordExtractor:
                                 word_scores: Dict[str, float]) -> Dict[str, float]:
         """Calculate scores for keyword phrases"""
         keyword_scores = {}
+        keyword_frequency = {}
         
+        # Count keyword frequencies
+        for phrase in candidate_keywords:
+            if len(phrase) == 0:
+                continue
+                
+            keyword = ' '.join(phrase)
+            keyword_frequency[keyword] = keyword_frequency.get(keyword, 0) + 1
+        
+        # Calculate scores for keywords that meet minimum frequency
         for phrase in candidate_keywords:
             if len(phrase) == 0:
                 continue
                 
             keyword = ' '.join(phrase)
             
-            # Skip if below minimum frequency
-            if keyword_scores.get(keyword, 0) < self.min_keyword_frequency - 1:
-                # Calculate score as sum of word scores
-                score = sum(word_scores.get(word, 0) for word in phrase)
-                keyword_scores[keyword] = score
+            # Only include keywords that meet minimum frequency requirement
+            if keyword_frequency[keyword] >= self.min_keyword_frequency:
+                if keyword not in keyword_scores:
+                    # Calculate score as sum of word scores
+                    score = sum(word_scores.get(word, 0) for word in phrase)
+                    keyword_scores[keyword] = score
         
         return keyword_scores
 

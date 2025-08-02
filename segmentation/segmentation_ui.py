@@ -14,19 +14,20 @@ import json
 def render_segmentation_view(
     transcript: str,
     segments: List[Segment],
-    editable: bool = True
+    editable: bool = True,
+    audio_path: Optional[str] = None
 ) -> List[Segment]:
     """Render the segmentation view with interactive segments"""
     
     st.markdown("### 📊 Advanced Segmentation")
     
     # Segmentation controls
-    col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 1, 1])
     
     with col1:
         view_mode = st.selectbox(
             "View Mode",
-            ["Timeline", "List", "Grid", "Analytics"],
+            ["Timeline", "List", "Grid", "Analytics", "Chapter Editor"],
             help="Choose how to display segments"
         )
     
@@ -49,6 +50,10 @@ def render_segmentation_view(
         if st.button("⚙️ Settings"):
             st.session_state.show_segment_settings = True
     
+    with col5:
+        if st.button("📖 Chapters"):
+            st.session_state.show_chapter_editor = True
+    
     # Filter segments
     filtered_segments = [
         seg for seg in segments 
@@ -62,9 +67,19 @@ def render_segmentation_view(
         updated_segments = render_list_view(filtered_segments, editable)
     elif view_mode == "Grid":
         updated_segments = render_grid_view(filtered_segments, editable)
+    elif view_mode == "Chapter Editor":
+        updated_segments = render_chapter_editor_view(filtered_segments, transcript, audio_path, editable)
     else:  # Analytics
         render_analytics_view(filtered_segments, transcript)
         updated_segments = filtered_segments
+    
+    # Show chapter editor if requested
+    if st.session_state.get('show_chapter_editor', False):
+        with st.expander("📖 Manual Chapter Editor", expanded=True):
+            render_manual_chapter_editor(segments, transcript, audio_path)
+            if st.button("Close Chapter Editor"):
+                st.session_state.show_chapter_editor = False
+                st.rerun()
     
     # Export options
     st.markdown("---")
@@ -570,6 +585,278 @@ def get_segment_colors(segments: List[Segment], color_by: str) -> List[str]:
         return colors
 
 
+def render_chapter_editor_view(
+    segments: List[Segment],
+    transcript: str,
+    audio_path: Optional[str],
+    editable: bool
+) -> List[Segment]:
+    """Render chapter editor with visual timeline"""
+    
+    st.markdown("### 📖 Chapter Editor")
+    
+    # Get chapter segments
+    chapters = [seg for seg in segments if seg.type == SegmentType.CHAPTER]
+    
+    if not chapters:
+        st.info("No chapters found. Create manual chapters using the editor below.")
+    else:
+        # Display existing chapters
+        st.markdown("#### Existing Chapters")
+        
+        for i, chapter in enumerate(chapters):
+            col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+            
+            with col1:
+                title = chapter.chapter_title or f"Chapter {i+1}"
+                st.write(f"**{title}**")
+            
+            with col2:
+                if chapter.start_time:
+                    st.write(f"⏱️ {chapter.start_time:.1f}s")
+            
+            with col3:
+                if chapter.metadata.get('description'):
+                    st.write(f"📝 {chapter.metadata['description'][:30]}...")
+            
+            with col4:
+                if editable and st.button("🗑️", key=f"delete_chapter_{i}", help="Delete chapter"):
+                    # Remove chapter from segments
+                    segments = [seg for seg in segments if seg.id != chapter.id]
+                    st.rerun()
+    
+    # Visual timeline for chapter creation
+    if editable:
+        st.markdown("#### Create New Chapter")
+        render_visual_timeline_editor(segments, transcript, audio_path)
+    
+    return segments
+
+
+def render_visual_timeline_editor(
+    segments: List[Segment],
+    transcript: str,
+    audio_path: Optional[str]
+):
+    """Render visual timeline editor for creating chapters"""
+    
+    # Get timeline data
+    timeline_segments = [seg for seg in segments if seg.start_time and seg.end_time]
+    
+    if not timeline_segments:
+        st.warning("No timeline data available. Chapters require timestamp information.")
+        return
+    
+    # Create timeline visualization
+    fig = go.Figure()
+    
+    # Add segments to timeline
+    for seg in timeline_segments:
+        color = get_segment_color_by_type(seg.type)
+        
+        fig.add_trace(go.Scatter(
+            x=[seg.start_time, seg.end_time],
+            y=[1, 1],
+            mode='lines+markers',
+            name=f"{seg.type.value} {seg.id}",
+            line=dict(color=color, width=8),
+            hovertemplate=f"<b>{seg.type.value}</b><br>Time: {seg.start_time:.1f}s - {seg.end_time:.1f}s<br>Text: {seg.text[:50]}...<extra></extra>",
+            showlegend=False
+        ))
+    
+    # Add chapter markers
+    chapters = [seg for seg in segments if seg.type == SegmentType.CHAPTER]
+    for chapter in chapters:
+        if chapter.start_time:
+            fig.add_vline(
+                x=chapter.start_time,
+                line_dash="dash",
+                line_color="red",
+                annotation_text=chapter.chapter_title or "Chapter",
+                annotation_position="top"
+            )
+    
+    fig.update_layout(
+        title="Timeline - Click to Add Chapter Markers",
+        xaxis_title="Time (seconds)",
+        yaxis=dict(visible=False),
+        height=200,
+        showlegend=False
+    )
+    
+    # Display timeline
+    timeline_event = st.plotly_chart(fig, use_container_width=True, key="timeline_editor")
+    
+    # Chapter creation form
+    with st.form("create_chapter"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            chapter_title = st.text_input(
+                "Chapter Title",
+                placeholder="Enter chapter title"
+            )
+            
+            chapter_time = st.number_input(
+                "Start Time (seconds)",
+                min_value=0.0,
+                max_value=max(seg.end_time for seg in timeline_segments if seg.end_time),
+                step=0.1,
+                value=0.0
+            )
+        
+        with col2:
+            chapter_description = st.text_area(
+                "Description (optional)",
+                placeholder="Brief description of this chapter",
+                height=100
+            )
+        
+        if st.form_submit_button("📖 Create Chapter"):
+            if chapter_title:
+                # Create new chapter marker
+                manager = SegmentManager()
+                new_chapter = manager.create_manual_chapter(
+                    title=chapter_title,
+                    start_time=chapter_time,
+                    description=chapter_description
+                )
+                
+                # Store in session state for processing
+                if 'manual_chapters' not in st.session_state:
+                    st.session_state.manual_chapters = []
+                
+                st.session_state.manual_chapters.append(new_chapter)
+                st.success(f"Chapter '{chapter_title}' created at {chapter_time:.1f}s")
+                st.rerun()
+            else:
+                st.error("Please enter a chapter title")
+
+
+def render_manual_chapter_editor(
+    segments: List[Segment],
+    transcript: str,
+    audio_path: Optional[str]
+):
+    """Render manual chapter editor interface"""
+    
+    st.markdown("#### Manual Chapter Management")
+    
+    # Show existing manual chapters
+    manual_chapters = st.session_state.get('manual_chapters', [])
+    
+    if manual_chapters:
+        st.markdown("**Pending Chapters:**")
+        
+        for i, chapter in enumerate(manual_chapters):
+            col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+            
+            with col1:
+                st.write(f"**{chapter['title']}**")
+            
+            with col2:
+                st.write(f"⏱️ {chapter['start_time']:.1f}s")
+            
+            with col3:
+                if chapter.get('description'):
+                    st.write(f"📝 {chapter['description'][:30]}...")
+            
+            with col4:
+                if st.button("🗑️", key=f"remove_pending_{i}", help="Remove"):
+                    st.session_state.manual_chapters.pop(i)
+                    st.rerun()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Apply All Chapters"):
+                st.success(f"Applied {len(manual_chapters)} chapters to segmentation")
+                # Chapters will be applied in the main segmentation process
+        
+        with col2:
+            if st.button("🗑️ Clear All"):
+                st.session_state.manual_chapters = []
+                st.rerun()
+    
+    # Batch chapter creation
+    st.markdown("#### Batch Chapter Creation")
+    
+    with st.expander("Create Multiple Chapters", expanded=False):
+        chapter_text = st.text_area(
+            "Chapter List",
+            placeholder="Enter chapters in format:\n00:30 - Introduction\n02:15 - Main Topic\n05:45 - Conclusion",
+            height=150,
+            help="Format: MM:SS - Title or HH:MM:SS - Title"
+        )
+        
+        if st.button("📖 Parse and Create Chapters"):
+            if chapter_text:
+                chapters = parse_chapter_text(chapter_text)
+                
+                if chapters:
+                    if 'manual_chapters' not in st.session_state:
+                        st.session_state.manual_chapters = []
+                    
+                    st.session_state.manual_chapters.extend(chapters)
+                    st.success(f"Created {len(chapters)} chapters")
+                    st.rerun()
+                else:
+                    st.error("Could not parse chapter format. Please check the format.")
+
+
+def parse_chapter_text(text: str) -> List[Dict[str, Any]]:
+    """Parse chapter text into chapter objects"""
+    chapters = []
+    lines = text.strip().split('\n')
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Try to match time - title format
+        import re
+        
+        # Match MM:SS - Title or HH:MM:SS - Title
+        match = re.match(r'(\d{1,2}):(\d{2})(?::(\d{2}))?\s*-\s*(.+)', line)
+        
+        if match:
+            minutes = int(match.group(1))
+            seconds = int(match.group(2))
+            hours = int(match.group(3)) if match.group(3) else 0
+            title = match.group(4).strip()
+            
+            # Convert to total seconds
+            total_seconds = hours * 3600 + minutes * 60 + seconds
+            
+            manager = SegmentManager()
+            chapter = manager.create_manual_chapter(
+                title=title,
+                start_time=float(total_seconds)
+            )
+            chapters.append(chapter)
+    
+    return chapters
+
+
+def get_segment_color_by_type(segment_type: SegmentType) -> str:
+    """Get color for segment type"""
+    colors = {
+        SegmentType.INTRODUCTION: "#4CAF50",
+        SegmentType.MAIN_TOPIC: "#2196F3",
+        SegmentType.SUB_TOPIC: "#03A9F4",
+        SegmentType.CONCLUSION: "#9C27B0",
+        SegmentType.QUESTION: "#FF9800",
+        SegmentType.ANSWER: "#FFC107",
+        SegmentType.TRANSITION: "#607D8B",
+        SegmentType.SPEAKER_CHANGE: "#795548",
+        SegmentType.PAUSE: "#9E9E9E",
+        SegmentType.SILENCE: "#CCCCCC",
+        SegmentType.CHAPTER: "#E91E63",
+        SegmentType.CUSTOM: "#E91E63"
+    }
+    return colors.get(segment_type, "#666666")
+
+
 def render_segmentation_settings():
     """Render segmentation settings dialog"""
     with st.expander("⚙️ Segmentation Settings", expanded=True):
@@ -577,7 +864,7 @@ def render_segmentation_settings():
         
         method = st.selectbox(
             "Segmentation Method",
-            ["hybrid", "semantic", "structural", "temporal"],
+            ["hybrid", "semantic", "structural", "temporal", "silence"],
             help="Choose the segmentation algorithm"
         )
         
@@ -595,6 +882,26 @@ def render_segmentation_settings():
                 help="Target duration for each segment"
             )
         
+        elif method == "silence":
+            st.markdown("#### Silence Detection Settings")
+            
+            silence_threshold = st.slider(
+                "Silence Threshold",
+                0.001, 0.1, 0.01,
+                format="%.3f",
+                help="Lower values detect quieter silences"
+            )
+            
+            min_silence_duration = st.slider(
+                "Minimum Silence Duration (seconds)",
+                0.5, 5.0, 1.0,
+                help="Minimum duration to consider as silence"
+            )
+            
+            # Store settings in session state
+            st.session_state.silence_threshold = silence_threshold
+            st.session_state.min_silence_duration = min_silence_duration
+        
         min_segment_length = st.slider(
             "Minimum Segment Length (characters)",
             10, 200, 50,
@@ -607,7 +914,31 @@ def render_segmentation_settings():
             help="Combine segments of the same type"
         )
         
+        # Advanced options
+        st.markdown("#### Advanced Options")
+        
+        enable_silence_refinement = st.checkbox(
+            "Enable Silence-based Refinement",
+            value=True,
+            help="Refine segments using audio silence detection"
+        )
+        
+        preserve_manual_chapters = st.checkbox(
+            "Preserve Manual Chapters",
+            value=True,
+            help="Keep manually created chapter markers"
+        )
+        
+        # Store all settings
         if st.button("Apply Settings"):
+            st.session_state.segmentation_settings = {
+                'method': method,
+                'min_segment_length': min_segment_length,
+                'merge_similar': merge_similar,
+                'enable_silence_refinement': enable_silence_refinement,
+                'preserve_manual_chapters': preserve_manual_chapters
+            }
+            
             st.success("Settings updated!")
             st.session_state.show_segment_settings = False
             st.rerun()

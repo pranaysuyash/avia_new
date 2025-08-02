@@ -15,6 +15,7 @@ from pathlib import Path
 from .search_index import SearchIndex, DocumentIndex
 from .query_parser import QueryParser, ParsedQuery
 from .filters import FilterEngine
+from .advanced_analytics import AdvancedAnalytics
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ class SearchManager:
         self.index = SearchIndex(index_path)
         self.parser = QueryParser()
         self.filter_engine = FilterEngine()
+        self.analytics = AdvancedAnalytics(index_path)
         self.search_cache = {}  # Simple in-memory cache
         self.cache_ttl = 300  # 5 minutes
         
@@ -366,3 +368,30 @@ class SearchManager:
     def close(self):
         """Close search index"""
         self.index.close()
+    
+    # Advanced analytics methods
+    async def analyze_trends(self, time_period: str = "30d", analysis_type: str = "keywords", filters: Dict[str, Any] = None):
+        """Analyze trends across transcripts"""
+        return await self.analytics.analyze_trends(time_period, analysis_type, filters)
+    
+    async def extract_topics(self, transcript_ids: List[str] = None, num_topics: int = 5, method: str = "keyword_clustering"):
+        """Extract topics from transcripts"""
+        return await self.analytics.extract_topics(transcript_ids, num_topics, method)
+    
+    async def compare_sources(self, source_a: str, source_b: str, comparison_type: str = "comprehensive"):
+        """Compare two audio sources or transcript collections"""
+        return await self.analytics.compare_sources(source_a, source_b, comparison_type)
+    
+    def get_analytics_stats(self) -> Dict[str, Any]:
+        """Get analytics statistics"""
+        return {
+            'analytics_enabled': True,
+            'supported_analyses': [
+                'trend_analysis',
+                'topic_modeling', 
+                'comparative_analysis',
+                'keyword_extraction'
+            ],
+            'trend_periods': ['7d', '30d', '90d', '1y'],
+            'analysis_types': ['keywords', 'topics', 'entities', 'sentiment']
+        }

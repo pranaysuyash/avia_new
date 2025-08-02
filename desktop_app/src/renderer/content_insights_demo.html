@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Insights - AI-Powered Analysis Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .sentiment-positive { background: linear-gradient(90deg, #10B981, #34D399); }
+        .sentiment-negative { background: linear-gradient(90deg, #EF4444, #F87171); }
+        .sentiment-neutral { background: linear-gradient(90deg, #6B7280, #9CA3AF); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Mock data for demonstration
+        const mockTranscription = {
+            id: "demo-transcript-1",
+            title: "Q3 Product Strategy Meeting",
+            text: `Welcome everyone to our Q3 product strategy meeting. I'm Sarah Johnson, VP of Product, and I'll be leading today's discussion. 
+
+Let's start by reviewing our key achievements this quarter. Our team has successfully launched three major features, including the AI-powered search functionality that has increased user engagement by 35%. This is fantastic news, and I want to thank John Smith from the engineering team for his outstanding work on this project.
+
+However, we've also identified some critical issues that need immediate attention. The customer support team, led by Mike Davis, has reported a 20% increase in user complaints about the new dashboard interface. This is concerning and we need to address this urgently. Mike, can you provide more details on the specific issues users are facing?
+
+Thank you, Sarah. The main complaints are about the navigation being confusing and the load times being slower than expected. We need to prioritize fixing these issues before the end of the month. I recommend we assign Lisa Chen from the UX team to work closely with engineering on this.
+
+That's a great suggestion, Mike. Lisa, are you available to take on this project? We also need to discuss our budget allocation for Q4. Based on our current performance, I'm proposing we increase our engineering budget by 15% to hire two additional developers. This will help us accelerate our development timeline and ensure we can deliver the new features on schedule.
+
+Speaking of new features, let's talk about our roadmap for the next quarter. We have three major initiatives planned: the mobile app enhancement, the integration with third-party tools, and the advanced analytics dashboard. Each of these projects is critical for our long-term success.
+
+I'm excited about the mobile app project. Our user research shows that 60% of our users prefer mobile access, so this is definitely a high priority. The target completion date is November 15th, and we'll need full cooperation from both the design and engineering teams.
+
+Before we wrap up, I want to address the elephant in the room - our competition. TechCorp has recently launched a similar product, and we need to stay ahead. I suggest we schedule a follow-up meeting next week to discuss our competitive strategy in detail.
+
+In conclusion, we have clear action items: fix the dashboard issues by month-end, finalize the Q4 budget proposal, and begin execution on our three major initiatives. Thank you everyone for your hard work and dedication.`,
+            duration: "45 minutes",
+            segments: [
+                { start: 0, end: 30, speaker: "Sarah Johnson", text: "Welcome everyone to our Q3 product strategy meeting..." },
+                { start: 30, end: 60, speaker: "Sarah Johnson", text: "Let's start by reviewing our key achievements..." },
+                { start: 60, end: 90, speaker: "Sarah Johnson", text: "However, we've also identified some critical issues..." },
+                { start: 90, end: 120, speaker: "Mike Davis", text: "The main complaints are about the navigation..." },
+                { start: 120, end: 150, speaker: "Sarah Johnson", text: "That's a great suggestion, Mike..." },
+                { start: 150, end: 180, speaker: "Sarah Johnson", text: "Speaking of new features, let's talk about our roadmap..." }
+            ]
+        };
+
+        const ContentInsights = ({ transcription, onInsightsGenerated }) => {
+            const [insights, setInsights] = useState(null);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [activeTab, setActiveTab] = useState('summary');
+
+            // Auto-generate insights for demo
+            useEffect(() => {
+                if (transcription && transcription.text) {
+                    generateInsights(transcription);
+                }
+            }, [transcription]);
+
+            const generateInsights = async (transcript) => {
+                setIsGenerating(true);
+                // Simulate AI processing time
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const generatedInsights = {
+                    summary: {
+                        executive: "Q3 Product Strategy Meeting focused on recent achievements, identified critical dashboard issues requiring immediate attention, and outlined Q4 roadmap with three major initiatives including mobile app enhancement and competitive strategy discussions.",
+                        keyPoints: [
+                            "Successfully launched AI-powered search functionality increasing user engagement by 35%",
+                            "Critical dashboard issues reported with 20% increase in user complaints about navigation and load times",
+                            "Proposed 15% budget increase for Q4 to hire two additional developers"
+                        ],
+                        wordCount: 487,
+                        estimatedReadTime: 3
+                    },
+                    actionItems: [
+                        {
+                            id: 1,
+                            text: "Fix dashboard navigation and load time issues before end of month",
+                            assignee: "Lisa Chen",
+                            priority: "high",
+                            dueDate: "2025-08-31",
+                            status: "pending"
+                        },
+                        {
+                            id: 2,
+                            text: "Finalize Q4 budget proposal with 15% engineering budget increase",
+                            assignee: "Sarah Johnson",
+                            priority: "high",
+                            dueDate: "2025-09-05",
+                            status: "pending"
+                        },
+                        {
+                            id: 3,
+                            text: "Schedule follow-up meeting to discuss competitive strategy against TechCorp",
+                            assignee: "Sarah Johnson",
+                            priority: "medium",
+                            dueDate: "2025-08-09",
+                            status: "pending"
+                        },
+                        {
+                            id: 4,
+                            text: "Begin execution on mobile app enhancement project",
+                            assignee: "Engineering Team",
+                            priority: "high",
+                            dueDate: "2025-11-15",
+                            status: "pending"
+                        }
+                    ],
+                    sentimentTimeline: {
+                        data: [
+                            { timestamp: 0, sentiment: 0.7, emotion: "positive", confidence: 0.85, text: "Welcome everyone..." },
+                            { timestamp: 30, sentiment: 0.8, emotion: "positive", confidence: 0.92, text: "Key achievements..." },
+                            { timestamp: 60, sentiment: -0.3, emotion: "negative", confidence: 0.78, text: "Critical issues..." },
+                            { timestamp: 90, sentiment: -0.5, emotion: "negative", confidence: 0.83, text: "User complaints..." },
+                            { timestamp: 120, sentiment: 0.2, emotion: "neutral", confidence: 0.75, text: "Great suggestion..." },
+                            { timestamp: 150, sentiment: 0.6, emotion: "positive", confidence: 0.88, text: "Excited about mobile..." }
+                        ],
+                        overall: {
+                            average: 0.28,
+                            trend: "improving",
+                            emotionalPeaks: [
+                                { timestamp: 30, sentiment: 0.8, emotion: "positive", text: "Key achievements this quarter" },
+                                { timestamp: 90, sentiment: -0.5, emotion: "negative", text: "User complaints about dashboard" },
+                                { timestamp: 150, sentiment: 0.6, emotion: "positive", text: "Excited about mobile app project" }
+                            ]
+                        }
+                    },
+                    topics: [
+                        {
+                            name: "Product Development",
+                            relevance: 0.95,
+                            mentions: 12,
+                            keywords: ["features", "development", "engineering", "mobile app", "dashboard"]
+                        },
+                        {
+                            name: "Budget & Resources",
+                            relevance: 0.78,
+                            mentions: 8,
+                            keywords: ["budget", "hire", "developers", "allocation", "resources"]
+                        },
+                        {
+                            name: "User Experience",
+                            relevance: 0.72,
+                            mentions: 6,
+                            keywords: ["user", "navigation", "interface", "engagement", "complaints"]
+                        },
+                        {
+                            name: "Competition",
+                            relevance: 0.45,
+                            mentions: 3,
+                            keywords: ["competition", "TechCorp", "competitive", "strategy"]
+                        }
+                    ],
+                    keyHighlights: [
+                        {
+                            id: 1,
+                            text: "AI-powered search functionality increased user engagement by 35%",
+                            importance: 0.95,
+                            category: "Achievement"
+                        },
+                        {
+                            id: 2,
+                            text: "20% increase in user complaints about dashboard interface navigation",
+                            importance: 0.88,
+                            category: "Concern"
+                        },
+                        {
+                            id: 3,
+                            text: "Proposed 15% budget increase for Q4 to hire two additional developers",
+                            importance: 0.82,
+                            category: "Decision"
+                        },
+                        {
+                            id: 4,
+                            text: "Target completion date for mobile app project is November 15th",
+                            importance: 0.75,
+                            category: "Information"
+                        }
+                    ],
+                    meetingMinutes: {
+                        title: "Q3 Product Strategy Meeting",
+                        date: "August 2, 2025",
+                        duration: "45 minutes",
+                        attendees: ["Sarah Johnson (VP Product)", "John Smith (Engineering)", "Mike Davis (Support)", "Lisa Chen (UX)"],
+                        agenda: [
+                            "Q3 achievements review",
+                            "Critical dashboard issues discussion",
+                            "Q4 budget allocation planning",
+                            "Next quarter roadmap overview",
+                            "Competitive strategy planning"
+                        ],
+                        decisions: [
+                            "Assign Lisa Chen to work with engineering on dashboard fixes",
+                            "Increase Q4 engineering budget by 15% for hiring",
+                            "Prioritize mobile app enhancement with November 15th deadline",
+                            "Schedule follow-up meeting for competitive strategy"
+                        ],
+                        nextMeeting: {
+                            date: "August 9, 2025",
+                            time: "2:00 PM",
+                            agenda: "Competitive strategy discussion and TechCorp response planning"
+                        }
+                    }
+                };
+
+                setInsights(generatedInsights);
+                setIsGenerating(false);
+            };
+
+            const renderSummaryTab = () => (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="gradient-bg p-6 rounded-xl text-white">
+                        <h3 className="text-xl font-bold mb-3 flex items-center">
+                            <span className="mr-2">📋</span> Executive Summary
+                        </h3>
+                        <p className="text-lg leading-relaxed">{insights?.summary?.executive}</p>
+                        <div className="flex gap-6 mt-4 text-sm opacity-90">
+                            <span className="flex items-center"><span className="mr-1">📝</span> {insights?.summary?.wordCount} words</span>
+                            <span className="flex items-center"><span className="mr-1">⏱️</span> {insights?.summary?.estimatedReadTime} min read</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-6 card-shadow">
+                        <h3 className="text-xl font-bold mb-4 text-gray-800">Key Points</h3>
+                        <div className="space-y-4">
+                            {insights?.summary?.keyPoints?.map((point, index) => (
+                                <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                                    <span className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                        {index + 1}
+                                    </span>
+                                    <span className="text-gray-700 leading-relaxed">{point}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderActionItemsTab = () => (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Action Items Identified</h3>
+                        <p className="text-gray-600">AI-extracted tasks and assignments from the conversation</p>
+                    </div>
+                    {insights?.actionItems?.map((item) => (
+                        <div key={item.id} className="bg-white rounded-xl p-6 card-shadow border-l-4 border-blue-500">
+                            <div className="flex items-start justify-between mb-4">
+                                <p className="text-gray-800 flex-1 text-lg">{item.text}</p>
+                                <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                                    item.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                    item.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                }`}>
+                                    {item.priority.toUpperCase()}
+                                </span>
+                            </div>
+                            <div className="flex gap-6 text-sm text-gray-600">
+                                <span className="flex items-center">
+                                    <span className="mr-2">👤</span> {item.assignee}
+                                </span>
+                                {item.dueDate && (
+                                    <span className="flex items-center">
+                                        <span className="mr-2">📅</span> {item.dueDate}
+                                    </span>
+                                )}
+                                <span className={`px-2 py-1 rounded text-xs ${
+                                    item.status === 'pending' ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-700'
+                                }`}>
+                                    {item.status.toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            const renderSentimentTab = () => (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-white rounded-xl p-6 card-shadow">
+                        <h3 className="text-xl font-bold mb-4 text-gray-800">Overall Sentiment Analysis</h3>
+                        <div className="flex items-center gap-6 mb-6">
+                            <div className="flex-1">
+                                <div className="w-full bg-gray-200 rounded-full h-4 relative overflow-hidden">
+                                    <div 
+                                        className={`h-4 rounded-full transition-all duration-1000 ${
+                                            insights?.sentimentTimeline?.overall?.average > 0 ? 'sentiment-positive' : 'sentiment-negative'
+                                        }`}
+                                        style={{ width: `${Math.abs(insights?.sentimentTimeline?.overall?.average || 0) * 50 + 50}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <span className="text-2xl font-bold text-gray-800">
+                                    {insights?.sentimentTimeline?.overall?.average > 0 ? 'Positive' : 
+                                     insights?.sentimentTimeline?.overall?.average < 0 ? 'Negative' : 'Neutral'}
+                                </span>
+                                <p className="text-sm text-gray-500">Overall Tone</p>
+                            </div>
+                        </div>
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-blue-800">
+                                <strong>Trend:</strong> {insights?.sentimentTimeline?.overall?.trend} throughout the conversation
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-6 card-shadow">
+                        <h3 className="text-xl font-bold mb-4 text-gray-800">Emotional Peaks</h3>
+                        <div className="space-y-4">
+                            {insights?.sentimentTimeline?.overall?.emotionalPeaks?.map((peak, index) => (
+                                <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                                    <span className={`w-4 h-4 rounded-full ${
+                                        peak.emotion === 'positive' ? 'bg-green-500' :
+                                        peak.emotion === 'negative' ? 'bg-red-500' : 'bg-gray-500'
+                                    }`}></span>
+                                    <div className="flex-1">
+                                        <p className="text-gray-700 font-medium">{peak.text}</p>
+                                        <p className="text-sm text-gray-500">
+                                            {Math.floor(peak.timestamp / 60)}:{String(Math.floor(peak.timestamp % 60)).padStart(2, '0')} 
+                                            - {peak.emotion} sentiment
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderTopicsTab = () => (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Topic Analysis</h3>
+                        <p className="text-gray-600">AI-identified themes and topics from the conversation</p>
+                    </div>
+                    {insights?.topics?.map((topic, index) => (
+                        <div key={index} className="bg-white rounded-xl p-6 card-shadow">
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-lg font-bold text-gray-800">{topic.name}</h4>
+                                <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                                    {topic.mentions} mentions
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                                <div 
+                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-1000"
+                                    style={{ width: `${topic.relevance * 100}%` }}
+                                ></div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {topic.keywords.map((keyword, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                                        {keyword}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            const renderHighlightsTab = () => (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Key Highlights</h3>
+                        <p className="text-gray-600">Most important statements and information identified by AI</p>
+                    </div>
+                    {insights?.keyHighlights?.map((highlight) => (
+                        <div key={highlight.id} className="bg-white rounded-xl p-6 card-shadow border-l-4 border-purple-500">
+                            <div className="flex items-start justify-between mb-3">
+                                <p className="text-gray-800 flex-1 text-lg leading-relaxed">{highlight.text}</p>
+                                <span className="ml-4 px-3 py-1 text-sm bg-purple-100 text-purple-800 rounded-full font-medium">
+                                    {highlight.category}
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-1000"
+                                    style={{ width: `${highlight.importance * 100}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">Importance: {Math.round(highlight.importance * 100)}%</p>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            const renderMinutesTab = () => (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-white rounded-xl p-8 card-shadow">
+                        <div className="text-center mb-8">
+                            <h2 className="text-3xl font-bold text-gray-800 mb-2">{insights?.meetingMinutes?.title}</h2>
+                            <div className="flex justify-center gap-8 text-gray-600">
+                                <span>📅 {insights?.meetingMinutes?.date}</span>
+                                <span>⏱️ {insights?.meetingMinutes?.duration}</span>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-3">Attendees</h3>
+                                <ul className="space-y-2">
+                                    {insights?.meetingMinutes?.attendees?.map((attendee, index) => (
+                                        <li key={index} className="flex items-center text-gray-600">
+                                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                                            {attendee}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-3">Agenda</h3>
+                                <ul className="space-y-2">
+                                    {insights?.meetingMinutes?.agenda?.map((item, index) => (
+                                        <li key={index} className="flex items-center text-gray-600">
+                                            <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                                            {item}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="mt-8">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4">Key Decisions</h3>
+                            <div className="space-y-3">
+                                {insights?.meetingMinutes?.decisions?.map((decision, index) => (
+                                    <div key={index} className="p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                                        <p className="text-gray-700">{decision}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-8 p-6 bg-blue-50 rounded-lg">
+                            <h3 className="text-lg font-bold text-blue-800 mb-2">Next Meeting</h3>
+                            <p className="text-blue-700">
+                                <strong>{insights?.meetingMinutes?.nextMeeting?.date}</strong> at <strong>{insights?.meetingMinutes?.nextMeeting?.time}</strong>
+                            </p>
+                            <p className="text-blue-600 mt-1">
+                                Agenda: {insights?.meetingMinutes?.nextMeeting?.agenda}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if (isGenerating) {
+                return (
+                    <div className="flex items-center justify-center py-20">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-6"></div>
+                            <h3 className="text-xl font-semibold text-gray-700 mb-2">Generating AI-Powered Insights...</h3>
+                            <p className="text-gray-500">Analyzing transcript for content insights, sentiment, and action items</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            const tabs = [
+                { id: 'summary', label: 'Summary', icon: '📋', color: 'blue' },
+                { id: 'actions', label: 'Action Items', icon: '✅', color: 'green' },
+                { id: 'sentiment', label: 'Sentiment', icon: '😊', color: 'purple' },
+                { id: 'topics', label: 'Topics', icon: '🏷️', color: 'indigo' },
+                { id: 'highlights', label: 'Highlights', icon: '⭐', color: 'yellow' },
+                { id: 'minutes', label: 'Minutes', icon: '📝', color: 'red' }
+            ];
+
+            return (
+                <div className="max-w-6xl mx-auto p-6">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-4xl font-bold text-gray-800 mb-2">Content Insights Dashboard</h1>
+                        <p className="text-xl text-gray-600">AI-powered analysis of your transcriptions</p>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                        <div className="border-b border-gray-200">
+                            <div className="flex overflow-x-auto">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex-shrink-0 px-6 py-4 text-sm font-semibold border-b-4 transition-all duration-200 ${
+                                            activeTab === tab.id
+                                                ? `border-${tab.color}-500 text-${tab.color}-600 bg-${tab.color}-50`
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <span className="mr-2 text-lg">{tab.icon}</span>
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-8">
+                            {activeTab === 'summary' && renderSummaryTab()}
+                            {activeTab === 'actions' && renderActionItemsTab()}
+                            {activeTab === 'sentiment' && renderSentimentTab()}
+                            {activeTab === 'topics' && renderTopicsTab()}
+                            {activeTab === 'highlights' && renderHighlightsTab()}
+                            {activeTab === 'minutes' && renderMinutesTab()}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Demo App
+        const App = () => {
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <ContentInsights 
+                        transcription={mockTranscription}
+                        onInsightsGenerated={(insights) => console.log('Insights generated:', insights)}
+                    />
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

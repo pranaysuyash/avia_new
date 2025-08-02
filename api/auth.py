@@ -180,14 +180,27 @@ def require_export():
     return require_permission("export")
 
 
-# Convenience dependency functions
-jwt_required = Depends(get_current_user_jwt)
-api_key_required = Depends(get_current_user_api_key)
-auth_required = Depends(get_current_user_flexible)
-admin_required = Depends(require_admin())
-write_required = Depends(require_write())
-read_required = Depends(require_read())
-export_required = Depends(require_export())
+# Convenience dependency functions (return callable functions for FastAPI Depends)
+def jwt_required():
+    return Depends(get_current_user_jwt)
+
+def api_key_required():
+    return Depends(get_current_user_api_key)
+
+def auth_required():
+    return Depends(get_current_user_flexible)
+
+def admin_required():
+    return require_admin()
+
+def write_required():
+    return require_write()
+
+def read_required():
+    return require_read()
+
+def export_required():
+    return require_export()
 
 
 def create_api_response(data: Any, message: str = "Success") -> Dict[str, Any]:
@@ -208,3 +221,19 @@ def create_error_response(error: str, status_code: int = 400) -> Dict[str, Any]:
         "status_code": status_code,
         "timestamp": datetime.now().isoformat()
     }
+
+
+# Export the security_manager and auth_manager for use in endpoints
+__all__ = [
+    'auth_manager',
+    'security_manager',
+    'jwt_required',
+    'api_key_required',
+    'auth_required',
+    'admin_required',
+    'write_required',
+    'read_required',
+    'export_required',
+    'create_api_response',
+    'create_error_response'
+]

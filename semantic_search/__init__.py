@@ -3,7 +3,7 @@ Semantic search functionality for AI-powered content discovery
 """
 
 from .embeddings import EmbeddingManager, EmbeddingProvider
-from .vector_store import VectorStore, ChromaStore, FaissStore
+from .vector_store import create_vector_store, VectorStore, FAISSVectorStore, QdrantVectorStore, ChromaVectorStore
 from .semantic_engine import SemanticSearchEngine
 from .providers import (
     OpenAIEmbeddingProvider,

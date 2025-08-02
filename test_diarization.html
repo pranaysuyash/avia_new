@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speaker Diarization Visualization Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f9fafb; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Speaker Diarization Visualization</h1>
+        
+        <!-- Component Preview -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                Speaker Diarization Timeline
+            </h3>
+            
+            <!-- Controls -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <button class="p-1 hover:bg-gray-100 rounded">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                            </svg>
+                        </button>
+                        <span class="text-sm text-gray-600">100%</span>
+                        <button class="p-1 hover:bg-gray-100 rounded">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-600">
+                    Duration: 4:00
+                </div>
+            </div>
+
+            <!-- Timeline Container -->
+            <div class="relative bg-gray-50 rounded-lg p-4">
+                <!-- Time markers -->
+                <div class="flex justify-between text-xs text-gray-500 mb-3">
+                    <span>0:00</span>
+                    <span>1:00</span>
+                    <span>2:00</span>
+                    <span>3:00</span>
+                    <span>4:00</span>
+                </div>
+
+                <!-- Timeline tracks -->
+                <div class="space-y-2">
+                    <!-- Sarah Johnson -->
+                    <div class="relative">
+                        <div class="flex items-center mb-1">
+                            <div class="w-3 h-3 rounded-full mr-2 bg-blue-500"></div>
+                            <span class="text-sm font-medium text-gray-900">Sarah Johnson</span>
+                            <span class="text-xs text-gray-500 ml-2">(2:25)</span>
+                        </div>
+                        <div class="relative h-8 bg-gray-200 rounded">
+                            <div class="absolute h-full bg-blue-500 opacity-80 rounded" style="left: 0%; width: 6.25%;"></div>
+                            <div class="absolute h-full bg-blue-500 opacity-80 rounded" style="left: 6.25%; width: 12.5%;"></div>
+                            <div class="absolute h-full bg-blue-500 opacity-80 rounded" style="left: 20%; width: 11.25%;"></div>
+                            <div class="absolute h-full bg-blue-500 opacity-80 rounded" style="left: 39.6%; width: 10.4%;"></div>
+                            <div class="absolute h-full bg-blue-500 opacity-80 rounded" style="left: 52%; width: 10.4%;"></div>
+                            <div class="absolute h-full bg-blue-500 opacity-80 rounded" style="left: 70.8%; width: 12.5%;"></div>
+                            <div class="absolute h-full bg-blue-500 opacity-80 rounded" style="left: 93.75%; width: 6.25%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- John Smith -->
+                    <div class="relative">
+                        <div class="flex items-center mb-1">
+                            <div class="w-3 h-3 rounded-full mr-2 bg-emerald-500"></div>
+                            <span class="text-sm font-medium text-gray-900">John Smith</span>
+                            <span class="text-xs text-gray-500 ml-2">(1:07)</span>
+                        </div>
+                        <div class="relative h-8 bg-gray-200 rounded">
+                            <div class="absolute h-full bg-emerald-500 opacity-80 rounded" style="left: 17.9%; width: 2.1%;"></div>
+                            <div class="absolute h-full bg-emerald-500 opacity-80 rounded" style="left: 31.25%; width: 8.3%;"></div>
+                            <div class="absolute h-full bg-emerald-500 opacity-80 rounded" style="left: 83.3%; width: 8.3%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Emily Chen -->
+                    <div class="relative">
+                        <div class="flex items-center mb-1">
+                            <div class="w-3 h-3 rounded-full mr-2 bg-violet-500"></div>
+                            <span class="text-sm font-medium text-gray-900">Emily Chen</span>
+                            <span class="text-xs text-gray-500 ml-2">(0:28)</span>
+                        </div>
+                        <div class="relative h-8 bg-gray-200 rounded">
+                            <div class="absolute h-full bg-violet-500 opacity-80 rounded" style="left: 49.2%; width: 2.9%;"></div>
+                            <div class="absolute h-full bg-violet-500 opacity-80 rounded" style="left: 62.5%; width: 8.3%;"></div>
+                            <div class="absolute h-full bg-violet-500 opacity-80 rounded" style="left: 90.8%; width: 2.9%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overlap indicators -->
+                <div class="mt-4 pt-4 border-t border-gray-300">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">
+                        Overlapping Speech (3 instances)
+                    </h4>
+                    <div class="relative h-6 bg-gray-200 rounded">
+                        <div class="absolute h-full bg-red-500 opacity-50 rounded" style="left: 17.9%; width: 2.1%;"></div>
+                        <div class="absolute h-full bg-red-500 opacity-50 rounded" style="left: 49.2%; width: 2.8%;"></div>
+                        <div class="absolute h-full bg-red-500 opacity-50 rounded" style="left: 90.8%; width: 2.9%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speaker Statistics -->
+            <div class="mt-6 grid grid-cols-3 gap-4">
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="flex items-center mb-2">
+                        <div class="w-3 h-3 rounded-full mr-2 bg-blue-500"></div>
+                        <span class="text-sm font-medium text-gray-900">Sarah Johnson</span>
+                    </div>
+                    <div class="text-xs text-gray-600">
+                        <div>Time: 2:25</div>
+                        <div>Segments: 7</div>
+                        <div>Share: 60%</div>
+                    </div>
+                </div>
+                
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="flex items-center mb-2">
+                        <div class="w-3 h-3 rounded-full mr-2 bg-emerald-500"></div>
+                        <span class="text-sm font-medium text-gray-900">John Smith</span>
+                    </div>
+                    <div class="text-xs text-gray-600">
+                        <div>Time: 1:07</div>
+                        <div>Segments: 3</div>
+                        <div>Share: 28%</div>
+                    </div>
+                </div>
+                
+                <div class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div class="flex items-center mb-2">
+                        <div class="w-3 h-3 rounded-full mr-2 bg-violet-500"></div>
+                        <span class="text-sm font-medium text-gray-900">Emily Chen</span>
+                    </div>
+                    <div class="text-xs text-gray-600">
+                        <div>Time: 0:28</div>
+                        <div>Segments: 3</div>
+                        <div>Share: 12%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interaction Patterns -->
+            <div class="mt-6">
+                <h4 class="text-sm font-medium text-gray-700 mb-3">
+                    Speaking Patterns
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs text-gray-600 mb-1">
+                            Average Turn Length
+                        </div>
+                        <div class="text-lg font-semibold text-gray-900">
+                            0:18
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs text-gray-600 mb-1">
+                            Total Overlaps
+                        </div>
+                        <div class="text-lg font-semibold text-gray-900">
+                            3
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Description -->
+        <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold mb-4">Speaker Diarization Features</h2>
+            <ul class="space-y-2">
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Visual timeline showing when each speaker talks</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Color-coded speaker segments for easy identification</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Overlap detection showing when multiple speakers talk simultaneously</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Speaker statistics showing talk time, segment count, and percentage share</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Interactive timeline with zoom controls</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Speaking pattern analysis with average turn length</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Hover tooltips showing exact time ranges for each segment</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

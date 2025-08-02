@@ -16,8 +16,8 @@ import mimetypes
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from ..auth import auth_required, export_required, create_api_response
-from ..models import ExportRequest, ExportResponse, ExportFormat
+from api.auth import auth_required, export_required, create_api_response
+from api.models import ExportRequest, ExportResponse, ExportFormat
 
 # Import export modules
 from export_manager import MultimediaExporter, ExportConfig

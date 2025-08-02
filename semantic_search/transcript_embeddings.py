@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .embeddings import EmbeddingManager
 from .providers import OpenAIEmbeddingProvider, SentenceTransformerProvider
+from .vector_store import create_vector_store, VectorSearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ class TranscriptEmbeddingManager:
                  embedding_provider=None,
                  db_path: str = "transcript_embeddings.db",
                  chunk_size: int = 500,
-                 chunk_overlap: int = 50):
+                 chunk_overlap: int = 50,
+                 vector_store_type: str = "faiss"):
         
         # Set up embedding provider
         if embedding_provider is None:
@@ -71,7 +73,14 @@ class TranscriptEmbeddingManager:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         
-        # Initialize database
+        # Initialize vector store
+        dimension = embedding_provider.get_embedding_dimension()
+        self.vector_store = create_vector_store(
+            store_type=vector_store_type,
+            dimension=dimension
+        )
+        
+        # Initialize database for metadata
         self._init_db()
     
     def _init_db(self):
@@ -158,7 +167,39 @@ class TranscriptEmbeddingManager:
             chunk_texts = [chunk.text for chunk in chunks]
             embeddings = self.embedding_manager.get_embeddings(chunk_texts)
             
-            # Store embeddings in database
+            # Delete existing vectors from vector store
+            existing_chunk_ids = []
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT chunk_id FROM transcript_embeddings WHERE transcript_id = ?",
+                    (transcript_id,)
+                )
+                existing_chunk_ids = [row[0] for row in cursor.fetchall()]
+            
+            if existing_chunk_ids:
+                self.vector_store.delete(existing_chunk_ids)
+            
+            # Add new vectors to vector store
+            chunk_ids = [chunk.chunk_id for chunk in chunks]
+            chunk_metadata = []
+            
+            for chunk in chunks:
+                chunk_meta = {
+                    'transcript_id': chunk.transcript_id,
+                    'text': chunk.text[:200],  # Store preview in vector store
+                    'start_pos': chunk.start_pos,
+                    'end_pos': chunk.end_pos,
+                    **chunk.metadata
+                }
+                chunk_metadata.append(chunk_meta)
+            
+            vector_success = self.vector_store.add_vectors(chunk_ids, embeddings, chunk_metadata)
+            
+            if not vector_success:
+                logger.warning(f"Failed to add vectors to vector store for transcript {transcript_id}")
+            
+            # Store embeddings in database (for fallback and metadata)
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
@@ -181,7 +222,7 @@ class TranscriptEmbeddingManager:
                         chunk.start_pos,
                         chunk.end_pos,
                         embedding.tobytes(),
-                        json.dumps(chunk.metadata)
+                        json.dumps(chunk.metadata, default=self._json_serializer)
                     ))
                 
                 # Update transcript metadata
@@ -195,7 +236,7 @@ class TranscriptEmbeddingManager:
                     content_hash,
                     len(chunks),
                     self.embedding_manager.provider.get_model_name(),
-                    json.dumps(metadata or {})
+                    json.dumps(metadata or {}, default=self._json_serializer)
                 ))
                 
                 conn.commit()
@@ -561,7 +602,56 @@ class TranscriptEmbeddingManager:
                            query_embedding: np.ndarray,
                            limit: int,
                            min_similarity: float) -> List[Dict[str, Any]]:
-        """Find chunks similar to the query embedding"""
+        """Find chunks similar to the query embedding using vector store"""
+        try:
+            # Search in vector store
+            vector_results = self.vector_store.search(query_embedding, k=limit * 2)
+            
+            # Convert to expected format and filter by similarity
+            results = []
+            
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                for vector_result in vector_results:
+                    if vector_result.score < min_similarity:
+                        continue
+                    
+                    # Get chunk details from database
+                    cursor.execute("""
+                        SELECT transcript_id, text, start_pos, end_pos
+                        FROM transcript_embeddings
+                        WHERE chunk_id = ?
+                    """, (vector_result.id,))
+                    
+                    row = cursor.fetchone()
+                    if row:
+                        transcript_id, text, start_pos, end_pos = row
+                        
+                        results.append({
+                            'transcript_id': transcript_id,
+                            'chunk_id': vector_result.id,
+                            'text': text,
+                            'start_pos': start_pos,
+                            'end_pos': end_pos,
+                            'similarity': vector_result.score
+                        })
+                        
+                        if len(results) >= limit:
+                            break
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error in vector search: {e}")
+            # Fallback to original method if vector store fails
+            return self._find_similar_chunks_fallback(query_embedding, limit, min_similarity)
+    
+    def _find_similar_chunks_fallback(self, 
+                                    query_embedding: np.ndarray,
+                                    limit: int,
+                                    min_similarity: float) -> List[Dict[str, Any]]:
+        """Fallback method using SQLite similarity calculation"""
         results = []
         
         with sqlite3.connect(self.db_path) as conn:
@@ -600,11 +690,26 @@ class TranscriptEmbeddingManager:
         """Generate hash for content to detect changes"""
         return hashlib.md5(content.encode()).hexdigest()
     
+    def _json_serializer(self, obj):
+        """JSON serializer for datetime objects"""
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    
     def delete_transcript(self, transcript_id: str) -> bool:
         """Delete transcript embeddings"""
         try:
+            # Get chunk IDs to delete from vector store
+            chunk_ids = []
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT chunk_id FROM transcript_embeddings WHERE transcript_id = ?",
+                    (transcript_id,)
+                )
+                chunk_ids = [row[0] for row in cursor.fetchall()]
+                
+                # Delete from database
                 cursor.execute(
                     "DELETE FROM transcript_embeddings WHERE transcript_id = ?",
                     (transcript_id,)
@@ -614,6 +719,12 @@ class TranscriptEmbeddingManager:
                     (transcript_id,)
                 )
                 conn.commit()
+            
+            # Delete from vector store
+            if chunk_ids:
+                vector_success = self.vector_store.delete(chunk_ids)
+                if not vector_success:
+                    logger.warning(f"Failed to delete vectors from vector store for transcript {transcript_id}")
             
             logger.info(f"Deleted embeddings for transcript {transcript_id}")
             return True
@@ -636,15 +747,19 @@ class TranscriptEmbeddingManager:
                 
                 cursor.execute("SELECT AVG(chunk_count) FROM transcript_metadata")
                 avg_chunks = cursor.fetchone()[0] or 0
-                
-                return {
-                    'total_transcripts': transcript_count,
-                    'total_chunks': chunk_count,
-                    'avg_chunks_per_transcript': round(avg_chunks, 2),
-                    'embedding_model': self.embedding_manager.provider.get_model_name(),
-                    'embedding_dimension': self.embedding_manager.provider.get_embedding_dimension(),
-                    'database_path': self.db_path
-                }
+            
+            # Get vector store stats
+            vector_stats = self.vector_store.get_stats()
+            
+            return {
+                'total_transcripts': transcript_count,
+                'total_chunks': chunk_count,
+                'avg_chunks_per_transcript': round(avg_chunks, 2),
+                'embedding_model': self.embedding_manager.provider.get_model_name(),
+                'embedding_dimension': self.embedding_manager.provider.get_embedding_dimension(),
+                'database_path': self.db_path,
+                'vector_store': vector_stats
+            }
                 
         except Exception as e:
             logger.error(f"Error getting stats: {e}")

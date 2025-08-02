@@ -1,0 +1,26 @@
+{
+  "content_type": "meeting",
+  "analysis_timestamp": "2025-08-02T11:30:38.179933",
+  "transcript_stats": {
+    "total_duration": 30.0,
+    "word_count": 45,
+    "total_segments": 5
+  },
+  "action_items": [
+    {
+      "text": "Work on database optimization",
+      "assignee": "Bob",
+      "priority": "high",
+      "due_date": "Friday",
+      "confidence": 0.85
+    }
+  ],
+  "summary": {
+    "executive_summary": "Team meeting to discuss project status and assign tasks.",
+    "key_points": [
+      "Database optimization needed",
+      "Positive team sentiment"
+    ],
+    "confidence_score": 0.7
+  }
+}

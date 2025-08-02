@@ -3,7 +3,7 @@ API Data Models
 Pydantic models for API request and response validation
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from enum import Enum
@@ -65,14 +65,14 @@ class TranscriptionRequest(BaseModel):
     enable_diarization: bool = Field(default=False, description="Enable speaker diarization")
     extract_entities: bool = Field(default=True, description="Extract named entities")
     
-    @validator('language')
+    @field_validator('language')
     def validate_language(cls, v):
         valid_languages = ['auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko', 'zh']
         if v not in valid_languages:
             raise ValueError(f'Language must be one of {valid_languages}')
         return v
     
-    @validator('model')
+    @field_validator('model')
     def validate_model(cls, v):
         valid_models = ['tiny', 'base', 'small', 'medium', 'large']
         if v not in valid_models:
@@ -127,7 +127,7 @@ class SearchRequest(BaseModel):
     sort_by: Optional[str] = Field(default="relevance")
     include_snippets: bool = Field(default=True)
     
-    @validator('sort_by')
+    @field_validator('sort_by')
     def validate_sort_by(cls, v):
         valid_sorts = ['relevance', 'date', 'duration', 'word_count']
         if v not in valid_sorts:
@@ -192,7 +192,7 @@ class InsightRequest(BaseModel):
     transcript_id: str
     analysis_types: List[str] = Field(default=["summary", "sentiment", "topics"])
     
-    @validator('analysis_types')
+    @field_validator('analysis_types')
     def validate_analysis_types(cls, v):
         valid_types = ["summary", "sentiment", "topics", "speakers", "key_moments", "action_items"]
         for analysis_type in v:
@@ -291,7 +291,7 @@ class UserCreateRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=100)
     role: str = Field(default="user")
     
-    @validator('role')
+    @field_validator('role')
     def validate_role(cls, v):
         valid_roles = ['admin', 'user', 'viewer']
         if v not in valid_roles:
@@ -350,11 +350,7 @@ class WebhookEvent(BaseModel):
 # File Upload Models
 class FileUploadResponse(BaseResponse):
     """File upload response"""
-    file_id: str
-    file_name: str
-    file_size: int
-    content_type: str
-    upload_url: Optional[str] = None
+    data: Dict[str, Any]
 
 
 # List Response Models

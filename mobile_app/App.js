@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Provider as PaperProvider } from 'react-native-paper';
+import { Provider as PaperProvider, DefaultTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { StatusBar, useColorScheme, View, ActivityIndicator } from 'react-native';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -22,20 +23,66 @@ import { OfflineManager } from './src/services/OfflineManager';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const theme = {
-  colors: {
-    primary: '#6200EE',
-    accent: '#03DAC6',
-    background: '#FFFFFF',
-    surface: '#FFFFFF',
-    text: '#000000',
-    onSurface: '#000000',
-    disabled: '#9E9E9E',
-    placeholder: '#757575',
-    backdrop: '#000000',
-    onBackground: '#000000',
-    notification: '#F44336',
+// Custom theme configuration
+const fontConfig = {
+  default: {
+    regular: {
+      fontFamily: 'System',
+      fontWeight: '400',
+    },
+    medium: {
+      fontFamily: 'System',
+      fontWeight: '500',
+    },
+    light: {
+      fontFamily: 'System',
+      fontWeight: '300',
+    },
+    thin: {
+      fontFamily: 'System',
+      fontWeight: '100',
+    },
   },
+};
+
+const lightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#6366F1',
+    accent: '#8B5CF6',
+    background: '#F9FAFB',
+    surface: '#FFFFFF',
+    text: '#111827',
+    placeholder: '#6B7280',
+    error: '#EF4444',
+    success: '#10B981',
+    warning: '#F59E0B',
+    info: '#3B82F6',
+    divider: '#E5E7EB',
+  },
+  fonts: configureFonts(fontConfig),
+  roundness: 12,
+};
+
+const darkTheme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: '#6366F1',
+    accent: '#8B5CF6',
+    background: '#111827',
+    surface: '#1F2937',
+    text: '#F9FAFB',
+    placeholder: '#9CA3AF',
+    error: '#EF4444',
+    success: '#10B981',
+    warning: '#F59E0B',
+    info: '#3B82F6',
+    divider: '#374151',
+  },
+  fonts: configureFonts(fontConfig),
+  roundness: 12,
 };
 
 function HomeStack() {
@@ -43,11 +90,15 @@ function HomeStack() {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: theme.colors.primary,
+          backgroundColor: '#6366F1',
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 0,
         },
         headerTintColor: '#fff',
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: '600',
+          fontSize: 18,
         },
       }}
     >
@@ -89,8 +140,19 @@ function TabNavigator() {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: '#6366F1',
+        tabBarInactiveTintColor: '#6B7280',
+        tabBarStyle: {
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+          backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+          borderTopColor: isDarkMode ? '#374151' : '#E5E7EB',
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
         headerShown: false,
       })}
     >
@@ -105,6 +167,8 @@ function TabNavigator() {
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const isDarkMode = useColorScheme() === 'dark';
+  const theme = isDarkMode ? darkTheme : lightTheme;
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -138,7 +202,14 @@ export default function App() {
     return (
       <PaperProvider theme={theme}>
         <SafeAreaProvider>
-          {/* Loading screen would go here */}
+          <View style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: theme.colors.background,
+          }}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
         </SafeAreaProvider>
       </PaperProvider>
     );
@@ -147,7 +218,21 @@ export default function App() {
   return (
     <PaperProvider theme={theme}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={theme.colors.background}
+        />
+        <NavigationContainer theme={{
+          dark: isDarkMode,
+          colors: {
+            primary: theme.colors.primary,
+            background: theme.colors.background,
+            card: theme.colors.surface,
+            text: theme.colors.text,
+            border: theme.colors.divider,
+            notification: theme.colors.error,
+          },
+        }}>
           <TabNavigator />
         </NavigationContainer>
       </SafeAreaProvider>

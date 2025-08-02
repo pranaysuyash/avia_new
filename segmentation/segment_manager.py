@@ -13,6 +13,8 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import librosa
+import soundfile as sf
 
 # Download required NLTK data
 try:
@@ -34,6 +36,8 @@ class SegmentType(Enum):
     TRANSITION = "transition"
     SPEAKER_CHANGE = "speaker_change"
     PAUSE = "pause"
+    SILENCE = "silence"
+    CHAPTER = "chapter"
     CUSTOM = "custom"
 
 
@@ -52,6 +56,8 @@ class Segment:
     keywords: List[str]
     summary: Optional[str]
     metadata: Dict[str, Any]
+    is_manual: bool = False  # Whether this is a manually created chapter
+    chapter_title: Optional[str] = None  # Title for manual chapters
 
 
 class SegmentManager:
@@ -69,7 +75,9 @@ class SegmentManager:
         transcript: str,
         timestamps: Optional[List[Tuple[float, float, str]]] = None,
         speakers: Optional[List[str]] = None,
-        method: str = "hybrid"
+        method: str = "hybrid",
+        audio_path: Optional[str] = None,
+        manual_chapters: Optional[List[Dict[str, Any]]] = None
     ) -> List[Segment]:
         """
         Segment transcript using various methods
@@ -78,7 +86,9 @@ class SegmentManager:
             transcript: Full transcript text
             timestamps: Optional list of (start_time, end_time, text) tuples
             speakers: Optional list of speaker identifiers
-            method: Segmentation method - "semantic", "structural", "temporal", "hybrid"
+            method: Segmentation method - "semantic", "structural", "temporal", "silence", "hybrid"
+            audio_path: Path to audio file for silence-based segmentation
+            manual_chapters: List of manual chapter markers
             
         Returns:
             List of segments
@@ -89,8 +99,20 @@ class SegmentManager:
             return self._structural_segmentation(transcript, timestamps)
         elif method == "temporal":
             return self._temporal_segmentation(transcript, timestamps)
+        elif method == "silence":
+            return self._silence_based_segmentation(transcript, timestamps, audio_path)
         else:  # hybrid
-            return self._hybrid_segmentation(transcript, timestamps, speakers)
+            segments = self._hybrid_segmentation(transcript, timestamps, speakers)
+            
+            # Apply silence-based refinement if audio is available
+            if audio_path:
+                segments = self._refine_with_silence_detection(segments, audio_path)
+            
+            # Apply manual chapters if provided
+            if manual_chapters:
+                segments = self._apply_manual_chapters(segments, manual_chapters, transcript)
+            
+            return segments
     
     def _semantic_segmentation(
         self,
@@ -550,6 +572,309 @@ class SegmentManager:
         end_time = timestamps[0][0] + (total_duration * end_ratio)
         
         return start_time, end_time
+    
+    def _silence_based_segmentation(
+        self,
+        transcript: str,
+        timestamps: Optional[List[Tuple[float, float, str]]] = None,
+        audio_path: Optional[str] = None
+    ) -> List[Segment]:
+        """Segment based on silence detection in audio"""
+        if not audio_path or not timestamps:
+            logger.warning("Silence-based segmentation requires audio file and timestamps")
+            return self._simple_segmentation(transcript, timestamps)
+        
+        try:
+            # Load audio file
+            y, sr = librosa.load(audio_path, sr=None)
+            
+            # Detect silence periods
+            silence_segments = self._detect_silence_periods(y, sr)
+            
+            # Create segments based on silence boundaries
+            segments = []
+            current_text_parts = []
+            current_start_time = timestamps[0][0] if timestamps else 0
+            current_start_char = 0
+            
+            for start_time, end_time, text in timestamps:
+                # Check if this timestamp crosses a silence boundary
+                crosses_silence = any(
+                    silence_start <= start_time <= silence_end or
+                    silence_start <= end_time <= silence_end
+                    for silence_start, silence_end in silence_segments
+                )
+                
+                if crosses_silence and current_text_parts:
+                    # Create segment before silence
+                    segment_text = ' '.join(current_text_parts)
+                    segments.append(self._create_segment(
+                        len(segments),
+                        SegmentType.MAIN_TOPIC,
+                        segment_text,
+                        current_start_char,
+                        current_start_char + len(segment_text),
+                        start_time=current_start_time,
+                        end_time=start_time
+                    ))
+                    
+                    # Create silence segment
+                    silence_duration = end_time - start_time
+                    if silence_duration > 1.0:  # Only mark significant silences
+                        segments.append(self._create_segment(
+                            len(segments),
+                            SegmentType.SILENCE,
+                            f"[Silence: {silence_duration:.1f}s]",
+                            current_start_char + len(segment_text),
+                            current_start_char + len(segment_text) + 20,  # Placeholder length
+                            start_time=start_time,
+                            end_time=end_time
+                        ))
+                    
+                    # Reset for next segment
+                    current_text_parts = [text]
+                    current_start_time = end_time
+                    current_start_char = transcript.find(text, current_start_char + len(segment_text))
+                else:
+                    current_text_parts.append(text)
+            
+            # Add final segment
+            if current_text_parts:
+                segment_text = ' '.join(current_text_parts)
+                segments.append(self._create_segment(
+                    len(segments),
+                    SegmentType.MAIN_TOPIC,
+                    segment_text,
+                    current_start_char,
+                    len(transcript),
+                    start_time=current_start_time,
+                    end_time=timestamps[-1][1] if timestamps else None
+                ))
+            
+            return segments
+            
+        except Exception as e:
+            logger.error(f"Error in silence-based segmentation: {e}")
+            return self._simple_segmentation(transcript, timestamps)
+    
+    def _detect_silence_periods(
+        self,
+        audio_data: np.ndarray,
+        sample_rate: int,
+        silence_threshold: float = 0.01,
+        min_silence_duration: float = 1.0
+    ) -> List[Tuple[float, float]]:
+        """Detect periods of silence in audio"""
+        # Calculate RMS energy in windows
+        hop_length = 512
+        frame_length = 2048
+        
+        # Compute RMS energy
+        rms = librosa.feature.rms(
+            y=audio_data,
+            frame_length=frame_length,
+            hop_length=hop_length
+        )[0]
+        
+        # Convert to time
+        times = librosa.frames_to_time(
+            np.arange(len(rms)),
+            sr=sample_rate,
+            hop_length=hop_length
+        )
+        
+        # Find silence periods
+        silence_mask = rms < silence_threshold
+        silence_periods = []
+        
+        in_silence = False
+        silence_start = 0
+        
+        for i, is_silent in enumerate(silence_mask):
+            if is_silent and not in_silence:
+                # Start of silence
+                in_silence = True
+                silence_start = times[i]
+            elif not is_silent and in_silence:
+                # End of silence
+                in_silence = False
+                silence_duration = times[i] - silence_start
+                
+                if silence_duration >= min_silence_duration:
+                    silence_periods.append((silence_start, times[i]))
+        
+        # Handle case where audio ends in silence
+        if in_silence:
+            silence_duration = times[-1] - silence_start
+            if silence_duration >= min_silence_duration:
+                silence_periods.append((silence_start, times[-1]))
+        
+        return silence_periods
+    
+    def _refine_with_silence_detection(
+        self,
+        segments: List[Segment],
+        audio_path: str
+    ) -> List[Segment]:
+        """Refine existing segments using silence detection"""
+        try:
+            y, sr = librosa.load(audio_path, sr=None)
+            silence_periods = self._detect_silence_periods(y, sr)
+            
+            refined_segments = []
+            
+            for segment in segments:
+                if not segment.start_time or not segment.end_time:
+                    refined_segments.append(segment)
+                    continue
+                
+                # Check if segment contains significant silence
+                segment_silences = [
+                    (s_start, s_end) for s_start, s_end in silence_periods
+                    if segment.start_time <= s_start <= segment.end_time or
+                       segment.start_time <= s_end <= segment.end_time
+                ]
+                
+                if not segment_silences:
+                    refined_segments.append(segment)
+                    continue
+                
+                # Split segment at silence boundaries
+                current_start = segment.start_time
+                current_text_start = 0
+                
+                for silence_start, silence_end in segment_silences:
+                    if silence_start > current_start:
+                        # Create segment before silence
+                        text_portion = segment.text[current_text_start:int(len(segment.text) * (silence_start - segment.start_time) / (segment.end_time - segment.start_time))]
+                        
+                        if text_portion.strip():
+                            refined_segments.append(self._create_segment(
+                                len(refined_segments),
+                                segment.type,
+                                text_portion,
+                                segment.start_char + current_text_start,
+                                segment.start_char + current_text_start + len(text_portion),
+                                start_time=current_start,
+                                end_time=silence_start,
+                                speaker=segment.speaker
+                            ))
+                    
+                    # Add silence segment if significant
+                    if silence_end - silence_start > 1.0:
+                        refined_segments.append(self._create_segment(
+                            len(refined_segments),
+                            SegmentType.SILENCE,
+                            f"[Silence: {silence_end - silence_start:.1f}s]",
+                            segment.start_char + current_text_start + len(text_portion),
+                            segment.start_char + current_text_start + len(text_portion) + 20,
+                            start_time=silence_start,
+                            end_time=silence_end
+                        ))
+                    
+                    current_start = silence_end
+                    current_text_start = int(len(segment.text) * (silence_end - segment.start_time) / (segment.end_time - segment.start_time))
+                
+                # Add remaining text after last silence
+                if current_start < segment.end_time:
+                    remaining_text = segment.text[current_text_start:]
+                    if remaining_text.strip():
+                        refined_segments.append(self._create_segment(
+                            len(refined_segments),
+                            segment.type,
+                            remaining_text,
+                            segment.start_char + current_text_start,
+                            segment.end_char,
+                            start_time=current_start,
+                            end_time=segment.end_time,
+                            speaker=segment.speaker
+                        ))
+            
+            return refined_segments
+            
+        except Exception as e:
+            logger.error(f"Error refining segments with silence detection: {e}")
+            return segments
+    
+    def _apply_manual_chapters(
+        self,
+        segments: List[Segment],
+        manual_chapters: List[Dict[str, Any]],
+        transcript: str
+    ) -> List[Segment]:
+        """Apply manual chapter markers to segments"""
+        if not manual_chapters:
+            return segments
+        
+        # Sort chapters by time
+        sorted_chapters = sorted(manual_chapters, key=lambda x: x.get('start_time', 0))
+        
+        enhanced_segments = []
+        chapter_index = 0
+        
+        for segment in segments:
+            # Check if we need to insert a chapter marker before this segment
+            while (chapter_index < len(sorted_chapters) and 
+                   segment.start_time and 
+                   sorted_chapters[chapter_index].get('start_time', 0) <= segment.start_time):
+                
+                chapter = sorted_chapters[chapter_index]
+                
+                # Create chapter segment
+                chapter_segment = self._create_segment(
+                    len(enhanced_segments),
+                    SegmentType.CHAPTER,
+                    f"Chapter: {chapter.get('title', f'Chapter {chapter_index + 1}')}",
+                    segment.start_char,
+                    segment.start_char + len(chapter.get('title', '')),
+                    start_time=chapter.get('start_time'),
+                    end_time=chapter.get('start_time', 0) + 0.1  # Very short duration
+                )
+                chapter_segment.is_manual = True
+                chapter_segment.chapter_title = chapter.get('title')
+                chapter_segment.metadata.update(chapter.get('metadata', {}))
+                
+                enhanced_segments.append(chapter_segment)
+                chapter_index += 1
+            
+            enhanced_segments.append(segment)
+        
+        # Add any remaining chapters at the end
+        while chapter_index < len(sorted_chapters):
+            chapter = sorted_chapters[chapter_index]
+            chapter_segment = self._create_segment(
+                len(enhanced_segments),
+                SegmentType.CHAPTER,
+                f"Chapter: {chapter.get('title', f'Chapter {chapter_index + 1}')}",
+                len(transcript),
+                len(transcript) + len(chapter.get('title', '')),
+                start_time=chapter.get('start_time'),
+                end_time=chapter.get('start_time', 0) + 0.1
+            )
+            chapter_segment.is_manual = True
+            chapter_segment.chapter_title = chapter.get('title')
+            chapter_segment.metadata.update(chapter.get('metadata', {}))
+            
+            enhanced_segments.append(chapter_segment)
+            chapter_index += 1
+        
+        return enhanced_segments
+    
+    def create_manual_chapter(
+        self,
+        title: str,
+        start_time: float,
+        description: str = "",
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Create a manual chapter marker"""
+        return {
+            'title': title,
+            'start_time': start_time,
+            'description': description,
+            'metadata': metadata or {},
+            'created_at': datetime.now().isoformat()
+        }
     
     def export_segments(
         self,

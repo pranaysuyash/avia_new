@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player with Synchronized Transcription</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #000; margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div class="fixed inset-0 bg-black flex">
+        <!-- Video Section -->
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 bg-gray-900">
+                <h2 class="text-xl font-semibold text-white">
+                    Video Player with Synchronized Transcription
+                </h2>
+                <button class="p-2 hover:bg-gray-800 rounded-lg text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Video Container -->
+            <div class="flex-1 relative bg-black flex items-center justify-center">
+                <video class="max-w-full max-h-full" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3E%3Crect fill='%23222' width='800' height='450'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23666' font-family='Arial' font-size='24'%3EVideo Preview%3C/text%3E%3C/svg%3E">
+                    Your browser does not support the video tag.
+                </video>
+                
+                <!-- Play Button Overlay -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="bg-black bg-opacity-50 rounded-full p-4">
+                        <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Controls -->
+            <div class="bg-gray-900 p-4">
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="relative h-2 bg-gray-700 rounded cursor-pointer">
+                        <div class="absolute h-full bg-blue-600 rounded" style="width: 35%"></div>
+                        
+                        <!-- Segment Markers -->
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 6%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 19%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 31%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 40%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 52%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 63%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 71%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 83%"></div>
+                        <div class="absolute top-0 h-full w-px bg-gray-500 opacity-50" style="left: 94%"></div>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <!-- Play/Pause -->
+                        <button class="p-2 hover:bg-gray-800 rounded-lg text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+
+                        <!-- Time Display -->
+                        <span class="text-white text-sm">
+                            1:24 / 4:00
+                        </span>
+
+                        <!-- Volume Control -->
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            <div class="w-20 h-1 bg-gray-700 rounded">
+                                <div class="h-full bg-white rounded" style="width: 70%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Playback Speed -->
+                        <button class="px-3 py-1 bg-gray-800 rounded text-white text-sm hover:bg-gray-700">
+                            1x
+                        </button>
+                    </div>
+
+                    <!-- Right Controls -->
+                    <div class="flex items-center space-x-4">
+                        <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                            Transcript
+                        </button>
+                        
+                        <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                            Auto-scroll
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transcript Panel -->
+        <div class="w-96 bg-gray-900 border-l border-gray-800 flex flex-col">
+            <div class="p-4 border-b border-gray-800">
+                <h3 class="text-lg font-semibold text-white">Transcript</h3>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="space-y-3">
+                    <!-- Past Segment -->
+                    <div class="p-3 rounded hover:bg-gray-800 cursor-pointer opacity-60">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-500">0:00 - 0:15</span>
+                            <span class="text-xs text-gray-500">Sarah Johnson</span>
+                        </div>
+                        <p class="text-sm text-gray-300">
+                            Welcome everyone to our Q1 product review meeting. I'm Sarah Johnson, VP of Product, and I'll be leading today's discussion.
+                        </p>
+                    </div>
+
+                    <!-- Past Segment -->
+                    <div class="p-3 rounded hover:bg-gray-800 cursor-pointer opacity-60">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-500">0:15 - 0:45</span>
+                            <span class="text-xs text-gray-500">Sarah Johnson</span>
+                        </div>
+                        <p class="text-sm text-gray-300">
+                            Let's start by reviewing our key achievements this quarter. Our team successfully launched the new dashboard feature, which has been adopted by 78% of our users within the first month.
+                        </p>
+                    </div>
+
+                    <!-- Active Segment (Highlighted) -->
+                    <div class="p-3 rounded cursor-pointer bg-blue-600 bg-opacity-20 border-l-4 border-blue-600">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-400">0:43 - 0:48</span>
+                            <span class="text-xs text-gray-400">John Smith</span>
+                        </div>
+                        <p class="text-sm text-gray-200">
+                            That's fantastic news, Sarah!
+                        </p>
+                    </div>
+
+                    <!-- Active Segment (Currently Playing) -->
+                    <div class="p-3 rounded cursor-pointer bg-blue-600 bg-opacity-20 border-l-4 border-blue-600">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-400">0:48 - 1:15</span>
+                            <span class="text-xs text-gray-400">Sarah Johnson</span>
+                        </div>
+                        <p class="text-sm text-gray-200">
+                            Thank you, John. Speaking of achievements, John Smith from the engineering team did an outstanding job leading the API refactoring project. The new architecture has improved response times by 40% and reduced server costs by 25%.
+                        </p>
+                    </div>
+
+                    <!-- Future Segments -->
+                    <div class="p-3 rounded hover:bg-gray-800 cursor-pointer">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-500">1:15 - 1:35</span>
+                            <span class="text-xs text-gray-500">John Smith</span>
+                        </div>
+                        <p class="text-sm text-gray-300">
+                            Thanks Sarah. The team worked really hard on this. We focused on optimizing the database queries and implementing better caching strategies.
+                        </p>
+                    </div>
+
+                    <div class="p-3 rounded hover:bg-gray-800 cursor-pointer">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-500">1:35 - 2:00</span>
+                            <span class="text-xs text-gray-500">Sarah Johnson</span>
+                        </div>
+                        <p class="text-sm text-gray-300">
+                            The mobile app updates have also been a success. We've seen great feedback from customers about the new user interface.
+                        </p>
+                    </div>
+
+                    <div class="p-3 rounded hover:bg-gray-800 cursor-pointer">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-500">1:58 - 2:05</span>
+                            <span class="text-xs text-gray-500">Emily Chen</span>
+                        </div>
+                        <p class="text-sm text-gray-300">
+                            The UI improvements are really impressive.
+                        </p>
+                    </div>
+
+                    <div class="p-3 rounded hover:bg-gray-800 cursor-pointer">
+                        <div class="flex items-start justify-between mb-1">
+                            <span class="text-xs text-gray-500">2:05 - 2:30</span>
+                            <span class="text-xs text-gray-500">Sarah Johnson</span>
+                        </div>
+                        <p class="text-sm text-gray-300">
+                            Absolutely. The app store ratings have improved from 4.2 to 4.7 stars, and daily active users have increased by 35%.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Info (Hidden on actual player) -->
+    <div class="hidden">
+        <h2>Video Player Features:</h2>
+        <ul>
+            <li>Synchronized transcript highlighting</li>
+            <li>Click on transcript to jump to that time</li>
+            <li>Auto-scroll to keep current segment in view</li>
+            <li>Progress bar with segment markers</li>
+            <li>Playback speed control</li>
+            <li>Volume control</li>
+            <li>Toggle transcript panel</li>
+            <li>Speaker identification in transcript</li>
+        </ul>
+    </div>
+</body>
+</html>
