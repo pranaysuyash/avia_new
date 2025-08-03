@@ -10,7 +10,7 @@ import asyncio
 from datetime import datetime
 import uuid
 
-from api.auth import verify_token
+from api.auth_service import jwt_auth_service
 from database import get_db_session, User
 from .events import Event, EventType
 
@@ -244,12 +244,13 @@ class WebSocketManager:
         
         try:
             # Verify token and get user
-            payload = verify_token(token)
-            user_id = int(payload.get("sub"))
+            user_info = jwt_auth_service.validate_token(token)
             
-            if not user_id:
+            if not user_info:
                 await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
                 return
+            
+            user_id = user_info['user_id']
             
             # Connect
             await self.connection_manager.connect(websocket, user_id, connection_id)

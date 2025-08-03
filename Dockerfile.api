@@ -1,0 +1,80 @@
+# Multi-stage Dockerfile for API production deployment
+# Stage 1: Build stage
+FROM python:3.10-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Download language models
+RUN python -m spacy download en_core_web_sm && \
+    python -m spacy download es_core_news_sm && \
+    python -m spacy download fr_core_news_sm && \
+    python -m spacy download de_core_news_sm
+
+# Stage 2: Runtime stage
+FROM python:3.10-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -g 1000 appuser && \
+    useradd -r -u 1000 -g appuser appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy spaCy models
+COPY --from=builder /usr/local/lib/python3.10/site-packages/en_core_web_sm /usr/local/lib/python3.10/site-packages/en_core_web_sm
+COPY --from=builder /usr/local/lib/python3.10/site-packages/es_core_news_sm /usr/local/lib/python3.10/site-packages/es_core_news_sm
+COPY --from=builder /usr/local/lib/python3.10/site-packages/fr_core_news_sm /usr/local/lib/python3.10/site-packages/fr_core_news_sm
+COPY --from=builder /usr/local/lib/python3.10/site-packages/de_core_news_sm /usr/local/lib/python3.10/site-packages/de_core_news_sm
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Create necessary directories
+RUN mkdir -p logs temp uploads && \
+    chown -R appuser:appuser logs temp uploads
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    ENVIRONMENT=production \
+    LOG_LEVEL=INFO
+
+# Expose port
+EXPOSE 8000
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+# Run database migrations and start server
+CMD ["sh", "-c", "alembic upgrade head && uvicorn api.app:app --host 0.0.0.0 --port 8000 --workers 4"]

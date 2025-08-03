@@ -1,179 +1,162 @@
 version: '3.8'
 
 services:
-  transcription-app:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "${APP_PORT:-8501}:8501"
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: transcription_db
     environment:
-      # API Configuration
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
-      
-      # Application Settings
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-100}
-      - TEMP_DIR=/app/temp
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      
-      # Model Configuration
-      - WHISPER_MODEL=${WHISPER_MODEL:-base}
-      - SPACY_MODEL=${SPACY_MODEL:-en_core_web_sm}
-      
-      # Performance Settings
-      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-5}
-      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-300}
-      
-      # Security Settings
-      - STREAMLIT_SERVER_COOKIE_SECRET=${STREAMLIT_COOKIE_SECRET:-}
-      - STREAMLIT_SERVER_ENABLE_CORS=${ENABLE_CORS:-false}
-      
-      # Monitoring
-      - ENABLE_METRICS=${ENABLE_METRICS:-true}
-      - METRICS_PORT=${METRICS_PORT:-9090}
-      
+      POSTGRES_USER: transcription_user
+      POSTGRES_PASSWORD: transcription_pass
+      POSTGRES_DB: transcription_db
     volumes:
-      # Persistent storage for temp files
-      - temp_data:/app/temp
-      # Persistent storage for logs
-      - logs_data:/app/logs
-      # Optional: Mount custom config
-      - ${CONFIG_PATH:-./config}:/app/config:ro
-      
-    restart: unless-stopped
-    
-    # Resource limits for production
-    deploy:
-      resources:
-        limits:
-          cpus: '${CPU_LIMIT:-2.0}'
-          memory: ${MEMORY_LIMIT:-2G}
-        reservations:
-          cpus: '${CPU_RESERVATION:-0.5}'
-          memory: ${MEMORY_RESERVATION:-512M}
-    
-    # Enhanced health check
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    
-    # Security settings
-    security_opt:
-      - no-new-privileges:true
-    read_only: false  # Streamlit needs write access for temp files
-    tmpfs:
-      - /tmp:noexec,nosuid,size=100m
-    
-    # Logging configuration
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        labels: "service=transcription-app"
+      test: ["CMD-SHELL", "pg_isready -U transcription_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Production reverse proxy with SSL termination
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: transcription_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: transcription_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # API Backend
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: transcription_api
+    environment:
+      DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-change-in-production-minimum-32-chars}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+    volumes:
+      - ./api:/app/api:ro
+      - ./database:/app/database:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    command: >
+      sh -c "
+        python -m alembic upgrade head &&
+        python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  # Desktop App (Electron)
+  desktop:
+    build:
+      context: ./desktop_app
+      dockerfile: Dockerfile
+    container_name: transcription_desktop
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./desktop_app:/app:ro
+      - /app/node_modules
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: transcription_celery_worker
+    environment:
+      DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    volumes:
+      - ./api:/app/api:ro
+      - ./database:/app/database:ro
+    depends_on:
+      - db
+      - redis
+    command: celery -A api.tasks worker --loglevel=info
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: transcription_celery_beat
+    environment:
+      DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ./api:/app/api:ro
+      - ./database:/app/database:ro
+    depends_on:
+      - db
+      - redis
+    command: celery -A api.tasks beat --loglevel=info
+
+  # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
-    ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
+    container_name: transcription_nginx
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - logs_data:/var/log/nginx
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
     depends_on:
-      - transcription-app
-    restart: unless-stopped
-    
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
-    
-    # Health check for nginx
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    
-    # Security settings
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /var/cache/nginx:noexec,nosuid,size=50m
-      - /var/run:noexec,nosuid,size=10m
-
-  # Optional: Monitoring with Prometheus
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    restart: unless-stopped
-    profiles: ["monitoring"]
-    
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-
-  # Optional: Log aggregation with Grafana
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "${GRAFANA_PORT:-3000}:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-    restart: unless-stopped
-    profiles: ["monitoring"]
-    
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
+      - api
+      - desktop
 
 volumes:
-  temp_data:
-    driver: local
-  logs_data:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
-    driver: local
+  postgres_data:
+  redis_data:
+  minio_data:
 
 networks:
   default:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+    name: transcription_network

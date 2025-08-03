@@ -10,6 +10,8 @@ import logging
 import tempfile
 import time
 from typing import Optional, Dict, Any
+from ui_styles_fixed import apply_theme, render_theme_selector
+
 
 # Import configuration and backend modules
 from config import Config, validate_environment, print_configuration_status
@@ -48,6 +50,27 @@ from advanced_processing import (
     initialize_advanced_session_state
 )
 
+# Import multi-language support modules (Task 36)
+from multilingual_transcription import (
+    multilingual_transcriber, multilingual_ui, MultilingualTranscriptionResult
+)
+from language_support import (
+    multilingual_ui as lang_ui, translation_service, realtime_processor,
+    get_supported_languages, get_language_name
+)
+
+# Import visual search modules (Task 38)
+from visual_search_ui import visual_search_ui
+from visual_search import visual_search_engine
+
+# Import AI provider integration modules
+from ai_provider_ui import ai_provider_ui
+from ai_provider_integrations import provider_manager, enhanced_tts, enhanced_stt
+
+# Import advanced content analysis modules (Task 39)
+from advanced_content_analysis_ui import advanced_content_analysis_ui
+from advanced_content_analysis import advanced_content_analyzer
+
 # Import batch processing modules
 from batch_interface import render_batch_interface, cleanup_batch_session
 
@@ -71,9 +94,12 @@ from content_insights_ui import ContentInsightsUI
 from export_ui import ExportUI
 
 # Import theme and security modules
-from theme_manager import theme_manager, apply_custom_theme
+from ui_styles_fixed import apply_theme, render_theme_selector
 from security_ui import SecurityUI, render_privacy_notice
-from security_manager import security_manager
+from security_manager import create_security_manager
+
+# Create global security manager instance
+security_manager = create_security_manager()
 
 # Import advanced audio processing modules
 from advanced_audio_processor import (
@@ -168,56 +194,13 @@ def handle_health_endpoints():
 def main():
     """Main application entry point"""
     
-    # Initialize security manager
-    security_manager.initialize()
+    # Security manager is already initialized when imported
+    # No need to call initialize()
     
     # Apply custom theme and accessibility features - FORCE MAXIMUM VISIBILITY
-    apply_custom_theme()
+    apply_theme()
     
-    # Emergency visibility fix - AGGRESSIVE CSS
-    st.markdown("""
-    <style>
-    /* EMERGENCY TEXT VISIBILITY FIX */
-    * {
-        color: #000000 !important;
-    }
     
-    .stMarkdown, .stMarkdown *, .stText, .stText *, 
-    p, div, span, label, h1, h2, h3, h4, h5, h6 {
-        color: #000000 !important;
-        font-weight: 600 !important;
-    }
-    
-    /* Sidebar text */
-    .css-1d391kg, .css-1d391kg *, 
-    [data-testid="stSidebar"], [data-testid="stSidebar"] * {
-        color: #000000 !important;
-        font-weight: 600 !important;
-    }
-    
-    /* Input labels */
-    .stSelectbox > label, .stFileUploader > label, 
-    .stSlider > label, .stCheckbox > label {
-        color: #000000 !important;
-        font-weight: bold !important;
-        font-size: 1.2em !important;
-    }
-    
-    /* File uploader area */
-    .stFileUploader {
-        border: 3px solid #0066cc !important;
-        border-radius: 8px !important;
-        padding: 1rem !important;
-    }
-    
-    /* Headers */
-    h1, h2, h3 {
-        color: #000000 !important;
-        font-weight: bold !important;
-        font-size: 1.5em !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
     
     # Handle health check endpoints first
     handle_health_endpoints()
@@ -245,7 +228,7 @@ def main():
     
     # Sidebar navigation
     # Theme selector in sidebar
-    theme_manager.render_theme_selector()
+    render_theme_selector()
     
     st.sidebar.title("Configuration")
     
@@ -256,7 +239,7 @@ def main():
     # Analysis mode selection with enhanced help
     analysis_mode = st.sidebar.selectbox(
         "Analysis Mode",
-        ["Basic (spaCy)", "Advanced (OpenAI)", "Advanced+ (Speaker Diarization)"],
+        ["Basic (spaCy)", "Advanced (OpenAI)", "Advanced+ (Speaker Diarization)", "🌍 Multi-Language"],
         help="""**Choose your analysis mode:**
 
 🔹 **Basic (spaCy):** 
@@ -280,13 +263,21 @@ def main():
 • Advanced export options (SRT, VTT, CSV)
 • Requires OpenAI API key
 
+🌍 **Multi-Language (NEW):**
+• Automatic language detection (50+ languages)
+• Real-time language switching detection
+• Multi-language entity extraction
+• Translation capabilities
+• Code-switching analysis
+• Requires OpenAI API key
+
 💡 **Tip:** Start with Basic mode to test the system, then upgrade to Advanced+ for full features.""",
         index=0 if not api_status["openai"] else 0
     )
     
     # Show warning if advanced mode selected without API key
-    if "Advanced" in analysis_mode and not api_status["openai"]:
-        st.sidebar.warning("⚠️ Advanced mode requires OpenAI API key")
+    if ("Advanced" in analysis_mode or "Multi-Language" in analysis_mode) and not api_status["openai"]:
+        st.sidebar.warning("⚠️ Advanced and Multi-Language modes require OpenAI API key")
     
     # Processing Modes Section
     st.sidebar.markdown("---")
@@ -312,6 +303,27 @@ def main():
             "🛡️ Security & Privacy",
             value=False,
             help="Access security management, user controls, and privacy settings"
+        )
+        
+        # Visual search toggle (Task 38)
+        visual_search_mode = st.checkbox(
+            "🔍 Visual Search & Discovery",
+            value=False,
+            help="Search and explore content using visual similarity and clustering"
+        )
+        
+        # AI provider management toggle
+        ai_provider_mode = st.checkbox(
+            "🤖 AI Provider Management",
+            value=False,
+            help="Manage and configure multiple AI service providers"
+        )
+        
+        # Advanced content analysis toggle (Task 39)
+        advanced_analysis_mode = st.checkbox(
+            "🧠 Advanced Content Analysis",
+            value=False,
+            help="AI-powered emotion, bias, complexity, and plagiarism analysis"
         )
         
         if batch_mode:
@@ -603,6 +615,18 @@ def main():
             st.markdown("---")
             st.header("📊 Previous Analysis Results")
             render_results_enhanced(analysis_mode)
+    
+    elif visual_search_mode:
+        # Show visual search and content discovery interface (Task 38)
+        render_visual_search_panel()
+    
+    elif ai_provider_mode:
+        # Show AI provider management interface
+        render_ai_provider_panel()
+    
+    elif advanced_analysis_mode:
+        # Show advanced content analysis interface (Task 39)
+        render_advanced_content_analysis_panel()
     else:
         # Check if any integration panels should be shown
         if INTEGRATIONS_AVAILABLE and any([
@@ -909,6 +933,65 @@ def render_main_interface(analysis_mode: str):
     if audio_source:
         st.header("⚙️ Processing")
         
+        # Language selection for multi-language support
+        st.subheader("🌐 Language Settings")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Import language support
+            from language_support import get_supported_languages, language_detector
+            
+            # Get list of supported languages
+            supported_langs = get_supported_languages()
+            lang_options = ["Auto-detect"] + [f"{lang['name']} ({lang['code']})" for lang in supported_langs]
+            
+            selected_language = st.selectbox(
+                "Transcription Language",
+                options=lang_options,
+                index=0,
+                help="Select the language of the audio or use auto-detection"
+            )
+            
+            # Extract language code
+            if selected_language == "Auto-detect":
+                language_code = None
+            else:
+                # Extract code from "Language (code)" format
+                language_code = selected_language.split("(")[-1].rstrip(")")
+        
+        with col2:
+            # Advanced language options
+            enable_code_switching = st.checkbox(
+                "Detect Code-Switching",
+                value=False,
+                help="Detect and handle multiple languages in the same audio"
+            )
+            
+            # Show language capabilities
+            if language_code:
+                lang_info = next((lang for lang in supported_langs if lang['code'] == language_code), None)
+                if lang_info:
+                    st.info(f"**{lang_info['name']} Capabilities:**\n"
+                           f"• Entity Recognition: {'✅' if lang_info['has_ner'] else '❌'}\n"
+                           f"• Right-to-Left: {'✅' if lang_info['is_rtl'] else '❌'}")
+        
+        # Store language settings in session state
+        st.session_state.selected_language = language_code
+        st.session_state.enable_code_switching = enable_code_switching
+        
+        # Multi-language specific settings
+        if "Multi-Language" in analysis_mode:
+            st.markdown("### 🌍 Multi-Language Settings")
+            
+            # Get multi-language settings from UI
+            multilingual_settings = multilingual_ui.render_language_selection_interface()
+            
+            # Store in session state
+            st.session_state.multilingual_settings = multilingual_settings
+        
+        st.markdown("---")
+        
         # Processing options
         col1, col2 = st.columns([3, 1])
         
@@ -959,8 +1042,17 @@ def render_main_interface(analysis_mode: str):
                         ]
                     )
                 
-                # Process audio
-                process_audio_enhanced(audio_source, analysis_mode)
+                # Process audio based on mode
+                if "Multi-Language" in analysis_mode:
+                    # Multi-language processing (Task 36)
+                    multilingual_settings = st.session_state.get('multilingual_settings', {})
+                    result = process_audio_multilingual(audio_source, multilingual_settings)
+                    
+                    # Store results in session state
+                    session_manager.store_multilingual_results(result)
+                else:
+                    # Standard processing
+                    process_audio_enhanced(audio_source, analysis_mode)
                 
                 # Clear loading state
                 loading_container.empty()
@@ -1820,10 +1912,14 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
             progress.update(20, f"Transcribing with {'OpenAI Whisper API' if use_api else 'local Whisper model'}...")
             logger.info(f"Starting transcription with API: {use_api}, timestamps: {enable_timestamps}")
             
+            # Get language settings from session state
+            selected_language = st.session_state.get('selected_language', None)
+            
             transcription_result = stt.transcribe_detailed(
                 processed_audio_path, 
                 use_api=use_api,
-                enable_timestamps=enable_timestamps
+                enable_timestamps=enable_timestamps,
+                language=selected_language
             )
             
             progress.update(90, "Transcription complete, processing results...")
@@ -1856,7 +1952,30 @@ def process_audio_enhanced(audio_source, analysis_mode: str):
                 logger.info("Starting basic entity extraction with spaCy")
                 
                 progress.update(30, "Loading spaCy model...")
-                entities = ner_basic.extract_entities(transcription_result.text)
+                
+                # Check if we should use multilingual NER
+                enable_code_switching = st.session_state.get('enable_code_switching', False)
+                selected_language = st.session_state.get('selected_language', None)
+                
+                if selected_language or enable_code_switching:
+                    # Use multilingual NER
+                    from ner_multilingual import extract_entities_multilingual
+                    entity_result = extract_entities_multilingual(
+                        transcription_result.text,
+                        language=selected_language,
+                        detect_code_switching=enable_code_switching
+                    )
+                    entities = entity_result.get('entities', {})
+                    
+                    # Store language info in results
+                    results.language_info = {
+                        'primary_language': entity_result.get('primary_language', 'en'),
+                        'has_code_switching': entity_result.get('has_code_switching', False),
+                        'languages': entity_result.get('languages', [])
+                    }
+                else:
+                    # Use basic English NER
+                    entities = ner_basic.extract_entities(transcription_result.text)
                 
                 progress.update(70, "Calculating confidence scores...")
                 entity_confidence = ner_basic.get_entity_confidence(transcription_result.text)
@@ -2058,6 +2177,70 @@ def process_audio(audio_source, analysis_mode: str):
     """Legacy process_audio function - redirects to enhanced version"""
     return process_audio_enhanced(audio_source, analysis_mode)
 
+
+def process_audio_multilingual(audio_source, multilingual_settings: Dict[str, Any]) -> MultilingualTranscriptionResult:
+    """
+    Process audio with advanced multi-language support (Task 36)
+    
+    Args:
+        audio_source: Audio file or recorded audio
+        multilingual_settings: Multi-language processing settings
+        
+    Returns:
+        MultilingualTranscriptionResult with enhanced language information
+    """
+    temp_files_to_cleanup = []
+    
+    try:
+        # Step 1: Handle audio source
+        if hasattr(audio_source, 'name'):
+            # File upload
+            audio_path = audio_source.name
+            logger.info(f"Processing uploaded file: {audio_path}")
+        else:
+            # Recorded audio - save to temp file
+            temp_audio_path = utils.create_temp_file(suffix=".wav")
+            with open(temp_audio_path, "wb") as f:
+                f.write(audio_source)
+            audio_path = temp_audio_path
+            temp_files_to_cleanup.append(temp_audio_path)
+            logger.info(f"Processing recorded audio saved to: {audio_path}")
+        
+        # Step 2: Extract audio if it's a video file
+        if audio_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+            with st.spinner("🎬 Extracting audio from video..."):
+                extracted_audio_path = media.extract_audio(audio_path)
+                temp_files_to_cleanup.append(extracted_audio_path)
+                audio_path = extracted_audio_path
+                logger.info(f"Audio extracted to: {audio_path}")
+        
+        # Step 3: Multi-language transcription
+        with st.spinner("🌍 Processing with multi-language support..."):
+            result = multilingual_transcriber.transcribe_with_language_detection(
+                audio_path=audio_path,
+                target_languages=multilingual_settings.get('target_languages', []),
+                enable_translation=multilingual_settings.get('enable_translation', False),
+                enable_entity_extraction=multilingual_settings.get('enable_entity_extraction', False)
+            )
+        
+        logger.info(f"Multi-language processing completed. Primary language: {result.primary_language}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Multi-language processing failed: {e}")
+        st.error(f"Processing failed: {str(e)}")
+        raise
+    
+    finally:
+        # Cleanup temporary files
+        for file_path in temp_files_to_cleanup:
+            try:
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+                    logger.debug(f"Cleaned up temp file: {file_path}")
+            except Exception as cleanup_error:
+                logger.warning(f"Failed to cleanup file {file_path}: {cleanup_error}")
+
 def render_audio_quality_analysis():
     """Render audio quality analysis and advanced processing results"""
     
@@ -2149,6 +2332,11 @@ def render_results_enhanced(analysis_mode: str):
         # Advanced results are already rendered by the advanced processing function
         return
     
+    # Check if we have multi-language results (Task 36)
+    if "Multi-Language" in analysis_mode and session_manager.get_multilingual_results():
+        render_multilingual_results()
+        return
+    
     st.header("📊 Results")
     
     # Get results from session manager
@@ -2158,7 +2346,14 @@ def render_results_enhanced(analysis_mode: str):
     
     # Show processing summary
     with st.expander("📈 Processing Summary", expanded=False):
-        col1, col2, col3, col4 = st.columns(4)
+        # Check if we have language info
+        has_language_info = hasattr(results, 'language_info') and results.language_info
+        
+        if has_language_info:
+            # Show 5 columns if we have language info
+            col1, col2, col3, col4, col5 = st.columns(5)
+        else:
+            col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.metric("Words", results.word_count)
@@ -2169,6 +2364,15 @@ def render_results_enhanced(analysis_mode: str):
         with col4:
             confidence_display = f"{results.confidence:.1%}" if results.confidence > 0 else "N/A"
             st.metric("Confidence", confidence_display)
+        
+        if has_language_info:
+            with col5:
+                lang_info = results.language_info
+                primary_lang = lang_info.get('primary_language', 'en').upper()
+                if lang_info.get('has_code_switching', False):
+                    st.metric("Language", f"{primary_lang} (+Multi)", help="Multiple languages detected")
+                else:
+                    st.metric("Language", primary_lang)
     
     # Show advanced audio processing results if available
     if (hasattr(st.session_state, 'audio_quality_metrics') or 
@@ -3310,6 +3514,142 @@ def render_audio_navigation_controls(audio_file_path: str, duration: float):
         
     except Exception as e:
         st.error(f"Navigation controls error: {str(e)}")
+
+def render_visual_search_panel():
+    """Render visual search and content discovery panel (Task 38)"""
+    st.header("🔍 Visual Search & Content Discovery")
+    
+    # Add current transcript to search index if available
+    if session_manager.has_results():
+        results = session_manager.get_results()
+        file_info = session_manager.get_file_info()
+        
+        # Check if this content is already in the index
+        content_id = f"session_{int(time.time())}"
+        
+        with st.expander("➕ Add Current Transcript to Search Index"):
+            if st.button("📤 Add to Search Index"):
+                metadata = {
+                    'duration': getattr(results, 'processing_time', 0),
+                    'file_path': file_info.name if file_info else 'unknown',
+                    'category': 'Session Content',
+                    'confidence': getattr(results, 'confidence', 0)
+                }
+                
+                visual_search_engine.add_transcript(
+                    transcript_id=content_id,
+                    title=f"Session Content - {file_info.name if file_info else 'Unknown'}",
+                    transcript=results.transcript,
+                    metadata=metadata
+                )
+                
+                st.success("Current transcript added to search index!")
+                st.rerun()
+    
+    # Render main visual search interface
+    visual_search_ui.render_visual_search_interface()
+    
+    # Add content upload interface
+    st.markdown("---")
+    visual_search_ui.render_content_upload_interface()
+    
+    # Show search analytics
+    st.markdown("---")
+    visual_search_ui.render_search_analytics()
+
+
+def render_multilingual_results():
+    """Render multi-language transcription results (Task 36)"""
+    multilingual_results = session_manager.get_multilingual_results()
+    
+    if not multilingual_results:
+        st.error("No multi-language results available")
+        return
+    
+    # Create a mock MultilingualTranscriptionResult for the UI
+    from multilingual_transcription import MultilingualTranscriptionResult
+    from session_manager import session_manager
+    
+    # Get basic results
+    basic_results = session_manager.get_results()
+    
+    # Create multilingual result object
+    result = MultilingualTranscriptionResult(
+        text=basic_results.transcript,
+        confidence=basic_results.confidence,
+        processing_time=basic_results.processing_time,
+        model_used=basic_results.model_used,
+        primary_language=multilingual_results.get('primary_language', 'en'),
+        detected_languages=multilingual_results.get('detected_languages', []),
+        has_code_switching=multilingual_results.get('has_code_switching', False),
+        language_segments=multilingual_results.get('language_segments'),
+        translations=multilingual_results.get('translations'),
+        entities=multilingual_results.get('entities')
+    )
+    
+    # Use the multilingual UI to render results
+    multilingual_ui.render_transcription_results(result)
+
+
+def render_ai_provider_panel():
+    """Render AI provider management panel"""
+    st.header("🤖 AI Provider Management")
+    
+    st.info("Manage multiple AI service providers to enhance your transcription app with advanced capabilities.")
+    
+    # Create tabs for different AI provider functions
+    tab1, tab2 = st.tabs(["🔧 Provider Management", "🎨 Content Generation"])
+    
+    with tab1:
+        # Render main provider management interface
+        ai_provider_ui.render_provider_management_interface()
+    
+    with tab2:
+        # Render enhanced content generation
+        ai_provider_ui.render_enhanced_content_generation()
+
+
+def render_advanced_content_analysis_panel():
+    """Render advanced content analysis panel (Task 39)"""
+    st.header("🧠 Advanced AI-Powered Content Analysis")
+    
+    # Add current transcript to analysis if available
+    if session_manager.has_results():
+        results = session_manager.get_results()
+        file_info = session_manager.get_file_info()
+        
+        with st.expander("🎯 Quick Analysis of Current Session"):
+            if st.button("🧠 Analyze Current Transcript"):
+                with st.spinner("Analyzing current session content..."):
+                    # Get audio duration if available
+                    audio_duration = getattr(results, 'processing_time', None)
+                    
+                    # Run comprehensive analysis
+                    analysis_results = advanced_content_analyzer.analyze_content(
+                        text=results.transcript,
+                        audio_duration=audio_duration,
+                        timestamps=None,
+                        reference_database=None
+                    )
+                    
+                    if 'error' not in analysis_results:
+                        st.success("✅ Analysis completed for current session!")
+                        
+                        # Store results in session state for later viewing
+                        st.session_state.advanced_analysis_results = analysis_results
+                        
+                        # Display key insights
+                        if 'overall_score' in analysis_results:
+                            overall_quality = analysis_results['overall_score'].get('overall_quality', 0)
+                            st.metric("Overall Content Quality", f"{overall_quality:.2f}")
+                        
+                        st.info("View detailed results in the tabs below.")
+                    else:
+                        st.error(f"Analysis failed: {analysis_results['error']}")
+    
+    # Render main advanced analysis interface
+    advanced_content_analysis_ui.render_advanced_analysis_interface()
+
 
 def render_results(analysis_mode: str):
     """Legacy render_results function - redirects to enhanced version"""

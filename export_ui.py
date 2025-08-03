@@ -10,7 +10,10 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from export_manager import MultimediaExporter, ExportConfig, ShareConfig, SharingManager
-from security_manager import security_manager
+from security_manager import create_security_manager
+
+# Create global security manager instance
+security_manager = create_security_manager()
 
 
 class ExportUI:

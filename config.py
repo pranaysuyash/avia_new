@@ -12,6 +12,24 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Set up comprehensive logging
+from monitoring.logger_config import setup_logging, get_logger
+
+# Initialize logging based on environment
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+log_file = os.getenv("LOG_FILE", "logs/app.log")
+enable_json_logging = os.getenv("ENABLE_JSON_LOGGING", "true").lower() == "true"
+
+logging_handlers = setup_logging(
+    log_level=log_level,
+    log_file=log_file,
+    enable_json_logging=enable_json_logging,
+    enable_error_tracking=True,
+    enable_performance_tracking=True
+)
+
+logger = get_logger(__name__)
+
 class Config:
     """Application configuration management"""
     

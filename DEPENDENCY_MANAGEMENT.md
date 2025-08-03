@@ -167,6 +167,30 @@ For this project, we recommend **uv** because:
 
 If you prefer a more traditional approach, **pipenv** is the second-best choice for its excellent dependency management features.
 
+## 🌍 Multi-Language Setup (Task 36)
+
+For full multi-language support with 50+ languages, run the enhanced setup:
+
+```bash
+# Enhanced multi-language setup
+./setup_multilingual.sh
+```
+
+This will:
+- Install spaCy models for major languages (English, Spanish, French, German, etc.)
+- Test language detection capabilities
+- Verify translation services
+- Run multi-language functionality tests
+
+### Language Models Installed:
+- **Core**: English (required)
+- **European**: Spanish, French, German, Italian, Portuguese, Dutch, etc.
+- **Asian**: Japanese, Korean, Chinese, Arabic
+- **Nordic**: Swedish, Danish, Norwegian, Finnish
+- **Slavic**: Russian, Polish, Ukrainian, Croatian, etc.
+
+Note: Some language models may not be available and will be skipped during installation.
+
 ## 🐛 Troubleshooting
 
 ### Common Issues:
@@ -174,6 +198,8 @@ If you prefer a more traditional approach, **pipenv** is the second-best choice 
 1. **spaCy model not found**:
    ```bash
    python -m spacy download en_core_web_sm
+   # For multi-language support:
+   ./setup_multilingual.sh
    ```
 
 2. **pydantic version conflict**:
@@ -195,6 +221,17 @@ If you prefer a more traditional approach, **pipenv** is the second-best choice 
    # Windows
    # Download from https://ffmpeg.org/
    ```
+
+5. **Language detection issues**:
+   ```bash
+   # Test language detection
+   python -c "from langdetect import detect; print(detect('Hello world'))"
+   ```
+
+6. **Translation service errors**:
+   - Google Translate may require internet connection
+   - OpenAI translation requires API key
+   - Some languages may not be supported by all services
 
 ## 📚 Further Reading
 

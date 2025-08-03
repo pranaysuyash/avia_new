@@ -75,7 +75,7 @@ class TestTTSModule:
     def test_synthesize_speech_no_api_key(self):
         """Test synthesis fails without API key"""
         with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(TTSError, match="ELEVENLABS_API_KEY environment variable not set"):
+            with pytest.raises(TTSError, match="ElevenLabs API key not configured"):
                 synthesize_speech(self.test_text)
     
     @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test_api_key"})

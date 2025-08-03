@@ -51,8 +51,8 @@ ENV STREAMLIT_LOGGER_LEVEL=INFO
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Security settings
-ENV STREAMLIT_SERVER_COOKIE_SECRET=""
+# Security settings - Cookie secret should be set at runtime via environment variable
+# ENV STREAMLIT_SERVER_COOKIE_SECRET is intentionally not set here for security
 ENV STREAMLIT_SERVER_ENABLE_WEBSOCKET_COMPRESSION=false
 
 # Switch to non-root user

@@ -1,239 +1,260 @@
 """
-API Authentication and Authorization
-Handles JWT tokens, API keys, and permission validation
+Authentication utilities for FastAPI
+Handles JWT tokens, password hashing, and user authentication
 """
 
-from fastapi import HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, Dict, Any
+from datetime import datetime, timedelta
+from typing import Optional, Union
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 import os
-import sys
-import logging
-from datetime import datetime
+import secrets
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from api.database import get_db, User, UserRole, APIKey
 
-from security_manager import SecurityManager
+# Configuration
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 
-logger = logging.getLogger(__name__)
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Security schemes
-security_scheme = HTTPBearer()
+# OAuth2 scheme
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
-# Global security manager
-security_manager = SecurityManager()
+# API Key header scheme
+api_key_header = OAuth2PasswordBearer(tokenUrl="/api/auth/token", scheme_name="api_key", auto_error=False)
 
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash"""
+    return pwd_context.verify(plain_password, hashed_password)
 
-class APIAuthManager:
-    """Manage API authentication and authorization"""
+def get_password_hash(password: str) -> str:
+    """Hash a password"""
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    def __init__(self):
-        self.security_manager = security_manager
+    to_encode.update({"exp": expire, "type": "access"})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def create_refresh_token(data: dict) -> str:
+    """Create a JWT refresh token"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def decode_token(token: str) -> dict:
+    """Decode and validate a JWT token"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+    """Authenticate a user by email and password"""
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not verify_password(password, user.password_hash):
+        return None
+    return user
+
+def get_user_by_email(db: Session, email: str) -> Optional[User]:
+    """Get a user by email"""
+    return db.query(User).filter(User.email == email).first()
+
+def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+    """Get a user by ID"""
+    return db.query(User).filter(User.id == user_id).first()
+
+def create_user(db: Session, email: str, password: str, username: str, full_name: str = None) -> User:
+    """Create a new user"""
+    hashed_password = get_password_hash(password)
+    user = User(
+        email=email,
+        username=username,
+        password_hash=hashed_password,
+        full_name=full_name,
+        verification_token=secrets.token_urlsafe(32)
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> User:
+    """Get the current authenticated user from JWT token"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     
-    def validate_jwt_token(self, token: str) -> Optional[str]:
-        """Validate JWT token and return user ID"""
-        try:
-            user_id = self.security_manager.access_control.validate_token(token)
-            if user_id:
-                # Log successful authentication
-                self.security_manager.audit_logger.log_authentication(
-                    user_id, True, "API"
-                )
-                return user_id
-            else:
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "access":
+        raise credentials_exception
+    
+    user_id: int = payload.get("sub")
+    if user_id is None:
+        raise credentials_exception
+    
+    user = get_user_by_id(db, user_id=int(user_id))
+    if user is None:
+        raise credentials_exception
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user"
+        )
+    
+    # Update last login
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
+    return user
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Ensure the current user is active"""
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user"
+        )
+    return current_user
+
+async def get_current_admin_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Ensure the current user is an admin"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    return current_user
+
+def create_api_key(db: Session, user: User, name: str) -> tuple[str, APIKey]:
+    """Create a new API key for a user"""
+    # Generate a secure random key
+    raw_key = secrets.token_urlsafe(32)
+    key_hash = get_password_hash(raw_key)
+    
+    api_key = APIKey(
+        user_id=user.id,
+        name=name,
+        key_hash=key_hash
+    )
+    db.add(api_key)
+    db.commit()
+    db.refresh(api_key)
+    
+    # Return both the raw key (to show once) and the model
+    return raw_key, api_key
+
+def validate_api_key(db: Session, api_key: str) -> Optional[User]:
+    """Validate an API key and return the associated user"""
+    # Try to find all active API keys and check against the hash
+    api_keys = db.query(APIKey).filter(APIKey.is_active == True).all()
+    
+    for key in api_keys:
+        if verify_password(api_key, key.key_hash):
+            # Update last used timestamp
+            key.last_used_at = datetime.utcnow()
+            db.commit()
+            
+            # Check if key is expired
+            if key.expires_at and key.expires_at < datetime.utcnow():
+                key.is_active = False
+                db.commit()
                 return None
-        except Exception as e:
-            logger.error(f"JWT validation error: {e}")
-            return None
+            
+            return key.user
     
-    def validate_api_key(self, api_key: str) -> Optional[str]:
-        """Validate API key and return user ID"""
-        try:
-            user_id = self.security_manager.access_control.validate_api_key(api_key)
-            if user_id:
-                # Log successful API key authentication
-                self.security_manager.audit_logger.log_authentication(
-                    user_id, True, "API_KEY"
-                )
-                return user_id
-            else:
-                return None
-        except Exception as e:
-            logger.error(f"API key validation error: {e}")
-            return None
-    
-    def check_permission(self, user_id: str, permission: str) -> bool:
-        """Check if user has required permission"""
-        has_permission = self.security_manager.access_control.check_permission(
-            user_id, permission
-        )
-        
-        # Log access attempt
-        self.security_manager.audit_logger.log_access_attempt(
-            user_id, "API", permission, has_permission
-        )
-        
-        return has_permission
-    
-    def check_rate_limit(self, user_id: str) -> bool:
-        """Check if user is within rate limits"""
-        return self.security_manager.access_control.check_rate_limit(user_id)
+    return None
 
-
-# Global auth manager
-auth_manager = APIAuthManager()
-
-
-async def get_current_user_jwt(
-    credentials: HTTPAuthorizationCredentials = Depends(security_scheme)
-) -> str:
-    """Get current user from JWT token"""
-    token = credentials.credentials
-    user_id = auth_manager.validate_jwt_token(token)
-    
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    return user_id
-
-
-async def get_current_user_api_key(
-    credentials: HTTPAuthorizationCredentials = Depends(security_scheme)
-) -> str:
-    """Get current user from API key"""
-    if not credentials.scheme == "ApiKey":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication scheme. Use 'ApiKey <key>'",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-    
-    api_key = credentials.credentials
-    user_id = auth_manager.validate_api_key(api_key)
-    
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-    
-    return user_id
-
-
-async def get_current_user_flexible(
-    credentials: HTTPAuthorizationCredentials = Depends(security_scheme)
-) -> str:
+async def get_current_user_or_api_key(
+    token: Optional[str] = Depends(oauth2_scheme),
+    api_key: Optional[str] = Depends(api_key_header),
+    db: Session = Depends(get_db)
+) -> User:
     """Get current user from either JWT token or API key"""
-    if credentials.scheme.lower() == "bearer":
-        # Try JWT token
-        user_id = auth_manager.validate_jwt_token(credentials.credentials)
-        if user_id:
-            return user_id
-    elif credentials.scheme.lower() == "apikey":
-        # Try API key
-        user_id = auth_manager.validate_api_key(credentials.credentials)
-        if user_id:
-            return user_id
+    # Try JWT token first
+    if token:
+        try:
+            return await get_current_user(token, db)
+        except HTTPException:
+            pass
     
+    # Try API key
+    if api_key:
+        user = validate_api_key(db, api_key)
+        if user:
+            return user
+    
+    # Neither worked
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
-        headers={"WWW-Authenticate": "Bearer, ApiKey"},
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
-
-def require_permission(permission: str):
-    """Decorator to require specific permission"""
-    def permission_checker(user_id: str = Depends(get_current_user_flexible)):
-        if not auth_manager.check_permission(user_id, permission):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permission '{permission}' required"
-            )
-        return user_id
-    return permission_checker
-
-
-def require_admin():
-    """Require admin permission"""
-    return require_permission("admin")
-
-
-def require_write():
-    """Require write permission"""
-    return require_permission("write")
-
-
-def require_read():
-    """Require read permission"""
-    return require_permission("read")
-
-
-def require_export():
-    """Require export permission"""
-    return require_permission("export")
-
-
-# Convenience dependency functions (return callable functions for FastAPI Depends)
-def jwt_required():
-    return Depends(get_current_user_jwt)
-
-def api_key_required():
-    return Depends(get_current_user_api_key)
-
-def auth_required():
-    return Depends(get_current_user_flexible)
-
-def admin_required():
-    return require_admin()
-
-def write_required():
-    return require_write()
-
-def read_required():
-    return require_read()
-
-def export_required():
-    return require_export()
-
-
-def create_api_response(data: Any, message: str = "Success") -> Dict[str, Any]:
+def create_api_response(data=None, message="Success", status_code=200):
     """Create standardized API response"""
     return {
-        "success": True,
+        "status": "success",
         "message": message,
         "data": data,
-        "timestamp": datetime.now().isoformat()
+        "status_code": status_code
     }
 
-
-def create_error_response(error: str, status_code: int = 400) -> Dict[str, Any]:
+def create_error_response(message="Error", status_code=400, details=None):
     """Create standardized error response"""
-    return {
-        "success": False,
-        "error": error,
-        "status_code": status_code,
-        "timestamp": datetime.now().isoformat()
+    response = {
+        "status": "error",
+        "message": message,
+        "status_code": status_code
     }
+    if details:
+        response["details"] = details
+    return response
 
-
-# Export the security_manager and auth_manager for use in endpoints
+# Export all utilities
 __all__ = [
-    'auth_manager',
-    'security_manager',
-    'jwt_required',
-    'api_key_required',
-    'auth_required',
-    'admin_required',
-    'write_required',
-    'read_required',
-    'export_required',
+    'verify_password',
+    'get_password_hash',
+    'create_access_token',
+    'create_refresh_token',
+    'decode_token',
+    'authenticate_user',
+    'get_user_by_email',
+    'get_user_by_id',
+    'create_user',
+    'get_current_user',
+    'get_current_active_user',
+    'get_current_admin_user',
+    'create_api_key',
+    'validate_api_key',
+    'get_current_user_or_api_key',
     'create_api_response',
     'create_error_response'
 ]

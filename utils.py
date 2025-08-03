@@ -5,7 +5,7 @@ import os
 import tempfile
 import logging
 import time
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -361,3 +361,221 @@ def setup_production_logging() -> None:
     sys.excepthook = handle_exception
     
     logger.info("Production logging configured")
+
+
+# Centralized Validation Functions
+def validate_email(email: str) -> bool:
+    """Validate email address format"""
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(email_pattern, email))
+
+
+def validate_phone_number(phone: str) -> bool:
+    """Validate phone number format (supports various formats)"""
+    import re
+    # Remove common separators
+    cleaned = re.sub(r'[\s\-\.\(\)]', '', phone)
+    # Check if it's a valid phone number (10-15 digits, optionally starting with +)
+    phone_pattern = r'^\+?[1-9]\d{9,14}$'
+    return bool(re.match(phone_pattern, cleaned))
+
+
+def validate_url(url: str) -> bool:
+    """Validate URL format"""
+    import re
+    url_pattern = r'^https?://[^\s/$.?#].[^\s]*$'
+    return bool(re.match(url_pattern, url, re.IGNORECASE))
+
+
+def validate_file_extension(filename: str, allowed_extensions: List[str]) -> bool:
+    """Validate file extension against allowed list"""
+    if not filename:
+        return False
+    
+    # Extract extension (case-insensitive)
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in [e.lower() if e.startswith('.') else f'.{e.lower()}' for e in allowed_extensions]
+
+
+def validate_content_type(content_type: str, allowed_types: List[str]) -> bool:
+    """Validate content type against allowed list"""
+    if not content_type:
+        return False
+    
+    # Normalize content type (remove parameters like charset)
+    base_type = content_type.split(';')[0].strip().lower()
+    
+    # Check exact matches and wildcards
+    for allowed in allowed_types:
+        allowed_lower = allowed.lower()
+        if allowed_lower.endswith('/*'):
+            # Wildcard match (e.g., 'audio/*')
+            prefix = allowed_lower[:-2]
+            if base_type.startswith(prefix):
+                return True
+        elif base_type == allowed_lower:
+            return True
+    
+    return False
+
+
+def validate_language_code(language: str, valid_languages: Optional[List[str]] = None) -> bool:
+    """Validate language code"""
+    if not language:
+        return False
+    
+    # Default supported languages
+    if valid_languages is None:
+        valid_languages = ['auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko', 'zh',
+                          'ar', 'hi', 'nl', 'pl', 'tr', 'sv', 'da', 'no', 'fi']
+    
+    return language.lower() in [lang.lower() for lang in valid_languages]
+
+
+def validate_model_name(model: str, valid_models: Optional[List[str]] = None) -> bool:
+    """Validate AI model name"""
+    if not model:
+        return False
+    
+    # Default Whisper models
+    if valid_models is None:
+        valid_models = ['tiny', 'base', 'small', 'medium', 'large', 'large-v2', 'large-v3']
+    
+    return model.lower() in [m.lower() for m in valid_models]
+
+
+def validate_json_structure(data: dict, required_fields: List[str]) -> tuple[bool, Optional[str]]:
+    """Validate JSON structure has required fields"""
+    missing_fields = [field for field in required_fields if field not in data]
+    
+    if missing_fields:
+        return False, f"Missing required fields: {', '.join(missing_fields)}"
+    
+    return True, None
+
+
+def validate_date_range(start_date: str, end_date: str) -> tuple[bool, Optional[str]]:
+    """Validate date range"""
+    try:
+        from datetime import datetime
+        start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        
+        if start > end:
+            return False, "Start date must be before end date"
+        
+        return True, None
+    except (ValueError, AttributeError) as e:
+        return False, f"Invalid date format: {str(e)}"
+
+
+def validate_pagination_params(page: int, per_page: int, max_per_page: int = 100) -> tuple[bool, Optional[str]]:
+    """Validate pagination parameters"""
+    if page < 1:
+        return False, "Page number must be at least 1"
+    
+    if per_page < 1:
+        return False, "Items per page must be at least 1"
+    
+    if per_page > max_per_page:
+        return False, f"Items per page cannot exceed {max_per_page}"
+    
+    return True, None
+
+
+def sanitize_filename(filename: str, max_length: int = 255) -> str:
+    """Sanitize filename for safe storage"""
+    import re
+    
+    # Remove directory traversal attempts
+    filename = os.path.basename(filename)
+    
+    # Replace invalid characters
+    filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', filename)
+    
+    # Limit length (preserving extension)
+    if len(filename) > max_length:
+        name, ext = os.path.splitext(filename)
+        max_name_length = max_length - len(ext)
+        filename = name[:max_name_length] + ext
+    
+    # Ensure it's not empty or just dots
+    if not filename or filename.replace('.', '') == '':
+        filename = 'unnamed_file'
+    
+    return filename
+
+
+def validate_sort_parameter(sort_by: str, valid_sorts: List[str]) -> bool:
+    """Validate sort parameter against allowed values"""
+    return sort_by.lower() in [s.lower() for s in valid_sorts]
+
+
+def validate_enum_value(value: str, enum_values: List[str], case_sensitive: bool = False) -> bool:
+    """Validate value against enum list"""
+    if case_sensitive:
+        return value in enum_values
+    return value.lower() in [v.lower() for v in enum_values]
+
+
+# File type validation configurations
+AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg', '.wma', '.opus']
+VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v']
+IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.tiff']
+DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt']
+
+AUDIO_CONTENT_TYPES = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/flac', 'audio/aac', 
+                       'audio/ogg', 'audio/x-ms-wma', 'audio/opus', 'audio/*']
+VIDEO_CONTENT_TYPES = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-matroska',
+                       'video/webm', 'video/x-flv', 'video/x-ms-wmv', 'video/*']
+IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp',
+                       'image/svg+xml', 'image/tiff', 'image/*']
+DOCUMENT_CONTENT_TYPES = ['application/pdf', 'application/msword', 
+                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          'text/plain', 'text/rtf', 'application/vnd.oasis.opendocument.text']
+
+
+def validate_audio_file(filename: str, content_type: Optional[str] = None) -> bool:
+    """Validate audio file by extension and optionally content type"""
+    if not validate_file_extension(filename, AUDIO_EXTENSIONS):
+        return False
+    
+    if content_type:
+        return validate_content_type(content_type, AUDIO_CONTENT_TYPES)
+    
+    return True
+
+
+def validate_video_file(filename: str, content_type: Optional[str] = None) -> bool:
+    """Validate video file by extension and optionally content type"""
+    if not validate_file_extension(filename, VIDEO_EXTENSIONS):
+        return False
+    
+    if content_type:
+        return validate_content_type(content_type, VIDEO_CONTENT_TYPES)
+    
+    return True
+
+
+def validate_image_file(filename: str, content_type: Optional[str] = None) -> bool:
+    """Validate image file by extension and optionally content type"""
+    if not validate_file_extension(filename, IMAGE_EXTENSIONS):
+        return False
+    
+    if content_type:
+        return validate_content_type(content_type, IMAGE_CONTENT_TYPES)
+    
+    return True
+
+
+def validate_media_file(filename: str, content_type: Optional[str] = None) -> tuple[bool, Optional[str]]:
+    """Validate any media file and return its type"""
+    if validate_audio_file(filename, content_type):
+        return True, 'audio'
+    elif validate_video_file(filename, content_type):
+        return True, 'video'
+    elif validate_image_file(filename, content_type):
+        return True, 'image'
+    else:
+        return False, None

@@ -206,16 +206,22 @@ def render_transcript_with_speakers(result: DiarizationResult, transcript_text: 
         """, unsafe_allow_html=True)
         
         # Render text for segments
-        if transcript_text:
-            # TODO: Align with actual transcript
-            st.markdown(f"*[Transcript segment for {speaker_label}]*")
+        segment_texts = []
+        for segment in group['segments']:
+            if segment.text:
+                segment_texts.append(segment.text)
+        
+        if segment_texts:
+            # Join all text from consecutive segments
+            combined_text = " ".join(segment_texts)
+            st.markdown(combined_text)
+        elif transcript_text:
+            # If we have a full transcript but no segment text, try to extract the relevant portion
+            # This could be enhanced with more sophisticated alignment algorithms
+            st.markdown(f"*[Transcript segment for {speaker_label} from {group['start_time']:.1f}s to {group['end_time']:.1f}s]*")
         else:
-            # Show segment details
-            for segment in group['segments']:
-                if segment.text:
-                    st.markdown(segment.text)
-                else:
-                    st.markdown(f"*[Speech from {segment.start_time:.1f}s to {segment.end_time:.1f}s]*")
+            # No text available, show time range
+            st.markdown(f"*[Speech from {group['start_time']:.1f}s to {group['end_time']:.1f}s]*")
 
 
 def render_diarization_controls(key_prefix: str = "diarization"):

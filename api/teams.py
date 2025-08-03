@@ -9,7 +9,7 @@ from datetime import datetime
 import logging
 
 from database import get_db_session, User, Team, TeamMember
-from .auth import get_current_user
+from .auth import get_current_user_or_api_key as get_current_user
 from teams.team_manager import TeamManager
 
 logger = logging.getLogger(__name__)

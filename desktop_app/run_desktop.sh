@@ -1,21 +1,23 @@
 #!/bin/bash
 
-# Kill any existing Streamlit processes on port 8501
-echo "Checking for existing Streamlit processes..."
-lsof -ti:8501 | xargs kill -9 2>/dev/null || true
+# Kill any existing React processes on port 3000
+echo "Checking for existing React processes..."
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 
-# Activate virtual environment if it exists
-if [ -d "../venv" ]; then
-    echo "Activating virtual environment..."
-    source ../venv/bin/activate
-fi
-
-# Install npm dependencies if needed
+# Install desktop app npm dependencies if needed
 if [ ! -d "node_modules" ]; then
-    echo "Installing npm dependencies..."
+    echo "Installing desktop app dependencies..."
     npm install
 fi
 
-# Start the desktop app
-echo "Starting desktop app..."
+# Install React app dependencies if needed
+if [ ! -d "src/renderer/node_modules" ]; then
+    echo "Installing React app dependencies..."
+    cd src/renderer
+    npm install
+    cd ../..
+fi
+
+# Start the desktop app with React
+echo "Starting React-based desktop app..."
 npm run dev

@@ -8,8 +8,8 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import logging
 
-from database import get_db_session, User, Transcript, TranscriptShare
-from .auth import get_current_user
+from database import get_db_session, User, Transcript, SharedLink
+from .auth import get_current_user_or_api_key as get_current_user
 from .exceptions import APIException
 from sharing.share_manager import ShareManager
 from versioning.version_manager import VersionManager

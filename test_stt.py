@@ -16,6 +16,7 @@ from stt import (
     get_transcription_confidence,
     transcribe_detailed
 )
+from errors import ErrorCode, APIError
 
 class TestWhisperTranscriber:
     """Test cases for WhisperTranscriber class"""
@@ -85,7 +86,7 @@ class TestWhisperTranscriber:
         with pytest.raises(TranscriptionError) as exc_info:
             self.transcriber._load_local_model('base')
         
-        assert exc_info.value.error_code == "LOCAL_MODEL_ERROR"
+        assert exc_info.value.error_code == ErrorCode.LOCAL_MODEL_ERROR
         assert "Unable to load offline transcription model" in exc_info.value.user_message
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-api-key'})
@@ -128,10 +129,10 @@ class TestWhisperTranscriber:
         
         transcriber = WhisperTranscriber()
         
-        with pytest.raises(TranscriptionError) as exc_info:
+        with pytest.raises(APIError) as exc_info:
             transcriber._transcribe_with_api(self.temp_audio_file, max_retries=1)
         
-        assert exc_info.value.error_code == "RATE_LIMIT_ERROR"
+        assert exc_info.value.error_code == ErrorCode.API_RATE_LIMIT
         assert "rate limit exceeded" in exc_info.value.user_message.lower()
     
     @patch('whisper.load_model')
@@ -163,7 +164,7 @@ class TestWhisperTranscriber:
         with pytest.raises(TranscriptionError) as exc_info:
             self.transcriber.transcribe("nonexistent_file.wav")
         
-        assert exc_info.value.error_code == "FILE_NOT_FOUND"
+        assert exc_info.value.error_code == ErrorCode.FILE_NOT_FOUND
         assert "Audio file not found" in exc_info.value.user_message
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-api-key'})

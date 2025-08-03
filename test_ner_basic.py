@@ -3,6 +3,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import ner_basic
+from errors import NERError, AppError
 
 class TestNERBasic:
     """Test suite for basic NER functionality"""
@@ -193,7 +194,7 @@ class TestNERBasic:
     def test_model_loading_error(self):
         """Test handling of spaCy model loading errors"""
         with patch('ner_basic.spacy.load', side_effect=OSError("Model not found")):
-            with pytest.raises(RuntimeError, match="spaCy English model not available"):
+            with pytest.raises(NERError, match="spaCy model not found"):
                 ner_basic._load_model()
     
     def test_extract_entities_processing_error(self):
@@ -201,8 +202,8 @@ class TestNERBasic:
         sample_text = "Test text"
         
         with patch('ner_basic._load_model', side_effect=Exception("Processing error")):
-            result = ner_basic.extract_entities(sample_text)
-            assert result == {}
+            with pytest.raises(AppError, match="Processing error"):
+                ner_basic.extract_entities(sample_text)
     
     def test_entity_categorization_mapping(self):
         """Test that spaCy entity labels are correctly mapped to our categories"""
@@ -215,7 +216,7 @@ class TestNERBasic:
         mock_entities = [
             MagicMock(text="John", label_="PERSON"),
             MagicMock(text="Microsoft", label_="ORG"),
-            MagicMock(text="January 1", label_="DATE"),
+            MagicMock(text="January 15, 2024", label_="DATE"),
             MagicMock(text="3:00 PM", label_="TIME"),
             MagicMock(text="Seattle", label_="GPE"),
         ]
@@ -229,7 +230,7 @@ class TestNERBasic:
             # Verify correct mapping
             assert "PERSON" in result and "John" in result["PERSON"]
             assert "ORG" in result and "Microsoft" in result["ORG"]
-            assert "DATE" in result and "January 1" in result["DATE"]
+            assert "DATE" in result and "January 15, 2024" in result["DATE"]
             assert "DATE" in result and "3:00 PM" in result["DATE"]  # TIME mapped to DATE
             assert "GPE" in result and "Seattle" in result["GPE"]
 

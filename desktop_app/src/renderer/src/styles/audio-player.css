@@ -1,0 +1,43 @@
+/* Custom styles for audio player range sliders */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s ease-in-out;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s ease-in-out;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* Progress bar hover effect */
+.progress-bar-container:hover .progress-handle {
+  opacity: 1;
+}
+
+/* Video player controls */
+.video-controls {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+}

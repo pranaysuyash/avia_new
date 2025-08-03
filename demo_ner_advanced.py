@@ -10,9 +10,9 @@ from ner_advanced import (
     extract_entities_advanced, 
     generate_script, 
     analyze_sentiment,
-    get_fallback_suggestions,
-    AdvancedNERError
+    get_fallback_suggestions
 )
+from errors import NERError as AdvancedNERError
 
 # Load environment variables
 load_dotenv()

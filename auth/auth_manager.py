@@ -16,6 +16,7 @@ import streamlit as st
 from email_validator import validate_email, EmailNotValidError
 
 from database.models import User, Session, UserRole, get_db_session
+from .email_service import email_service
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,17 @@ class AuthManager:
             
             logger.info(f"New user registered: {username} ({validated_email})")
             
-            # TODO: Send verification email
+            # Send verification email
+            if new_user.verification_token:
+                email_sent, error = email_service.send_verification_email(
+                    to_email=validated_email,
+                    username=username,
+                    verification_token=new_user.verification_token
+                )
+                if not email_sent:
+                    logger.warning(f"Failed to send verification email to {validated_email}: {error}")
+                else:
+                    logger.info(f"Verification email sent to {validated_email}")
             
             return True, new_user, None
             
@@ -273,7 +284,17 @@ class AuthManager:
             
             logger.info(f"Password reset requested for: {email}")
             
-            # TODO: Send reset email
+            # Send reset email
+            if user.reset_token:
+                email_sent, error = email_service.send_password_reset_email(
+                    to_email=email,
+                    username=user.username,
+                    reset_token=user.reset_token
+                )
+                if not email_sent:
+                    logger.warning(f"Failed to send reset email to {email}: {error}")
+                else:
+                    logger.info(f"Password reset email sent to {email}")
             
             return True, "If the email exists, a reset link has been sent"
             

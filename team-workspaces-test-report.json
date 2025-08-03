@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-08-03T05:53:18.826Z",
+  "summary": {
+    "totalTests": 5,
+    "totalPassed": 0,
+    "totalFailed": 5,
+    "platforms": 4
+  },
+  "platforms": {
+    "react": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        {
+          "name": "React Component Tests",
+          "status": "FAILED",
+          "error": "Command failed with code 254: npm error code ENOENT\nnpm error syscall open\nnpm error path /Users/pranay/Projects/LLM/video/ner/frontend/package.json\nnpm error errno -2\nnpm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/Users/pranay/Projects/LLM/video/ner/frontend/package.json'\nnpm error enoent This is related to npm not being able to find a file.\nnpm error enoent\nnpm error A complete log of this run can be found in: /Users/pranay/.npm/_logs/2025-08-03T05_53_18_656Z-debug-0.log\n"
+        }
+      ]
+    },
+    "reactNative": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        {
+          "name": "React Native Component Tests",
+          "status": "FAILED",
+          "error": "Command failed with code 127: sh: jest: command not found\n"
+        }
+      ]
+    },
+    "electron": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        {
+          "name": "Electron Desktop Tests",
+          "status": "FAILED",
+          "error": "Command failed with code 1: node:internal/modules/cjs/loader:1408\n  throw err;\n  ^\n\nError: Cannot find module 'spectron'\nRequire stack:\n- /Users/pranay/Projects/LLM/video/ner/test_team_workspaces_electron.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1405:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)\n    at Function._load (node:internal/modules/cjs/loader:1215:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1491:12)\n    at require (node:internal/modules/helpers:135:16)\n    at Object.<anonymous> (/Users/pranay/Projects/LLM/video/ner/test_team_workspaces_electron.js:7:25)\n    at Module._compile (node:internal/modules/cjs/loader:1734:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/Users/pranay/Projects/LLM/video/ner/test_team_workspaces_electron.js'\n  ]\n}\n\nNode.js v23.11.0\n"
+        }
+      ]
+    },
+    "backend": {
+      "passed": 0,
+      "failed": 2,
+      "tests": [
+        {
+          "name": "Python Backend Tests",
+          "status": "FAILED",
+          "error": "spawn python ENOENT"
+        },
+        {
+          "name": "API Interface Consistency",
+          "status": "FAILED",
+          "error": "React component missing API endpoint: /api/teams"
+        },
+        {
+          "name": "Data Model Consistency",
+          "status": "PASSED"
+        },
+        {
+          "name": "Feature Parity",
+          "status": "PASSED"
+        },
+        {
+          "name": "User Experience Consistency",
+          "status": "PASSED"
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    "Review React component error handling and accessibility",
+    "Optimize React Native performance and mobile UX patterns",
+    "Fix Electron desktop integration and window management",
+    "Strengthen backend API consistency and error handling"
+  ]
+}

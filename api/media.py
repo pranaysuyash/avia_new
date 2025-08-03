@@ -13,7 +13,7 @@ import uuid
 import asyncio
 
 from database import get_db_session, User, Transcript
-from .auth import get_current_user
+from .auth import get_current_user_flexible as get_current_user
 import media
 import stt
 import ner_basic

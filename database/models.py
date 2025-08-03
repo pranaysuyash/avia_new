@@ -59,6 +59,7 @@ class User(Base):
     annotations = relationship("Annotation", back_populates="user", cascade="all, delete-orphan")
     team_memberships = relationship("TeamMember", foreign_keys="TeamMember.user_id", back_populates="user", cascade="all, delete-orphan")
     owned_teams = relationship("Team", back_populates="owner")
+    api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
 
 class Session(Base):
     """User session management"""
@@ -75,6 +76,22 @@ class Session(Base):
     
     # Relationships
     user = relationship("User", back_populates="sessions")
+
+class APIKey(Base):
+    """API Key for programmatic access"""
+    __tablename__ = 'api_keys'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    name = Column(String(255), nullable=False)
+    key_hash = Column(String(255), unique=True, nullable=False, index=True)
+    last_used_at = Column(DateTime)
+    expires_at = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="api_keys")
 
 class Transcript(Base):
     """Transcript storage with ownership"""

@@ -11,7 +11,7 @@ from ner_advanced import (
     get_fallback_suggestions,
     _make_gpt_request_with_retry
 )
-from errors import NERError as AdvancedNERError
+from errors import NERError as AdvancedNERError, ErrorCode, APIError
 
 class TestAdvancedNER:
     """Test suite for advanced NER functionality"""
@@ -73,10 +73,12 @@ class TestAdvancedNER:
         return mock_response
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_extract_entities_advanced_success(self, mock_client, mock_openai_response):
+    @patch('ner_advanced._get_openai_client')
+    def test_extract_entities_advanced_success(self, mock_get_client, mock_openai_response):
         """Test successful entity extraction with GPT"""
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_openai_response
+        mock_get_client.return_value = mock_client
         
         test_text = "John Smith from OpenAI discussed AI technology in San Francisco, mentioning a $1 million investment."
         
@@ -91,15 +93,15 @@ class TestAdvancedNER:
         assert summary == "Discussion about AI technology and its impact on business"
         
         # Verify entity categories
-        expected_categories = ["persons", "organizations", "dates", "locations", "key_topics", "money", "numbers"]
+        expected_categories = ["PERSON", "ORG", "DATE", "GPE", "TOPIC", "MONEY"]
         for category in expected_categories:
             assert category in entities
             assert isinstance(entities[category], list)
         
         # Verify specific entities
-        assert "John Smith" in entities["persons"]
-        assert "OpenAI" in entities["organizations"]
-        assert "San Francisco" in entities["locations"]
+        assert "John Smith" in entities["PERSON"]
+        assert "OpenAI" in entities["ORG"]
+        assert "San Francisco" in entities["GPE"]
     
     def test_extract_entities_advanced_empty_text(self):
         """Test entity extraction with empty text"""
@@ -111,25 +113,29 @@ class TestAdvancedNER:
     @patch.dict(os.environ, {}, clear=True)
     def test_extract_entities_advanced_no_api_key(self):
         """Test entity extraction without API key"""
-        with pytest.raises(AdvancedNERError) as exc_info:
+        with pytest.raises(APIError) as exc_info:
             extract_entities_advanced("test text")
         
-        assert "OpenAI API key not configured" in str(exc_info.value)
+        assert "API key not configured" in str(exc_info.value)
+        assert exc_info.value.error_code == ErrorCode.API_KEY_MISSING
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_extract_entities_advanced_api_failure(self, mock_client):
+    @patch('ner_advanced._get_openai_client')
+    def test_extract_entities_advanced_api_failure(self, mock_get_client):
         """Test entity extraction with API failure"""
+        mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = Exception("API Error")
+        mock_get_client.return_value = mock_client
         
-        with pytest.raises(AdvancedNERError) as exc_info:
+        with pytest.raises(APIError) as exc_info:
             extract_entities_advanced("test text")
         
         assert "GPT API failed after" in str(exc_info.value)
+        assert exc_info.value.error_code == ErrorCode.API_SERVICE_UNAVAILABLE
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_extract_entities_advanced_invalid_json(self, mock_client):
+    @patch('ner_advanced._get_openai_client')
+    def test_extract_entities_advanced_invalid_json(self, mock_get_client):
         """Test entity extraction with invalid JSON response"""
         mock_response = Mock()
         mock_response.choices = [Mock()]
@@ -137,7 +143,9 @@ class TestAdvancedNER:
         mock_response.choices[0].message.function_call = Mock()
         mock_response.choices[0].message.function_call.arguments = "invalid json"
         
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_client
         
         with pytest.raises(AdvancedNERError) as exc_info:
             extract_entities_advanced("test text")
@@ -145,10 +153,12 @@ class TestAdvancedNER:
         assert "Failed to parse GPT response" in str(exc_info.value)
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_generate_script_success(self, mock_client, mock_script_response):
+    @patch('ner_advanced._get_openai_client')
+    def test_generate_script_success(self, mock_get_client, mock_script_response):
         """Test successful script generation"""
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_script_response
+        mock_get_client.return_value = mock_client
         
         prompt = "Create a discussion about AI technology"
         script = generate_script(prompt, style="conversational")
@@ -173,16 +183,19 @@ class TestAdvancedNER:
     @patch.dict(os.environ, {}, clear=True)
     def test_generate_script_no_api_key(self):
         """Test script generation without API key"""
-        with pytest.raises(AdvancedNERError) as exc_info:
+        with pytest.raises(APIError) as exc_info:
             generate_script("test prompt")
         
-        assert "OpenAI API key not configured" in str(exc_info.value)
+        assert "API key not configured" in str(exc_info.value)
+        assert exc_info.value.error_code == ErrorCode.API_KEY_MISSING
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_generate_script_different_styles(self, mock_client, mock_script_response):
+    @patch('ner_advanced._get_openai_client')
+    def test_generate_script_different_styles(self, mock_get_client, mock_script_response):
         """Test script generation with different styles"""
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_script_response
+        mock_get_client.return_value = mock_client
         
         styles = ["conversational", "formal", "educational", "interview"]
         
@@ -192,10 +205,12 @@ class TestAdvancedNER:
             assert len(script) > 0
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_analyze_sentiment_success(self, mock_client, mock_sentiment_response):
+    @patch('ner_advanced._get_openai_client')
+    def test_analyze_sentiment_success(self, mock_get_client, mock_sentiment_response):
         """Test successful sentiment analysis"""
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_sentiment_response
+        mock_get_client.return_value = mock_client
         
         test_text = "I love this new technology! It's amazing and will help so many people."
         sentiment = analyze_sentiment(test_text)
@@ -226,21 +241,24 @@ class TestAdvancedNER:
     @patch.dict(os.environ, {}, clear=True)
     def test_analyze_sentiment_no_api_key(self):
         """Test sentiment analysis without API key"""
-        with pytest.raises(AdvancedNERError) as exc_info:
+        with pytest.raises(APIError) as exc_info:
             analyze_sentiment("test text")
         
-        assert "OpenAI API key not configured" in str(exc_info.value)
+        assert "API key not configured" in str(exc_info.value)
+        assert exc_info.value.error_code == ErrorCode.API_KEY_MISSING
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_analyze_sentiment_invalid_response(self, mock_client):
+    @patch('ner_advanced._get_openai_client')
+    def test_analyze_sentiment_invalid_response(self, mock_get_client):
         """Test sentiment analysis with invalid response format"""
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message = Mock()
         mock_response.choices[0].message.content = "This is not JSON format"
         
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_client
         
         # Should return fallback values instead of raising error
         sentiment = analyze_sentiment("test text")
@@ -264,11 +282,13 @@ class TestAdvancedNER:
         assert "internet connection" in suggestion_text
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_make_gpt_request_with_retry_success(self, mock_client):
+    @patch('ner_advanced._get_openai_client')
+    def test_make_gpt_request_with_retry_success(self, mock_get_client):
         """Test GPT request retry logic with successful response"""
         mock_response = Mock()
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_client
         
         messages = [{"role": "user", "content": "test"}]
         result = _make_gpt_request_with_retry(messages)
@@ -277,28 +297,33 @@ class TestAdvancedNER:
         mock_client.chat.completions.create.assert_called_once()
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
+    @patch('ner_advanced._get_openai_client')
     @patch('time.sleep')  # Mock sleep to speed up tests
-    def test_make_gpt_request_with_retry_failure(self, mock_sleep, mock_client):
+    def test_make_gpt_request_with_retry_failure(self, mock_sleep, mock_get_client):
         """Test GPT request retry logic with persistent failure"""
+        mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = Exception("API Error")
+        mock_get_client.return_value = mock_client
         
         messages = [{"role": "user", "content": "test"}]
         
-        with pytest.raises(AdvancedNERError) as exc_info:
+        with pytest.raises(APIError) as exc_info:
             _make_gpt_request_with_retry(messages, max_retries=2)
         
         assert "GPT API failed after 2 attempts" in str(exc_info.value)
+        assert exc_info.value.error_code == ErrorCode.API_SERVICE_UNAVAILABLE
         assert mock_client.chat.completions.create.call_count == 2
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
+    @patch('ner_advanced._get_openai_client')
     @patch('time.sleep')
-    def test_make_gpt_request_with_retry_eventual_success(self, mock_sleep, mock_client):
+    def test_make_gpt_request_with_retry_eventual_success(self, mock_sleep, mock_get_client):
         """Test GPT request retry logic with eventual success"""
         # Fail first call, succeed on second
         mock_response = Mock()
+        mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = [Exception("API Error"), mock_response]
+        mock_get_client.return_value = mock_client
         
         messages = [{"role": "user", "content": "test"}]
         result = _make_gpt_request_with_retry(messages, max_retries=3)
@@ -310,8 +335,8 @@ class TestAdvancedNERIntegration:
     """Integration tests for advanced NER module"""
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'})
-    @patch('ner_advanced.client')
-    def test_full_pipeline_entity_extraction(self, mock_client):
+    @patch('ner_advanced._get_openai_client')
+    def test_full_pipeline_entity_extraction(self, mock_get_client):
         """Test complete entity extraction pipeline"""
         # Mock successful entity extraction
         mock_response = Mock()
@@ -329,7 +354,9 @@ class TestAdvancedNERIntegration:
             "numbers": ["25% growth", "150 employees"]
         })
         
+        mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_client
         
         # Test with realistic business content
         test_text = """
@@ -342,13 +369,12 @@ class TestAdvancedNERIntegration:
         entities, summary = extract_entities_advanced(test_text)
         
         # Verify comprehensive extraction
-        assert len(entities["persons"]) == 2
-        assert len(entities["organizations"]) == 2
-        assert len(entities["dates"]) == 2
-        assert len(entities["locations"]) == 2
-        assert len(entities["key_topics"]) == 3
-        assert len(entities["money"]) == 2
-        assert len(entities["numbers"]) == 2
+        assert len(entities["PERSON"]) == 2
+        assert len(entities["ORG"]) == 2
+        assert len(entities["DATE"]) == 2
+        assert len(entities["GPE"]) >= 1  # At least "New York"
+        assert len(entities["TOPIC"]) == 3
+        assert len(entities["MONEY"]) == 2
         
         assert "Business meeting discussing Q4 results" in summary
 

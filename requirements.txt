@@ -12,6 +12,11 @@ spacy>=3.7.0,<3.8.0
 pydantic>=1.10.0,<2.0.0
 textblob>=0.17.1
 
+# Multi-language support (Task 36)
+langdetect>=1.0.9
+pycountry>=22.3.5
+googletrans==4.0.0rc1
+
 
 # Media processing
 ffmpeg-python>=0.2.0
@@ -42,6 +47,9 @@ openpyxl>=3.1.0
 
 # System monitoring and health checks
 psutil>=5.9.0
+
+# Logging and monitoring
+python-json-logger>=2.0.7
 
 # Audio processing for advanced features
 librosa>=0.10.0
@@ -89,10 +97,31 @@ python-multipart>=0.0.6
 sentence-transformers>=2.2.0
 faiss-cpu>=1.7.4
 
+# Visual search and content discovery (Task 38)
+umap-learn>=0.5.3
+scipy>=1.10.0
+
+# Advanced content analysis (Task 39)
+textstat>=0.7.3
+textblob>=0.17.1
+
+# AI provider integrations
+replicate>=0.15.0
+stability-sdk>=0.8.0
+
 # Testing dependencies
 pytest>=7.4.0
 pytest-cov>=4.1.0
 pytest-timeout>=2.1.0
 pytest-mock>=3.11.0
 pytest-xdist>=3.3.0
-pytest-asyncio>=0.21.0
+pytest-asyncio>=0.21.0# Advan
+ced export and integration capabilities (Task 41)
+# Note: requests is already included above
+# Additional dependencies for export package creation
+zipfile-deflate64>=0.2.0  # Enhanced ZIP compression support# Use
+r Authentication System (Task 46)
+bcrypt>=4.0.1
+pyotp>=2.9.0
+qrcode>=7.4.2
+Pillow>=10.0.0  # Already included above for image processing

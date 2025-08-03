@@ -67,8 +67,17 @@ class AdminAnalytics:
                 with open(self.analytics_file, 'r') as f:
                     return json.load(f)
             return self._get_default_analytics()
+        except FileNotFoundError:
+            logger.info(f"Analytics file not found, creating new one: {self.analytics_file}")
+            return self._get_default_analytics()
+        except json.JSONDecodeError as e:
+            logger.error(f"Corrupted analytics file, resetting: {e}")
+            return self._get_default_analytics()
+        except PermissionError as e:
+            logger.error(f"No permission to read analytics file: {e}")
+            return self._get_default_analytics()
         except Exception as e:
-            logger.error(f"Failed to load analytics data: {e}")
+            logger.error(f"Unexpected error loading analytics data: {e}", exc_info=True)
             return self._get_default_analytics()
     
     def save_analytics_data(self, data: Dict[str, Any]):
@@ -76,8 +85,12 @@ class AdminAnalytics:
         try:
             with open(self.analytics_file, 'w') as f:
                 json.dump(data, f, indent=2, default=str)
+        except PermissionError as e:
+            logger.error(f"No permission to write analytics file: {e}")
+        except IOError as e:
+            logger.error(f"I/O error saving analytics file: {e}")
         except Exception as e:
-            logger.error(f"Failed to save analytics data: {e}")
+            logger.error(f"Unexpected error saving analytics data: {e}", exc_info=True)
     
     def _get_default_analytics(self) -> Dict[str, Any]:
         """Get default analytics structure"""
@@ -166,8 +179,10 @@ class AdminAnalytics:
             data['last_updated'] = datetime.now().isoformat()
             self.save_analytics_data(data)
             
+        except (KeyError, TypeError) as e:
+            logger.error(f"Invalid data structure in usage stats: {e}")
         except Exception as e:
-            logger.error(f"Failed to update usage stats: {e}")
+            logger.error(f"Unexpected error updating usage stats: {e}", exc_info=True)
     
     def calculate_costs(self, data: Dict[str, Any]) -> CostTracking:
         """Calculate costs based on usage"""
@@ -206,8 +221,14 @@ class AdminAnalytics:
                 cost_per_user=cost_per_user
             )
             
+        except (KeyError, TypeError) as e:
+            logger.error(f"Invalid data structure in cost calculation: {e}")
+            return CostTracking()
+        except ArithmeticError as e:
+            logger.error(f"Arithmetic error in cost calculation: {e}")
+            return CostTracking()
         except Exception as e:
-            logger.error(f"Failed to calculate costs: {e}")
+            logger.error(f"Unexpected error calculating costs: {e}", exc_info=True)
             return CostTracking()
     
     def render_analytics_dashboard(self):
@@ -382,14 +403,18 @@ class AdminAnalytics:
             try:
                 import openai
                 st.success("🟢 OpenAI API: Connected")
-            except:
-                st.error("🔴 OpenAI API: Error")
+            except ImportError:
+                st.warning("🟡 OpenAI API: Module not installed")
+            except Exception as e:
+                st.error(f"🔴 OpenAI API: {type(e).__name__}")
             
             try:
                 import elevenlabs
                 st.success("🟢 ElevenLabs API: Connected")
-            except:
-                st.error("🔴 ElevenLabs API: Error")
+            except ImportError:
+                st.warning("🟡 ElevenLabs API: Module not installed")
+            except Exception as e:
+                st.error(f"🔴 ElevenLabs API: {type(e).__name__}")
         
         with col2:
             # Storage status
@@ -402,8 +427,12 @@ class AdminAnalytics:
                 
                 st.metric("Free Space", f"{free_gb:.1f} GB")
                 st.metric("Used Space", f"{used_gb:.1f} GB")
-            except:
-                st.error("🔴 Storage: Error")
+            except PermissionError:
+                st.error("🔴 Storage: Permission denied")
+            except OSError as e:
+                st.error(f"🔴 Storage: {e}")
+            except Exception as e:
+                st.error(f"🔴 Storage: Unexpected error - {type(e).__name__}")
         
         with col3:
             # Performance metrics
@@ -415,8 +444,12 @@ class AdminAnalytics:
                 
                 st.metric("CPU Usage", f"{cpu_percent:.1f}%")
                 st.metric("Memory Usage", f"{memory_percent:.1f}%")
-            except:
-                st.info("📊 Performance metrics unavailable")
+            except ImportError:
+                st.info("📊 Performance metrics unavailable (psutil not installed)")
+            except AttributeError as e:
+                st.error(f"📊 Performance metrics error: {e}")
+            except Exception as e:
+                st.error(f"📊 Performance metrics error: {type(e).__name__}")
 
 # Global analytics instance
 admin_analytics = AdminAnalytics()

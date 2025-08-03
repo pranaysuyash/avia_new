@@ -18,6 +18,11 @@ spacy = ">=3.7.0,<3.8.0"
 pydantic = ">=1.10.0,<2.0.0"
 textblob = ">=0.17.1"
 
+# Multi-language support (Task 36)
+langdetect = ">=1.0.9"
+pycountry = ">=22.3.5"
+googletrans = "==4.0.0rc1"
+
 # Media processing
 ffmpeg-python = ">=0.2.0"
 pydub = ">=0.25.1"
@@ -72,6 +77,18 @@ python-multipart = ">=0.0.6"
 # Semantic search and embeddings
 sentence-transformers = ">=2.2.0"
 faiss-cpu = ">=1.7.4"
+
+# Visual search and content discovery (Task 38)
+umap-learn = ">=0.5.3"
+scipy = ">=1.10.0"
+
+# Advanced content analysis (Task 39)
+textstat = ">=0.7.3"
+textblob = ">=0.17.1"
+
+# AI provider integrations
+replicate = ">=0.15.0"
+stability-sdk = ">=0.8.0"
 
 [dev-packages]
 # Testing dependencies

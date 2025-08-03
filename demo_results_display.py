@@ -20,9 +20,9 @@ def demo_results_display():
     from app import (
         find_text_occurrences,
         format_entities_for_download,
-        generate_complete_report,
-        get_timestamp
+        generate_complete_report
     )
+    from utils import get_timestamp
     
     # Sample transcript
     sample_transcript = """

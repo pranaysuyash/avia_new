@@ -256,8 +256,8 @@ class WhisperTranscriber:
         if use_api and self.api_client:
             try:
                 return self._transcribe_with_api(audio_path)
-            except TranscriptionError as e:
-                logger.warning(f"API transcription failed: {e.message}")
+            except (TranscriptionError, APIError) as e:
+                logger.warning(f"API transcription failed: {getattr(e, 'message', str(e))}")
                 logger.info("Falling back to local model")
                 # Fall through to local model
         

@@ -76,14 +76,14 @@ def synthesize_speech(text: str, voice_id: str = DEFAULT_VOICE_ID,
         if not text or not text.strip():
             raise TTSError(
                 "Text cannot be empty",
-                ErrorCode.VALIDATION_ERROR,
+                ErrorCode.TTS_SYNTHESIS_ERROR,
                 "Please provide text to convert to speech"
             )
         
         if len(text) > 5000:  # ElevenLabs character limit
             raise TTSError(
                 "Text too long (max 5000 characters)",
-                ErrorCode.VALIDATION_ERROR,
+                ErrorCode.TTS_TEXT_TOO_LONG,
                 "Text must be less than 5000 characters. Please shorten your text."
             )
         
@@ -287,7 +287,7 @@ def validate_voice_settings(settings: Dict) -> VoiceSettings:
     except Exception as e:
         raise TTSError(
             f"Invalid voice settings: {str(e)}",
-            ErrorCode.VALIDATION_ERROR,
+            ErrorCode.TTS_VOICE_ERROR,
             "Invalid voice settings provided. Please check your settings."
         ) from e
 

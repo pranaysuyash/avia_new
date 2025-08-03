@@ -129,11 +129,15 @@ def extract_entities(text: str) -> Dict[str, List[str]]:
 
 def _is_likely_error(entity_text: str, entity_label: str) -> bool:
     """Check if an entity is likely to be an extraction error"""
-    # Skip entities that are mostly digits (like "35 July" or "748 AM")
+    # For DATE/TIME entities, don't filter based on digit ratio since valid times like "3:00 PM" have more digits
     if entity_label in ["DATE", "TIME"]:
-        # Check for malformed dates/times
-        if any(char.isdigit() for char in entity_text) and len([c for c in entity_text if c.isdigit()]) > len([c for c in entity_text if c.isalpha()]):
-            # More digits than letters - likely an error
+        # Only filter obviously malformed patterns like "748 AM" or "35 July"
+        import re
+        # Check for invalid day numbers > 31 in month contexts
+        if re.search(r'\b[3-9]\d\s+(January|February|March|April|May|June|July|August|September|October|November|December)\b', entity_text):
+            return True
+        # Check for invalid hour numbers > 24 without AM/PM
+        if re.search(r'\b[2-9]\d:\d{2}\b', entity_text) and not re.search(r'\b(AM|PM|am|pm)\b', entity_text):
             return True
     
     # Skip very short entities that are likely noise

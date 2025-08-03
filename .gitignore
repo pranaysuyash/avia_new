@@ -93,6 +93,9 @@ yarn.lock
 # Kiro specs
 .kiro/
 
+# Claude Code directory
+.claude/
+
 # Platform-specific
 run.bat
 

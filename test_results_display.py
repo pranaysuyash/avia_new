@@ -17,9 +17,9 @@ sys.path.insert(0, os.getcwd())
 from app import (
     find_text_occurrences,
     format_entities_for_download,
-    generate_complete_report,
-    get_timestamp
+    generate_complete_report
 )
+from utils import get_timestamp
 
 class TestResultsDisplayFunctions:
     """Test the core results display functions"""

@@ -21,9 +21,14 @@ pipenv install
 echo "🛠️ Installing development dependencies..."
 pipenv install --dev
 
-# Download spaCy English model
-echo "📚 Downloading spaCy English model..."
+# Download spaCy models for multi-language support (Task 36)
+echo "📚 Downloading spaCy models for multi-language support..."
 pipenv run python -m spacy download en_core_web_sm
+echo "🌍 Downloading additional language models (optional)..."
+pipenv run python -m spacy download es_core_news_sm || echo "⚠️ Spanish model download failed (optional)"
+pipenv run python -m spacy download fr_core_news_sm || echo "⚠️ French model download failed (optional)"
+pipenv run python -m spacy download de_core_news_sm || echo "⚠️ German model download failed (optional)"
+echo "✅ Core language models installed. Additional models can be installed as needed."
 
 # Create .env file from example if it doesn't exist
 if [ ! -f .env ]; then

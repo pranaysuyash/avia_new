@@ -17,11 +17,12 @@ autoUpdater.logger = log;
 
 let mainWindow;
 let pythonProcess;
+let fastApiProcess;
 let streamlitPort = 8501;
 let nativeIntegrations;
 
 // Check if running in development
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 function createWindow() {
   // Get window bounds from store or use defaults
@@ -59,8 +60,10 @@ function createWindow() {
       mainWindow.webContents.openDevTools();
     }
     
-    // Initialize native integrations
-    nativeIntegrations = new NativeIntegrations(mainWindow);
+    // Initialize native integrations only if not already initialized
+    if (!nativeIntegrations) {
+      nativeIntegrations = new NativeIntegrations(mainWindow);
+    }
   });
 
   // Save window bounds when closed
@@ -77,7 +80,7 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
     const parsedUrl = new URL(navigationUrl);
 
-    if (parsedUrl.origin !== `http://localhost:${streamlitPort}`) {
+    if (parsedUrl.origin !== 'http://localhost:3000') {
       event.preventDefault();
       shell.openExternal(navigationUrl);
     }
@@ -89,8 +92,8 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  // Load the Streamlit app
-  loadStreamlitApp();
+  // Load the React app
+  loadReactApp();
 }
 
 async function findAvailablePort() {
@@ -114,113 +117,159 @@ async function checkExistingStreamlit() {
   }
 }
 
-async function startPythonBackend() {
-  try {
-    // Check if Streamlit is already running
-    const existingPort = await checkExistingStreamlit();
-    if (existingPort) {
-      streamlitPort = existingPort;
-      log.info(`Using existing Streamlit server on port ${streamlitPort}`);
-      return;
+async function startReactApp() {
+  if (isDev) {
+    // In development, start React dev server
+    try {
+      const reactPath = path.join(__dirname, 'renderer');
+      log.info(`Starting React development server from ${reactPath}`);
+      
+      pythonProcess = spawn('npm', ['start'], {
+        cwd: reactPath,
+        env: { 
+          ...process.env,
+          BROWSER: 'none',
+          PORT: '3000'
+        }
+      });
+
+      pythonProcess.stdout.on('data', (data) => {
+        log.info(`React stdout: ${data}`);
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        log.error(`React stderr: ${data}`);
+      });
+
+      pythonProcess.on('close', (code) => {
+        log.info(`React process exited with code ${code}`);
+      });
+
+      pythonProcess.on('error', (error) => {
+        log.error('Failed to start React process:', error);
+        showReactError();
+      });
+
+      // Wait for React to start
+      await waitForReact();
+      
+    } catch (error) {
+      log.error('Failed to start React app:', error);
+      showReactError();
     }
-
-    // Find available port
-    streamlitPort = await findAvailablePort();
-    log.info(`Starting Python backend on port ${streamlitPort}`);
-
-    // Determine Python backend path
-    let pythonBackendPath;
-    if (isDev) {
-      pythonBackendPath = path.join(__dirname, '../../');
-    } else {
-      pythonBackendPath = path.join(process.resourcesPath, 'python-backend');
-    }
-
-    // Check if Python is available - try python first, then python3
-    const pythonCommand = process.platform === 'win32' ? 'python' : 'python';
-    
-    // Start Streamlit server
-    pythonProcess = spawn(pythonCommand, [
-      '-m', 'streamlit', 'run', 'app.py',
-      '--server.port', streamlitPort.toString(),
-      '--server.headless', 'true',
-      '--server.enableCORS', 'false',
-      '--server.enableXsrfProtection', 'false'
-    ], {
-      cwd: pythonBackendPath,
-      env: { 
-        ...process.env,
-        PYTHONPATH: pythonBackendPath,
-        ELECTRON_APP: 'true'
-      }
-    });
-
-    pythonProcess.stdout.on('data', (data) => {
-      log.info(`Python stdout: ${data}`);
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      log.error(`Python stderr: ${data}`);
-    });
-
-    pythonProcess.on('close', (code) => {
-      log.info(`Python process exited with code ${code}`);
-    });
-
-    pythonProcess.on('error', (error) => {
-      log.error('Failed to start Python process:', error);
-      showPythonError();
-    });
-
-    // Wait for Streamlit to start
-    await waitForStreamlit();
-    
-  } catch (error) {
-    log.error('Failed to start Python backend:', error);
-    showPythonError();
+  } else {
+    // In production, load built React app
+    streamlitPort = 3000; // React will be served on port 3000
   }
 }
 
-function waitForStreamlit() {
+async function startFastApiBackend() {
+  try {
+    // Find the project root (2 levels up from desktop_app/src)
+    const projectRoot = path.join(__dirname, '../../');
+    log.info(`Starting FastAPI backend from ${projectRoot}`);
+    
+    // Start FastAPI server using the run_api.py script
+    // Use the venv Python to ensure all dependencies are available
+    const venvPython = path.join(projectRoot, 'venv', 'bin', 'python');
+    fastApiProcess = spawn(venvPython, ['run_api.py'], {
+      cwd: projectRoot,
+      env: {
+        ...process.env,
+        API_HOST: '127.0.0.1',
+        API_PORT: '8000',
+        API_RELOAD: 'true'
+      },
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    fastApiProcess.stdout.on('data', (data) => {
+      log.info(`FastAPI: ${data.toString()}`);
+    });
+
+    fastApiProcess.stderr.on('data', (data) => {
+      log.error(`FastAPI Error: ${data.toString()}`);
+    });
+
+    fastApiProcess.on('close', (code) => {
+      log.info(`FastAPI process closed with code ${code}`);
+    });
+
+    // Wait for FastAPI to start
+    await waitForFastApi();
+    
+  } catch (error) {
+    log.error('Failed to start FastAPI backend:', error);
+    throw error;
+  }
+}
+
+function waitForFastApi() {
   return new Promise((resolve, reject) => {
     const axios = require('axios');
     let attempts = 0;
     const maxAttempts = 30;
 
-    const checkStreamlit = async () => {
+    const checkFastApi = async () => {
       try {
-        await axios.get(`http://localhost:${streamlitPort}`);
-        log.info('Streamlit server is ready');
+        await axios.get('http://localhost:8000/api/health');
+        log.info('FastAPI server is ready');
         resolve();
       } catch (error) {
         attempts++;
         if (attempts < maxAttempts) {
-          setTimeout(checkStreamlit, 1000);
+          setTimeout(checkFastApi, 1000);
         } else {
-          log.error('Streamlit server failed to start within timeout');
-          reject(new Error('Streamlit server timeout'));
+          log.error('FastAPI server failed to start within timeout');
+          reject(new Error('FastAPI server timeout'));
         }
       }
     };
 
-    checkStreamlit();
+    checkFastApi();
   });
 }
 
-function loadStreamlitApp() {
-  const streamlitUrl = `http://localhost:${streamlitPort}`;
+function waitForReact() {
+  return new Promise((resolve, reject) => {
+    const axios = require('axios');
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const checkReact = async () => {
+      try {
+        await axios.get('http://localhost:3000');
+        log.info('React server is ready');
+        resolve();
+      } catch (error) {
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(checkReact, 1000);
+        } else {
+          log.error('React server failed to start within timeout');
+          reject(new Error('React server timeout'));
+        }
+      }
+    };
+
+    checkReact();
+  });
+}
+
+function loadReactApp() {
+  const reactUrl = 'http://localhost:3000';
   
-  mainWindow.loadURL(streamlitUrl).catch((error) => {
-    log.error('Failed to load Streamlit app:', error);
+  mainWindow.loadURL(reactUrl).catch((error) => {
+    log.error('Failed to load React app:', error);
     
     // Show error page
     mainWindow.loadFile(path.join(__dirname, 'error.html'));
   });
 }
 
-function showPythonError() {
+function showReactError() {
   if (mainWindow) {
-    mainWindow.loadFile(path.join(__dirname, 'python-error.html'));
+    mainWindow.loadFile(path.join(__dirname, 'react-error.html'));
   }
 }
 
@@ -412,25 +461,41 @@ function createMenu() {
 
 // App event handlers
 app.whenReady().then(async () => {
-  // Start Python backend first
-  await startPythonBackend();
-  
-  // Create main window
-  createWindow();
-  
-  // Create application menu
-  createMenu();
-  
-  // Check for updates (in production)
-  if (!isDev) {
-    autoUpdater.checkForUpdatesAndNotify();
+  try {
+    // Start FastAPI backend first
+    log.info('Starting FastAPI backend...');
+    await startFastApiBackend();
+    
+    // Then start React app
+    log.info('Starting React frontend...');
+    await startReactApp();
+    
+    // Create main window
+    createWindow();
+    
+    // Create application menu
+    createMenu();
+    
+    // Check for updates (in production)
+    if (!isDev) {
+      autoUpdater.checkForUpdatesAndNotify();
+    }
+  } catch (error) {
+    log.error('Failed to start application:', error);
+    // Show error dialog
+    dialog.showErrorBox('Startup Error', 'Failed to start the application. Please check the logs for more details.');
   }
 });
 
 app.on('window-all-closed', () => {
-  // Quit Python process
+  // Quit React process
   if (pythonProcess) {
     pythonProcess.kill();
+  }
+  
+  // Quit FastAPI process
+  if (fastApiProcess) {
+    fastApiProcess.kill();
   }
   
   // On macOS, keep app running even when all windows are closed
@@ -447,10 +512,16 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
-  // Clean up Python process
+  // Clean up React process
   if (pythonProcess) {
-    log.info('Terminating Python process...');
+    log.info('Terminating React process...');
     pythonProcess.kill();
+  }
+  
+  // Clean up FastAPI process
+  if (fastApiProcess) {
+    log.info('Terminating FastAPI process...');
+    fastApiProcess.kill();
   }
 });
 

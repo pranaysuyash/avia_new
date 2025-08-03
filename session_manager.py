@@ -362,6 +362,43 @@ class SessionManager:
     def store_advanced_results(self, advanced_result: Any, detected_languages: list = None):
         """Store advanced transcription results"""
         st.session_state.advanced_transcription_state.advanced_result = advanced_result
+    
+    def store_multilingual_results(self, multilingual_result):
+        """Store multi-language transcription results (Task 36)"""
+        # Store in transcription results
+        st.session_state.transcription_results.transcript = multilingual_result.text
+        st.session_state.transcription_results.confidence = multilingual_result.confidence
+        st.session_state.transcription_results.processing_time = multilingual_result.processing_time
+        st.session_state.transcription_results.model_used = multilingual_result.model_used
+        
+        # Store multi-language specific data
+        if 'multilingual_results' not in st.session_state:
+            st.session_state.multilingual_results = {}
+        
+        st.session_state.multilingual_results = {
+            'primary_language': multilingual_result.primary_language,
+            'detected_languages': multilingual_result.detected_languages,
+            'has_code_switching': multilingual_result.has_code_switching,
+            'language_segments': multilingual_result.language_segments,
+            'translations': multilingual_result.translations,
+            'entities': multilingual_result.entities
+        }
+        
+        # Store entities in standard format for compatibility
+        if multilingual_result.entities:
+            if multilingual_result.entities.get('has_code_switching'):
+                # Multi-language entities
+                st.session_state.transcription_results.entities = multilingual_result.entities['entities']
+            else:
+                # Single language entities
+                st.session_state.transcription_results.entities = multilingual_result.entities.get('entities', [])
+        
+        logger.info(f"Stored multilingual results: {multilingual_result.primary_language}, "
+                   f"code-switching: {multilingual_result.has_code_switching}")
+    
+    def get_multilingual_results(self):
+        """Get stored multilingual results"""
+        return st.session_state.get('multilingual_results', {})
         if detected_languages:
             st.session_state.advanced_transcription_state.detected_languages = detected_languages
         

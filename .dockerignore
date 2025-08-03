@@ -62,3 +62,70 @@ htmlcov/
 
 # Kiro specs
 .kiro/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Development files
+desktop_app/node_modules/
+desktop_app/dist/
+desktop_app/build/
+mobile/node_modules/
+mobile_app/node_modules/
+*.lock
+package-lock.json
+yarn.lock
+
+# Test data and media files
+test_data/
+test_videos/
+test_audio/
+*.mp4
+*.avi
+*.mov
+*.mp3
+*.wav
+*.flac
+
+# Secrets and certificates
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# Cache directories
+.cache/
+.mypy_cache/
+.ruff_cache/
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# Windows
+Desktop.ini
+
+# Linux
+.directory
+.Trash-*

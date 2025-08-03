@@ -1,0 +1,118 @@
+# Pre-commit hooks configuration
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: debug-statements
+      - id: detect-private-key
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+      - id: name-tests-test
+        args: ['--django']
+
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.10
+        args: ['--line-length=120']
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ['--profile', 'black', '--line-length=120']
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: ['--config=.flake8']
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-bugbear
+          - flake8-comprehensions
+          - flake8-simplify
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        args: ['--config-file=mypy.ini']
+        additional_dependencies:
+          - types-requests
+          - types-PyYAML
+          - types-python-dateutil
+
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-c', '.bandit']
+        exclude: tests/
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [css, javascript, jsx, tsx, json, markdown, yaml]
+        exclude: '^(desktop_app/node_modules/|mobile/node_modules/)'
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest-check
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: ['-x', '--tb=short', '--no-cov', '-q']
+        stages: [push]
+
+      - id: no-secrets
+        name: Detect secrets
+        entry: detect-secrets-hook
+        language: system
+        types: [text]
+        exclude: '^(\.secrets\.baseline|requirements.*\.txt|package.*\.json)$'
+
+      - id: no-print-statements
+        name: No print statements
+        entry: '(?<!def )print\('
+        language: pygrep
+        types: [python]
+        exclude: '^(scripts/|demo_|test_)'
+
+default_language_version:
+  python: python3.10
+
+exclude: |
+  (?x)^(
+    .*\.(min|map)\.(js|css)|
+    .*/migrations/.*|
+    .*/static/vendor/.*|
+    desktop_app/node_modules/.*|
+    mobile/node_modules/.*|
+    mobile_app/node_modules/.*|
+    venv/.*|
+    env/.*|
+    .venv/.*|
+    __pycache__/.*
+  )$

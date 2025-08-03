@@ -3,10 +3,16 @@ API Data Models
 Pydantic models for API request and response validation
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from enum import Enum
+import sys
+import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import validate_language_code, validate_model_name, validate_sort_parameter, validate_enum_value
 
 
 class ResponseStatus(str, Enum):
@@ -65,18 +71,16 @@ class TranscriptionRequest(BaseModel):
     enable_diarization: bool = Field(default=False, description="Enable speaker diarization")
     extract_entities: bool = Field(default=True, description="Extract named entities")
     
-    @field_validator('language')
+    @validator('language')
     def validate_language(cls, v):
-        valid_languages = ['auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko', 'zh']
-        if v not in valid_languages:
-            raise ValueError(f'Language must be one of {valid_languages}')
+        if not validate_language_code(v):
+            raise ValueError(f'Invalid language code: {v}')
         return v
     
-    @field_validator('model')
+    @validator('model')
     def validate_model(cls, v):
-        valid_models = ['tiny', 'base', 'small', 'medium', 'large']
-        if v not in valid_models:
-            raise ValueError(f'Model must be one of {valid_models}')
+        if not validate_model_name(v):
+            raise ValueError(f'Invalid model name: {v}')
         return v
 
 
@@ -127,10 +131,10 @@ class SearchRequest(BaseModel):
     sort_by: Optional[str] = Field(default="relevance")
     include_snippets: bool = Field(default=True)
     
-    @field_validator('sort_by')
+    @validator('sort_by')
     def validate_sort_by(cls, v):
         valid_sorts = ['relevance', 'date', 'duration', 'word_count']
-        if v not in valid_sorts:
+        if not validate_sort_parameter(v, valid_sorts):
             raise ValueError(f'sort_by must be one of {valid_sorts}')
         return v
 
@@ -192,11 +196,11 @@ class InsightRequest(BaseModel):
     transcript_id: str
     analysis_types: List[str] = Field(default=["summary", "sentiment", "topics"])
     
-    @field_validator('analysis_types')
+    @validator('analysis_types')
     def validate_analysis_types(cls, v):
         valid_types = ["summary", "sentiment", "topics", "speakers", "key_moments", "action_items"]
         for analysis_type in v:
-            if analysis_type not in valid_types:
+            if not validate_enum_value(analysis_type, valid_types):
                 raise ValueError(f'Analysis type must be one of {valid_types}')
         return v
 
@@ -291,10 +295,10 @@ class UserCreateRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=100)
     role: str = Field(default="user")
     
-    @field_validator('role')
+    @validator('role')
     def validate_role(cls, v):
         valid_roles = ['admin', 'user', 'viewer']
-        if v not in valid_roles:
+        if not validate_enum_value(v, valid_roles):
             raise ValueError(f'Role must be one of {valid_roles}')
         return v
 

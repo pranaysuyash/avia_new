@@ -16,15 +16,15 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from api.auth import auth_required, write_required, create_api_response, create_error_response
+from api.auth_middleware import get_current_active_user, require_write
+from api.auth import create_api_response, create_error_response
 from api.models import (
     TranscriptionRequest, TranscriptionResponse, TranscriptionResult,
     Entity, SpeakerSegment, FileUploadResponse
 )
 
 # Import transcription modules
-# from advanced_transcription import AdvancedTranscriber
-from mock_transcriber import MockTranscriber as AdvancedTranscriber  # Temporary mock for testing
+from mock_transcriber import MockTranscriber as AdvancedTranscriber
 from ner_advanced import extract_entities_advanced
 from api_session_manager import SessionManager
 
@@ -40,7 +40,7 @@ session_manager = SessionManager()
 @router.post("/upload", response_model=FileUploadResponse)
 async def upload_audio_file(
     file: UploadFile = File(...),
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Upload audio/video file for transcription"""
     try:
@@ -73,6 +73,7 @@ async def upload_audio_file(
             temp_path = tmp_file.name
         
         # Generate file ID
+        user_id = current_user['user_id']
         file_id = f"upload_{user_id}_{int(datetime.now().timestamp())}"
         
         # Store file info in session
@@ -93,8 +94,20 @@ async def upload_audio_file(
         
     except HTTPException:
         raise
+    except IOError as e:
+        logger.error(f"File I/O error during upload: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save uploaded file"
+        )
+    except MemoryError as e:
+        logger.error(f"Memory error during file upload: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File too large to process"
+        )
     except Exception as e:
-        logger.error(f"File upload error: {e}")
+        logger.error(f"Unexpected error during file upload: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="File upload failed"
@@ -105,11 +118,12 @@ async def upload_audio_file(
 async def process_transcription(
     request: TranscriptionRequest,
     file_id: Optional[str] = None,
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Process uploaded file for transcription"""
     try:
         # Get file info from session
+        user_id = current_user['user_id']
         session_data = session_manager.get_session_data(user_id)
         
         if not session_data or 'uploaded_file_path' not in session_data:
@@ -161,8 +175,15 @@ async def process_transcription(
                     )
                     for entity in entity_results.get('entities', [])
                 ]
+            except ImportError as e:
+                logger.error(f"Failed to import entity extraction module: {e}")
+                entities = []
+            except (KeyError, TypeError) as e:
+                logger.warning(f"Invalid entity data structure: {e}")
+                entities = []
             except Exception as e:
-                logger.warning(f"Entity extraction failed: {e}")
+                logger.warning(f"Unexpected error during entity extraction: {e}", exc_info=True)
+                entities = []
         
         # Speaker diarization if requested
         speakers = None
@@ -183,8 +204,15 @@ async def process_transcription(
                     )
                     for segment in diarization_result.segments
                 ]
+            except ImportError as e:
+                logger.error(f"Failed to import diarization module: {e}")
+                speakers = None
+            except AttributeError as e:
+                logger.warning(f"Diarization API error: {e}")
+                speakers = None
             except Exception as e:
-                logger.warning(f"Speaker diarization failed: {e}")
+                logger.warning(f"Unexpected error during speaker diarization: {e}", exc_info=True)
+                speakers = None
         
         # Calculate processing time
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -217,15 +245,21 @@ async def process_transcription(
         # Cleanup temp file
         try:
             os.unlink(file_path)
-        except:
-            pass
+        except OSError as e:
+            logger.warning(f"Failed to delete temp file {file_path}: {e}")
         
         return create_api_response(result, "Transcription completed successfully")
         
     except HTTPException:
         raise
+    except asyncio.TimeoutError:
+        logger.error("Transcription processing timed out")
+        raise HTTPException(
+            status_code=status.HTTP_408_REQUEST_TIMEOUT,
+            detail="Transcription processing timed out"
+        )
     except Exception as e:
-        logger.error(f"Transcription processing error: {e}")
+        logger.error(f"Unexpected error during transcription: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Transcription processing failed"
@@ -235,11 +269,12 @@ async def process_transcription(
 @router.get("/status/{transcript_id}")
 async def get_transcription_status(
     transcript_id: str,
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Get transcription status by ID"""
     try:
         # Get stored result
+        user_id = current_user['user_id']
         results = session_manager.get_stored_results(user_id)
         
         for result in results:
@@ -257,8 +292,14 @@ async def get_transcription_status(
         
     except HTTPException:
         raise
+    except (KeyError, TypeError) as e:
+        logger.error(f"Invalid data structure in status check: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Data integrity error"
+        )
     except Exception as e:
-        logger.error(f"Status check error: {e}")
+        logger.error(f"Unexpected error during status check: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Status check failed"
@@ -269,10 +310,11 @@ async def get_transcription_status(
 async def get_transcription_history(
     limit: int = 10,
     offset: int = 0,
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Get user's transcription history"""
     try:
+        user_id = current_user['user_id']
         results = session_manager.get_stored_results(user_id)
         
         # Apply pagination
@@ -298,8 +340,14 @@ async def get_transcription_history(
             "per_page": limit
         }, "Transcription history retrieved")
         
+    except (KeyError, TypeError) as e:
+        logger.error(f"Invalid data structure in history: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Data integrity error"
+        )
     except Exception as e:
-        logger.error(f"History retrieval error: {e}")
+        logger.error(f"Unexpected error retrieving history: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve transcription history"
@@ -310,10 +358,11 @@ async def get_transcription_history(
 async def list_transcriptions(
     limit: int = 10,
     offset: int = 0,
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """List user's transcriptions"""
     try:
+        user_id = current_user['user_id']
         results = session_manager.get_stored_results(user_id)
         
         # Apply pagination
@@ -348,12 +397,13 @@ async def list_transcriptions(
 @router.delete("/{transcript_id}")
 async def delete_transcription(
     transcript_id: str,
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Delete a transcription"""
     try:
         # This would typically delete from database
         # For now, we'll remove from session
+        user_id = current_user['user_id']
         results = session_manager.get_stored_results(user_id)
         
         updated_results = [
@@ -421,10 +471,11 @@ async def process_batch_transcription(
     model: str = Form("base"),
     enable_diarization: bool = Form(False),
     extract_entities: bool = Form(True),
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Process multiple files for transcription in batch"""
     try:
+        user_id = current_user['user_id']
         batch_id = f"batch_{user_id}_{int(datetime.now().timestamp())}"
         batch_results = []
         
@@ -480,6 +531,28 @@ async def process_batch_transcription(
                     except Exception as e:
                         logger.warning(f"Entity extraction failed for {file.filename}: {e}")
                 
+                # Speaker diarization if requested
+                speakers = None
+                if enable_diarization:
+                    try:
+                        from speaker_diarization.diarization_manager import DiarizationManager
+                        diarization_manager = DiarizationManager()
+                        
+                        diarization_result = await diarization_manager.process_audio(temp_path)
+                        
+                        speakers = [
+                            SpeakerSegment(
+                                speaker_id=segment.speaker_id,
+                                start_time=segment.start_time,
+                                end_time=segment.end_time,
+                                text=segment.text,
+                                confidence=segment.confidence
+                            )
+                            for segment in diarization_result.segments
+                        ]
+                    except Exception as e:
+                        logger.warning(f"Speaker diarization failed for {file.filename}: {e}")
+                
                 # Calculate processing time
                 processing_time = (datetime.now() - start_time).total_seconds()
                 
@@ -494,7 +567,7 @@ async def process_batch_transcription(
                     duration=transcription_result.get_total_duration(),
                     word_count=len(transcription_result.text.split()),
                     entities=entities,
-                    speakers=None,  # TODO: Add speaker diarization
+                    speakers=speakers,
                     confidence=transcription_result.confidence,
                     processing_time=processing_time,
                     created_at=start_time
@@ -518,8 +591,8 @@ async def process_batch_transcription(
                 # Cleanup temp file
                 try:
                     os.unlink(temp_path)
-                except:
-                    pass
+                except OSError as e:
+                    logger.warning(f"Failed to delete temp file {temp_path}: {e}")
                     
             except Exception as e:
                 logger.error(f"Batch file processing error for {file.filename}: {e}")
@@ -548,10 +621,11 @@ async def process_batch_transcription(
 @router.get("/batch/{batch_id}/status")
 async def get_batch_status(
     batch_id: str,
-    user_id: str = "test_user"  # Temporarily disabled auth for testing
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Get batch processing status"""
     try:
+        user_id = current_user['user_id']
         results = session_manager.get_stored_results(user_id)
         batch_results = [r for r in results if r.get('batch_id') == batch_id]
         

@@ -9,7 +9,7 @@ from datetime import datetime
 import logging
 
 from database import get_db_session, User
-from .auth import get_current_user
+from .auth import get_current_user_flexible as get_current_user
 from auth.auth_manager import AuthManager
 
 logger = logging.getLogger(__name__)
