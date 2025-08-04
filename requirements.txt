@@ -115,13 +115,39 @@ pytest-cov>=4.1.0
 pytest-timeout>=2.1.0
 pytest-mock>=3.11.0
 pytest-xdist>=3.3.0
-pytest-asyncio>=0.21.0# Advan
-ced export and integration capabilities (Task 41)
+pytest-asyncio>=0.21.0
+
+# Advanced export and integration capabilities (Task 41)
 # Note: requests is already included above
 # Additional dependencies for export package creation
-zipfile-deflate64>=0.2.0  # Enhanced ZIP compression support# Use
-r Authentication System (Task 46)
+zipfile-deflate64>=0.2.0  # Enhanced ZIP compression support
+
+# User Authentication System (Task 46)
 bcrypt>=4.0.1
 pyotp>=2.9.0
 qrcode>=7.4.2
 Pillow>=10.0.0  # Already included above for image processing
+
+# Notification System Dependencies (Task 52)
+# Email notifications
+aiosmtplib>=3.0.0
+
+# SMS notifications
+twilio>=8.10.0
+
+# AWS SNS for push notifications
+boto3>=1.29.0
+
+# Redis for in-app notifications
+redis>=5.0.0
+aioredis>=2.0.1
+
+# Template rendering
+jinja2>=3.1.2
+
+# Async HTTP for webhooks
+aiohttp>=3.9.0
+
+# Background task processing
+celery>=5.3.0
+kombu>=5.3.0
