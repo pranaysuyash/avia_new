@@ -1,0 +1,61 @@
+metric,value
+file_info_file_path,array_input
+file_info_dimensions,800x600
+file_info_width,800
+file_info_height,600
+file_info_channels,3
+file_info_total_pixels,480000
+file_info_file_size_estimate,1440000
+file_info_estimated_format,array_input
+color_analysis_dominant_colors,[(0, 254, 255), (179, 100, 53), (125, 100, 191), (254, 255, 0), (254, 0, 255)]
+color_analysis_color_histogram_cyan,1
+color_analysis_color_histogram_brown,1
+color_analysis_color_histogram_gray,1
+color_analysis_color_histogram_yellow,1
+color_analysis_color_histogram_magenta,1
+color_analysis_color_temperature,warm
+color_analysis_brightness_level,normal
+color_analysis_contrast_level,low
+color_analysis_saturation_level,medium
+color_analysis_color_diversity,0.3624576568603516
+composition_analysis_rule_of_thirds_alignment,0.00478125
+composition_analysis_symmetry_score,0.90942272875817
+composition_analysis_balance_score,0.9985416666666667
+composition_analysis_leading_lines_detected,False
+composition_analysis_depth_of_field_estimate,shallow
+composition_analysis_focal_points,[(602, 437), (687, 352), (300, 300), (100, 300), (300, 100)]
+composition_analysis_aspect_ratio,1.3333333333333333
+composition_analysis_orientation,landscape
+content_analysis_scene_type,mixed
+content_analysis_scene_complexity,simple
+content_analysis_primary_subjects,['red_objects', 'blue_objects']
+content_analysis_object_count_red_objects,3
+content_analysis_object_count_blue_objects,1
+content_analysis_text_regions,[]
+content_analysis_faces_detected,0
+content_analysis_estimated_age_group,None
+content_analysis_emotional_tone,neutral
+quality_metrics_overall_quality,good
+quality_metrics_sharpness_score,6.49567375
+quality_metrics_noise_level,low
+quality_metrics_exposure_quality,optimal
+quality_metrics_white_balance,poor
+quality_metrics_compression_artifacts,True
+quality_metrics_resolution_quality,medium
+quality_metrics_technical_score,66.04899597222222
+semantic_insights_scene_description,An image showing various visual elements
+semantic_insights_key_themes,['warmth']
+semantic_insights_emotional_impact,neutral and informative
+semantic_insights_commercial_potential,low
+semantic_insights_target_audience,[]
+semantic_insights_content_categories,[]
+semantic_insights_similar_stock_tags,['warmth', 'warm', 'landscape', 'minimalist']
+semantic_insights_accessibility_description,An image showing various visual elements with predominantly cyan, brown, gray colors
+processing_time,1.0758049488067627
+analysis_timestamp,2025-08-06T10:57:42.236269
+confidence_scores_color,0.7249153137207032
+confidence_scores_composition,0.6375818818082789
+confidence_scores_content,0.5
+confidence_scores_quality,0.6604899597222221
+confidence_scores_semantic,0.75
+confidence_scores_overall,0.6545974310502409

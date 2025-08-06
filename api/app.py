@@ -260,6 +260,30 @@ def create_app() -> FastAPI:
     from .endpoints.annotation import router as annotation_router
     app.include_router(annotation_router, prefix="/api", tags=["Image Annotation"])
     
+    # Include entity extraction router
+    from .endpoints.entity_extraction import router as entity_extraction_router
+    app.include_router(entity_extraction_router, tags=["Entity Extraction"])
+    
+    # Include document analysis router
+    from .endpoints.document_analysis import router as document_analysis_router
+    app.include_router(document_analysis_router, tags=["Document Analysis"])
+    
+    # Include notifications router
+    from .endpoints.notifications import router as notifications_router
+    app.include_router(notifications_router, tags=["Notifications"])
+    
+    # Include LLM providers router
+    from .endpoints.llm_providers import router as llm_providers_router
+    app.include_router(llm_providers_router, tags=["LLM Providers"])
+    
+    # Include marketplace router
+    from .endpoints.marketplace import router as marketplace_router
+    app.include_router(marketplace_router, tags=["Marketplace"])
+    
+    # Include AI dubbing router
+    from .endpoints.ai_dubbing import router as ai_dubbing_router
+    app.include_router(ai_dubbing_router, tags=["AI Dubbing"])
+    
     # Include unified media router
     from .endpoints.unified_media import router as unified_media_router
     app.include_router(unified_media_router, prefix="/api", tags=["Unified Media"])

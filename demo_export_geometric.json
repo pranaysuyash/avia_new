@@ -1,0 +1,137 @@
+{
+  "file_info": {
+    "file_path": "array_input",
+    "dimensions": "800x600",
+    "width": 800,
+    "height": 600,
+    "channels": 3,
+    "total_pixels": 480000,
+    "file_size_estimate": 1440000,
+    "estimated_format": "array_input"
+  },
+  "color_analysis": {
+    "dominant_colors": [
+      [
+        0,
+        254,
+        255
+      ],
+      [
+        179,
+        100,
+        53
+      ],
+      [
+        125,
+        100,
+        191
+      ],
+      [
+        254,
+        255,
+        0
+      ],
+      [
+        254,
+        0,
+        255
+      ]
+    ],
+    "color_histogram": {
+      "cyan": 1,
+      "brown": 1,
+      "gray": 1,
+      "yellow": 1,
+      "magenta": 1
+    },
+    "color_temperature": "warm",
+    "brightness_level": "normal",
+    "contrast_level": "low",
+    "saturation_level": "medium",
+    "color_diversity": 0.3624576568603516
+  },
+  "composition_analysis": {
+    "rule_of_thirds_alignment": 0.00478125,
+    "symmetry_score": 0.90942272875817,
+    "balance_score": 0.9985416666666667,
+    "leading_lines_detected": false,
+    "depth_of_field_estimate": "shallow",
+    "focal_points": [
+      [
+        602,
+        437
+      ],
+      [
+        687,
+        352
+      ],
+      [
+        300,
+        300
+      ],
+      [
+        100,
+        300
+      ],
+      [
+        300,
+        100
+      ]
+    ],
+    "aspect_ratio": 1.3333333333333333,
+    "orientation": "landscape"
+  },
+  "content_analysis": {
+    "scene_type": "mixed",
+    "scene_complexity": "simple",
+    "primary_subjects": [
+      "red_objects",
+      "blue_objects"
+    ],
+    "object_count": {
+      "red_objects": 3,
+      "blue_objects": 1
+    },
+    "text_regions": [],
+    "faces_detected": 0,
+    "estimated_age_group": null,
+    "emotional_tone": "neutral"
+  },
+  "quality_metrics": {
+    "overall_quality": "good",
+    "sharpness_score": 6.49567375,
+    "noise_level": "low",
+    "exposure_quality": "optimal",
+    "white_balance": "poor",
+    "compression_artifacts": true,
+    "resolution_quality": "medium",
+    "technical_score": 66.04899597222222
+  },
+  "semantic_insights": {
+    "scene_description": "An image showing various visual elements",
+    "key_themes": [
+      "warmth"
+    ],
+    "emotional_impact": "neutral and informative",
+    "commercial_potential": "low",
+    "target_audience": [],
+    "content_categories": [],
+    "similar_stock_tags": [
+      "warmth",
+      "warm",
+      "landscape",
+      "minimalist"
+    ],
+    "accessibility_description": "An image showing various visual elements with predominantly cyan, brown, gray colors"
+  },
+  "processing_time": 1.0758049488067627,
+  "analysis_timestamp": "2025-08-06T10:57:42.236269",
+  "confidence_scores": {
+    "color": 0.7249153137207032,
+    "composition": 0.6375818818082789,
+    "content": 0.5,
+    "quality": 0.6604899597222221,
+    "semantic": 0.75,
+    "overall": 0.6545974310502409
+  }
+}
