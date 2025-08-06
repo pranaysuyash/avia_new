@@ -260,6 +260,10 @@ def create_app() -> FastAPI:
     from .endpoints.annotation import router as annotation_router
     app.include_router(annotation_router, prefix="/api", tags=["Image Annotation"])
     
+    # Include unified media router
+    from .endpoints.unified_media import router as unified_media_router
+    app.include_router(unified_media_router, prefix="/api", tags=["Unified Media"])
+    
     # Admin monitoring WebSocket
     from api.websocket.admin_monitoring_ws import admin_monitoring_endpoint
     app.websocket("/api/ws/admin/monitoring")(admin_monitoring_endpoint)

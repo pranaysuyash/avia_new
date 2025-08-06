@@ -16,6 +16,7 @@ textblob>=0.17.1
 langdetect>=1.0.9
 pycountry>=22.3.5
 googletrans==4.0.0rc1
+babel>=2.17.0
 
 
 # Media processing
