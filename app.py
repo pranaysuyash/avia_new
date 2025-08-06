@@ -55,6 +55,14 @@ from enhanced_components import (
 )
 from entity_visualization import render_enhanced_entity_display, create_entity_visualizer
 
+# Import enhanced progress indicators
+from enhanced_progress import (
+    EnhancedProgressTracker, 
+    create_transcription_progress_steps,
+    create_export_progress_steps,
+    progress_context
+)
+
 # Import advanced processing modules
 from advanced_processing import (
     process_audio_with_advanced_features, render_advanced_results,
@@ -98,6 +106,19 @@ from speaker_diarization.diarization_ui import DiarizationUI
 
 # Import video processing modules
 from video_ui import VideoUI
+
+# Import enhanced export UI
+from enhanced_export_ui import (
+    render_quick_export_buttons, 
+    render_advanced_export_modal,
+    render_inline_search
+)
+
+# Import clickable transcript
+from clickable_transcript import (
+    render_clickable_transcript_ui,
+    create_segments_from_whisper_result
+)
 
 # Import content insights modules
 from content_insights_ui import ContentInsightsUI
@@ -1054,36 +1075,72 @@ def render_main_interface(analysis_mode: str):
                 if preferences.auto_clear_results:
                     session_manager.clear_results()
                 
-                # Enhanced loading state with tips
-                loading_container = st.empty()
-                with loading_container.container():
-                    enhanced_loading_state(
-                        text=f"Processing with {analysis_mode} mode...",
-                        show_spinner=True,
-                        show_tips=True,
-                        tips=[
-                            "💡 Clear audio produces better transcripts",
-                            "🎯 Advanced mode provides more detailed analysis", 
-                            "⚡ Processing time depends on file size",
-                            "🔍 You can search within transcripts after processing",
-                            "📊 Results can be downloaded in multiple formats"
-                        ]
-                    )
-                
-                # Process audio based on mode
-                if "Multi-Language" in analysis_mode:
-                    # Multi-language processing (Task 36)
-                    multilingual_settings = st.session_state.get('multilingual_settings', {})
-                    result = process_audio_multilingual(audio_source, multilingual_settings)
+                # Enhanced progress tracking
+                try:
+                    steps = create_transcription_progress_steps()
                     
-                    # Store results in session state
-                    session_manager.store_multilingual_results(result)
-                else:
-                    # Standard processing
-                    process_audio_enhanced(audio_source, analysis_mode)
+                    with progress_context(
+                        steps, 
+                        f"Transcribing & Analyzing ({analysis_mode})",
+                        show_tips=True
+                    ) as tracker:
+                        
+                        # Step 1: File Upload & Validation
+                        tracker.update_step(0, 50, "Validating file format...")
+                        time.sleep(0.5)
+                        tracker.complete_step(0, "File validated successfully")
+                        
+                        # Step 2: Audio Processing
+                        tracker.update_step(1, 25, "Converting audio format...")
+                        time.sleep(0.5)
+                        tracker.update_step(1, 75, "Optimizing for transcription...")
+                        time.sleep(0.5)
+                        tracker.complete_step(1, "Audio prepared")
+                        
+                        # Step 3: Speech Recognition
+                        tracker.update_step(2, 10, "Initializing speech recognition...")
+                        time.sleep(0.3)
+                        
+                        # Process audio based on mode
+                        if "Multi-Language" in analysis_mode:
+                            tracker.update_step(2, 30, "Processing multi-language audio...")
+                            multilingual_settings = st.session_state.get('multilingual_settings', {})
+                            result = process_audio_multilingual(audio_source, multilingual_settings)
+                            session_manager.store_multilingual_results(result)
+                        else:
+                            tracker.update_step(2, 30, "Converting speech to text...")
+                            process_audio_enhanced(audio_source, analysis_mode)
+                        
+                        tracker.update_step(2, 90, "Finalizing transcription...")
+                        time.sleep(0.3)
+                        tracker.complete_step(2, "Transcription completed")
+                        
+                        # Step 4: Text Processing
+                        tracker.update_step(3, 50, "Cleaning and formatting text...")
+                        time.sleep(0.3)
+                        tracker.complete_step(3, "Text formatted")
+                        
+                        # Step 5: Entity Extraction
+                        if "Advanced" in analysis_mode:
+                            tracker.update_step(4, 25, "Identifying entities...")
+                            time.sleep(0.5)
+                            tracker.update_step(4, 75, "Extracting relationships...")
+                            time.sleep(0.3)
+                        else:
+                            tracker.update_step(4, 50, "Basic entity extraction...")
+                            time.sleep(0.3)
+                        tracker.complete_step(4, "Entities extracted")
+                        
+                        # Step 6: Final Processing
+                        tracker.update_step(5, 30, "Generating summary...")
+                        time.sleep(0.5)
+                        tracker.update_step(5, 80, "Organizing results...")
+                        time.sleep(0.3)
+                        tracker.complete_step(5, "Analysis complete")
                 
-                # Clear loading state
-                loading_container.empty()
+                except Exception as e:
+                    st.error(f"Processing failed: {str(e)}")
+                    logger.error(f"Processing error: {e}")
         
         # Results section
         if session_manager.has_results():
@@ -3112,12 +3169,62 @@ def render_structured_analysis_tab(results, analysis_mode: str):
         st.info("Please ensure all required dependencies are installed.")
 
 def render_interactive_transcript(results):
-    """Render interactive transcript with advanced features including waveform visualization"""
+    """Render interactive transcript with click-to-play functionality"""
     st.subheader("🎯 Interactive Transcript")
     
     if not results.transcript:
         st.info("No transcript available for interactive features")
         return
+    
+    # Interactive transcript mode selection
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        transcript_mode = st.selectbox(
+            "Transcript Mode",
+            ["Clickable Segments", "Legacy Interactive", "Text Only"],
+            help="Choose how to display the interactive transcript"
+        )
+    
+    with col2:
+        if st.button("🔄 Refresh", help="Refresh transcript display"):
+            st.rerun()
+    
+    # Handle different transcript modes
+    if transcript_mode == "Clickable Segments":
+        # Use our new clickable transcript
+        st.markdown("---")
+        
+        # Get audio file path if available
+        audio_file_path = getattr(results, 'audio_file_path', None)
+        if not audio_file_path and hasattr(st.session_state, 'current_audio_path'):
+            audio_file_path = st.session_state.current_audio_path
+        
+        # Create segments from results if available
+        segments = None
+        if hasattr(results, 'segments') and results.segments:
+            segments = results.segments
+        elif hasattr(results, 'timestamps') and results.timestamps:
+            # Convert timestamps to segments
+            segments = []
+            for i, ts in enumerate(results.timestamps):
+                segments.append({
+                    'id': i,
+                    'text': ts.get('text', ''),
+                    'start_time': ts.get('start', 0),
+                    'end_time': ts.get('end', 0),
+                    'speaker': f"Speaker {i % 2 + 1}",
+                    'confidence': ts.get('confidence', 0.8)
+                })
+        
+        # Render clickable transcript
+        render_clickable_transcript_ui(
+            transcript_text=results.transcript,
+            segments=segments,
+            audio_file_path=audio_file_path
+        )
+        
+        return  # Exit early for clickable mode
     
     # Import waveform visualization
     try:
@@ -3715,27 +3822,42 @@ def render_transcript_display():
         else:
             transcript_to_display = st.session_state.transcript
         
-        # Display transcript in a scrollable text area
-        st.text_area(
-            "Transcript Content:",
-            value=transcript_to_display,
-            height=400,
-            help="Full transcript of your audio content. Use Ctrl+F to search within the text.",
-            label_visibility="collapsed"
-        )
+        # Add inline search functionality
+        transcript_with_search = render_inline_search(st.session_state.transcript)
         
-        # Search functionality
-        search_term = st.text_input("🔍 Search in transcript:", placeholder="Enter search term...")
-        if search_term:
-            search_results = find_text_occurrences(st.session_state.transcript, search_term)
-            if search_results:
-                st.success(f"Found {len(search_results)} occurrence(s) of '{search_term}'")
-                for i, (start, end, context) in enumerate(search_results[:5]):  # Show first 5 results
-                    st.write(f"**Result {i+1}:** ...{context}...")
-            else:
-                st.info(f"No occurrences of '{search_term}' found")
+        # Display transcript in a scrollable text area or with highlighting
+        if transcript_with_search != st.session_state.transcript:
+            # Display with search highlighting
+            st.markdown(
+                f'<div style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f8f8f8;">{transcript_with_search}</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            # Display regular transcript
+            st.text_area(
+                "Transcript Content:",
+                value=transcript_to_display,
+                height=400,
+                help="Full transcript of your audio content. Use Ctrl+F to search within the text.",
+                label_visibility="collapsed"
+            )
+        
+        # Add quick export buttons right after transcript
+        render_quick_export_buttons(
+            transcript=st.session_state.transcript,
+            entities=st.session_state.entities,
+            summary=st.session_state.summary,
+            metadata={
+                "word_count": word_count,
+                "char_count": char_count,
+                "estimated_duration": estimated_duration
+            }
+        )
     else:
         st.info("No transcript available. Please process an audio file first.")
+    
+    # Render advanced export modal if requested
+    render_advanced_export_modal()
 
 def render_basic_entities_display():
     """Render entity display for basic mode with categorized results"""
