@@ -5,8 +5,8 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import json
 
-from auth.auth_manager import get_current_user
-from content_analysis.advanced_analyzer import ContentAnalyzer
+from api.dependencies import get_current_user
+from content_analysis.advanced_analyzer import AdvancedContentAnalyzer as ContentAnalyzer
 
 router = APIRouter(prefix="/content-insights", tags=["content-insights"])
 

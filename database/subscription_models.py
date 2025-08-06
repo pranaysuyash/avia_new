@@ -122,7 +122,7 @@ class Subscription(Base):
     api_calls_used = Column(Integer, default=0)
     
     # Metadata
-    metadata = Column(JSON, default={})
+    extra_data = Column(JSON, default={})
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
@@ -164,7 +164,7 @@ class Payment(Base):
     
     # Metadata
     description = Column(String(500))
-    metadata = Column(JSON, default={})
+    extra_data = Column(JSON, default={})
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
@@ -195,7 +195,7 @@ class UsageRecord(Base):
     
     # Metadata
     description = Column(String(500))
-    metadata = Column(JSON, default={})
+    extra_data = Column(JSON, default={})
     created_at = Column(DateTime, server_default=func.now())
     
     # Relationships

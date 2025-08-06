@@ -86,21 +86,21 @@ const VisualSearch: React.FC = () => {
     setLoading(true);
     try {
       // Load timeline
-      const timelineResponse = await fetch('http://localhost:8000/api/visual-search/timeline');
+      const timelineResponse = await fetch('http://localhost:8001/api/visual-search/timeline');
       if (timelineResponse.ok) {
         const timelineResult = await timelineResponse.json();
         setTimelineData(timelineResult.data.timeline);
       }
 
       // Load content map
-      const mapResponse = await fetch('http://localhost:8000/api/visual-search/content-map');
+      const mapResponse = await fetch('http://localhost:8001/api/visual-search/content-map');
       if (mapResponse.ok) {
         const mapResult = await mapResponse.json();
         setContentMap(mapResult.data.clusters);
       }
 
       // Load recommendations
-      const recResponse = await fetch('http://localhost:8000/api/visual-search/recommendations');
+      const recResponse = await fetch('http://localhost:8001/api/visual-search/recommendations');
       if (recResponse.ok) {
         const recResult = await recResponse.json();
         setRecommendations(recResult.data.recommendations);
@@ -117,7 +117,7 @@ const VisualSearch: React.FC = () => {
     
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/visual-search/similarity', {
+      const response = await fetch('http://localhost:8001/api/visual-search/similarity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: searchQuery, limit: 10 })
@@ -140,7 +140,7 @@ const VisualSearch: React.FC = () => {
     
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/visual-search/image-to-text', {
+      const response = await fetch('http://localhost:8001/api/visual-search/image-to-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image_description: imageDescription, limit: 5 })

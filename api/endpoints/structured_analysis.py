@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-from auth.auth_manager import get_current_user
+from api.dependencies import get_current_user
 
 from structured_analysis import (
     structured_analyzer, get_available_templates, analyze_with_schema,

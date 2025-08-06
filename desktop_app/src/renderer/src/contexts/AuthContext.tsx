@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch('http://localhost:8001/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!refresh) return;
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/refresh', {
+      const response = await fetch('http://localhost:8001/api/auth/refresh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,16 +116,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-      
-      const response = await fetch('http://localhost:8000/api/auth/login', {
+      const response = await fetch('http://localhost:8001/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: formData.toString(),
+        body: JSON.stringify({
+          username_or_email: email,
+          password: password,
+        }),
       });
 
       if (response.ok) {
@@ -159,7 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const token = localStorage.getItem('access_token');
       if (token) {
-        await fetch('http://localhost:8000/api/auth/logout', {
+        await fetch('http://localhost:8001/api/auth/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -180,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!token || !user) return false;
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/profile', {
+      const response = await fetch('http://localhost:8001/api/auth/profile', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

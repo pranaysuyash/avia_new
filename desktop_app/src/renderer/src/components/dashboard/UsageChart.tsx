@@ -23,7 +23,7 @@ const UsageChart: React.FC = () => {
   const loadUsageData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/analytics/usage/weekly');
+      const response = await fetch('http://localhost:8001/api/analytics/usage/weekly');
       if (response.ok) {
         const result = await response.json();
         if (result.data) {

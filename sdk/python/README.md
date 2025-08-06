@@ -1,271 +1,352 @@
-# Transcription Platform Python SDK
+# Transcription API Python SDK
 
-Official Python SDK for the Transcription Platform API.
+A comprehensive Python SDK for the Audio/Video Transcription Platform API. This SDK provides easy-to-use interfaces for transcription, analysis, team management, and more.
 
 ## Installation
 
 ```bash
-pip install transcription-platform
+pip install transcription-api
+```
+
+For async support:
+```bash
+pip install transcription-api[async]
 ```
 
 ## Quick Start
 
 ```python
-from transcription_platform import TranscriptionClient
+from transcription_api import TranscriptionClient
 
 # Initialize the client
-client = TranscriptionClient(api_key="YOUR_API_KEY")
+client = TranscriptionClient(api_key="your_api_key_here")
 
-# Create a transcript from URL
-transcript = client.create_transcript(
-    audio_url="https://example.com/audio.mp3",
-    language="en",
-    enable_diarization=True
-)
+# Upload and transcribe a file
+with open("audio.mp3", "rb") as f:
+    transcript = client.transcribe_file(f, title="My Recording")
 
-# Wait for completion and get results
-import time
-while not transcript.is_complete:
-    time.sleep(5)
-    transcript = client.get_transcript(transcript.id)
-    
-print(f"Transcript completed! Word count: {transcript.word_count}")
+# Wait for completion
+transcript = client.wait_for_completion(transcript.id)
+
+# Get the transcribed text
 print(transcript.text)
+
+# Get extracted entities
+print(transcript.entities)
 ```
 
 ## Authentication
 
 You can provide your API key in several ways:
 
-1. Pass it directly to the client:
+1. **Direct initialization:**
 ```python
-client = TranscriptionClient(api_key="YOUR_API_KEY")
+client = TranscriptionClient(api_key="your_api_key")
 ```
 
-2. Set it as an environment variable:
+2. **Environment variable:**
 ```bash
-export TRANSCRIPTION_API_KEY="YOUR_API_KEY"
+export TRANSCRIPTION_API_KEY="your_api_key"
+```
+```python
+client = TranscriptionClient()  # Will use env var
 ```
 
-## Creating Transcripts
+## Features
 
-### From URL
-
-```python
-transcript = client.create_transcript(
-    audio_url="https://example.com/audio.mp3",
-    language="en",
-    enable_diarization=True,
-    max_speakers=3,
-    webhook_url="https://your-app.com/webhook",
-    metadata={"project": "interview", "episode": 42}
-)
-```
-
-### From File Upload
+### File Transcription
 
 ```python
+from transcription_api import TranscriptionClient, TranscriptionOptions
+
+client = TranscriptionClient(api_key="your_api_key")
+
+# Basic transcription
 with open("audio.mp3", "rb") as f:
-    transcript = client.create_transcript(
-        audio_file=f,
-        language="en",
-        enable_diarization=True
-    )
-```
+    transcript = client.transcribe_file(f)
 
-## Managing Transcripts
-
-### List Transcripts
-
-```python
-# Get paginated list of transcripts
-result = client.list_transcripts(
-    page=1,
-    per_page=20,
-    status="completed",
-    language="en"
+# Advanced transcription with options
+options = TranscriptionOptions(
+    language="en",
+    method="advanced",
+    speaker_detection=True,
+    sentiment_analysis=True
 )
 
-for transcript in result['data']:
-    print(f"{transcript.id}: {transcript.title}")
+with open("meeting.mp4", "rb") as f:
+    transcript = client.transcribe_file(f, title="Team Meeting", options=options)
+
+# Wait for completion
+completed_transcript = client.wait_for_completion(transcript.id)
 ```
 
-### Get Transcript Details
+### Team Management
 
 ```python
-transcript = client.get_transcript("tr_abc123")
-print(f"Status: {transcript.status}")
-print(f"Duration: {transcript.duration} seconds")
+# Create a team
+team = client.create_team("My Team", description="Team for project X")
 
-# Access speaker segments
-for segment in transcript.segments:
-    print(f"[{segment.speaker}] {segment.text}")
-```
-
-### Export Transcripts
-
-```python
-# Export as plain text
-text = client.export_transcript(transcript.id, format="txt")
-
-# Export as SRT subtitles
-srt = client.export_transcript(
-    transcript.id, 
-    format="srt",
-    include_speakers=False
-)
-
-# Export as JSON
-data = client.export_transcript(transcript.id, format="json")
-```
-
-### Delete Transcript
-
-```python
-client.delete_transcript(transcript.id)
-```
-
-## Teams
-
-```python
 # List teams
 teams = client.list_teams()
 
-# Create a team
-team = client.create_team(
-    name="Research Team",
-    description="Audio research and analysis"
-)
+# Invite a member
+client.invite_team_member(team.id, "colleague@example.com", role="member")
 
-# Get team details
-team = client.get_team(team.id)
-for member in team.members:
-    print(f"{member.username} - {member.role}")
+# Transcribe to team workspace
+options = TranscriptionOptions(team_id=team.id)
+transcript = client.transcribe_file(file, options=options)
 ```
 
-## Analytics
+### Search and Discovery
 
 ```python
-# Get usage statistics
-usage = client.get_usage(
-    start_date="2024-01-01",
-    end_date="2024-01-31"
-)
+# List transcripts
+transcripts = client.list_transcripts(limit=50)
 
-print(f"Transcripts created: {usage.get_usage('transcripts')['current']}")
-print(f"Minutes processed: {usage.get_usage('minutes')['current']}")
-print(f"Remaining transcript quota: {usage.get_remaining('transcripts')}")
+# Filter by team
+team_transcripts = client.list_transcripts(team_id=team.id)
+
+# Get specific transcript
+transcript = client.get_transcript("transcript_id")
 ```
 
-## Webhooks
-
-### Create Webhook
+### User Management
 
 ```python
-webhook = client.create_webhook(
-    name="Transcript Complete",
-    url="https://your-app.com/webhook",
-    events=["transcript.completed", "transcript.failed"]
-)
+# Get user profile
+profile = client.get_profile()
+print(f"User: {profile.name} ({profile.email})")
 
-print(f"Webhook created with secret: {webhook.secret}")
+# Update profile
+updated_profile = client.update_profile(name="New Name")
 ```
 
-### Verify Webhook Signature
+### API Key Management
 
 ```python
-# In your webhook handler
-import json
+# Create API key
+api_key = client.create_api_key("My App Key", expires_in_days=90)
+print(f"New API key: {api_key['key']}")  # Only shown once!
 
-def handle_webhook(request):
-    payload = request.body
-    signature = request.headers.get('X-Webhook-Signature')
-    
-    # Verify signature
-    if not client.verify_webhook_signature(payload, signature, webhook_secret):
-        return 401  # Unauthorized
-    
-    # Parse event
-    event = json.loads(payload)
-    
-    if event['type'] == 'transcript.completed':
-        transcript_id = event['data']['transcript_id']
-        # Handle completed transcript
-```
+# List API keys
+keys = client.list_api_keys()
 
-## Error Handling
-
-```python
-from transcription_platform import (
-    TranscriptionError,
-    AuthenticationError,
-    RateLimitError,
-    ValidationError,
-    NotFoundError
-)
-
-try:
-    transcript = client.get_transcript("invalid_id")
-except NotFoundError:
-    print("Transcript not found")
-except RateLimitError as e:
-    print(f"Rate limit hit. Retry after {e.retry_after} seconds")
-except AuthenticationError:
-    print("Invalid API key")
-except TranscriptionError as e:
-    print(f"API error: {e}")
-```
-
-## Advanced Usage
-
-### Custom Timeout
-
-```python
-# Set custom timeout for long audio files
-client = TranscriptionClient(
-    api_key="YOUR_API_KEY",
-    timeout=120  # 2 minutes
-)
-```
-
-### Using a Different Base URL
-
-```python
-# For self-hosted or staging environments
-client = TranscriptionClient(
-    api_key="YOUR_API_KEY",
-    base_url="https://api-staging.example.com/v1"
-)
-```
-
-### Retry Configuration
-
-```python
-# Configure retry behavior
-client = TranscriptionClient(
-    api_key="YOUR_API_KEY",
-    max_retries=5  # Retry failed requests up to 5 times
-)
+# Delete API key
+client.delete_api_key(key_id)
 ```
 
 ## Async Support
 
-For async applications, use the async client (coming soon):
+For async operations, use the `AsyncTranscriptionClient`:
 
 ```python
-from transcription_platform import AsyncTranscriptionClient
+import asyncio
+from transcription_api import AsyncTranscriptionClient
 
 async def main():
-    async with AsyncTranscriptionClient(api_key="YOUR_API_KEY") as client:
-        transcript = await client.create_transcript(
-            audio_url="https://example.com/audio.mp3"
-        )
+    client = AsyncTranscriptionClient(api_key="your_api_key")
+    
+    # Async transcription
+    with open("audio.mp3", "rb") as f:
+        transcript = await client.transcribe_file(f)
+    
+    # Async wait for completion
+    completed = await client.wait_for_completion(transcript.id)
+    print(completed.text)
+
+asyncio.run(main())
 ```
 
-## Contributing
+## Error Handling
 
-See [CONTRIBUTING.md](https://github.com/transcription-platform/python-sdk/blob/main/CONTRIBUTING.md) for information on how to contribute to this SDK.
+The SDK provides specific exception types for different error conditions:
+
+```python
+from transcription_api import (
+    TranscriptionClient, 
+    AuthenticationError, 
+    RateLimitError,
+    ValidationError,
+    NotFoundError,
+    ServerError
+)
+
+client = TranscriptionClient(api_key="your_api_key")
+
+try:
+    transcript = client.get_transcript("invalid_id")
+except AuthenticationError:
+    print("Invalid API key")
+except NotFoundError:
+    print("Transcript not found")
+except RateLimitError as e:
+    print(f"Rate limited. Retry after {e.retry_after} seconds")
+except ValidationError as e:
+    print(f"Validation error: {e.message}")
+except ServerError:
+    print("Server error occurred")
+```
+
+## Configuration
+
+### Custom Base URL
+
+```python
+client = TranscriptionClient(
+    api_key="your_api_key",
+    base_url="https://your-custom-domain.com/api/v1"
+)
+```
+
+### Timeout and Retries
+
+```python
+client = TranscriptionClient(
+    api_key="your_api_key",
+    timeout=60,  # 60 seconds timeout
+    max_retries=5  # Retry failed requests up to 5 times
+)
+```
+
+## Models
+
+The SDK includes comprehensive data models:
+
+### Transcript
+
+```python
+transcript = client.get_transcript("transcript_id")
+
+print(f"Title: {transcript.title}")
+print(f"Status: {transcript.status}")
+print(f"Duration: {transcript.duration} seconds")
+print(f"Confidence: {transcript.confidence}")
+print(f"Language: {transcript.language}")
+print(f"Text: {transcript.text}")
+print(f"Entities: {transcript.entities}")
+
+# Check status
+if transcript.is_completed:
+    print("Transcription is ready!")
+elif transcript.is_processing:
+    print("Still processing...")
+elif transcript.has_failed:
+    print("Transcription failed")
+```
+
+### Team
+
+```python
+team = client.get_team(team_id)
+
+print(f"Team: {team.name}")
+print(f"Description: {team.description}")
+print(f"Members: {team.member_count}")
+print(f"Owner ID: {team.owner_id}")
+
+for member in team.members:
+    print(f"- {member.user_name} ({member.role})")
+```
+
+## Advanced Usage
+
+### Webhook Handling
+
+```python
+from transcription_api import WebhookEvent
+
+# In your webhook endpoint
+def handle_webhook(request_body: str):
+    event = WebhookEvent.from_dict(json.loads(request_body))
+    
+    if event.event_type == "transcription.completed":
+        transcript_id = event.data["transcript_id"]
+        print(f"Transcription {transcript_id} completed!")
+```
+
+### Batch Processing
+
+```python
+import os
+from pathlib import Path
+
+# Process multiple files
+audio_files = Path("audio_files").glob("*.mp3")
+transcripts = []
+
+for audio_file in audio_files:
+    with open(audio_file, "rb") as f:
+        transcript = client.transcribe_file(f, title=audio_file.stem)
+        transcripts.append(transcript)
+
+# Wait for all to complete
+completed_transcripts = []
+for transcript in transcripts:
+    completed = client.wait_for_completion(transcript.id)
+    completed_transcripts.append(completed)
+    print(f"Completed: {completed.title}")
+```
+
+### Usage Monitoring
+
+```python
+# Check usage stats
+stats = client.get_usage_stats()
+print(f"Total requests: {stats['total_requests']}")
+print(f"This month: {stats['current_month_requests']}")
+
+# Health check
+health = client.health_check()
+print(f"API Status: {health['status']}")
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# Install development dependencies
+pip install -e .[dev]
+
+# Run tests
+pytest
+
+# Run tests with coverage
+pytest --cov=transcription_api
+```
+
+### Code Formatting
+
+```bash
+# Format code
+black transcription_api/
+
+# Check formatting
+flake8 transcription_api/
+
+# Type checking
+mypy transcription_api/
+```
+
+## Support
+
+- **Documentation:** https://docs.transcriptionapi.com/sdk/python
+- **API Reference:** https://docs.transcriptionapi.com/api
+- **Issues:** https://github.com/transcription-api/python-sdk/issues
+- **Email:** support@transcriptionapi.com
 
 ## License
 
-This SDK is distributed under the MIT license. See [LICENSE](https://github.com/transcription-platform/python-sdk/blob/main/LICENSE) for more information.
+This SDK is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Changelog
+
+### v1.0.0
+- Initial release
+- Support for file transcription
+- Team management
+- User profile management
+- API key management
+- Async client support
+- Comprehensive error handling
+- Full type hints

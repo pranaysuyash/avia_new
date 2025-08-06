@@ -140,35 +140,35 @@ const Settings: React.FC = () => {
       setLoading(true);
       
       // Load user preferences
-      const userResponse = await fetch('http://localhost:8000/api/settings/user');
+      const userResponse = await fetch('http://localhost:8001/api/settings/user');
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setUserPrefs(userData);
       }
       
       // Load transcription settings
-      const transcriptionResponse = await fetch('http://localhost:8000/api/settings/transcription');
+      const transcriptionResponse = await fetch('http://localhost:8001/api/settings/transcription');
       if (transcriptionResponse.ok) {
         const transcriptionData = await transcriptionResponse.json();
         setTranscriptionSettings(transcriptionData);
       }
       
       // Load API keys
-      const apiKeysResponse = await fetch('http://localhost:8000/api/settings/api-keys');
+      const apiKeysResponse = await fetch('http://localhost:8001/api/settings/api-keys');
       if (apiKeysResponse.ok) {
         const apiKeysData = await apiKeysResponse.json();
         setApiKeys(apiKeysData);
       }
       
       // Load storage settings
-      const storageResponse = await fetch('http://localhost:8000/api/settings/storage');
+      const storageResponse = await fetch('http://localhost:8001/api/settings/storage');
       if (storageResponse.ok) {
         const storageData = await storageResponse.json();
         setStorageSettings(storageData);
       }
       
       // Load security settings
-      const securityResponse = await fetch('http://localhost:8000/api/settings/security');
+      const securityResponse = await fetch('http://localhost:8001/api/settings/security');
       if (securityResponse.ok) {
         const securityData = await securityResponse.json();
         setSecuritySettings(securityData);
@@ -182,7 +182,7 @@ const Settings: React.FC = () => {
 
   const loadLanguages = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/settings/languages');
+      const response = await fetch('http://localhost:8001/api/settings/languages');
       if (response.ok) {
         const result = await response.json();
         setSupportedLanguages(result.data || []);
@@ -194,7 +194,7 @@ const Settings: React.FC = () => {
 
   const loadModels = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/settings/models');
+      const response = await fetch('http://localhost:8001/api/settings/models');
       if (response.ok) {
         const result = await response.json();
         setAvailableModels(result.data || []);
@@ -207,7 +207,7 @@ const Settings: React.FC = () => {
   const saveUserPreferences = async () => {
     try {
       setSaving(true);
-      const response = await fetch('http://localhost:8000/api/settings/user', {
+      const response = await fetch('http://localhost:8001/api/settings/user', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userPrefs)
@@ -230,7 +230,7 @@ const Settings: React.FC = () => {
   const saveTranscriptionSettings = async () => {
     try {
       setSaving(true);
-      const response = await fetch('http://localhost:8000/api/settings/transcription', {
+      const response = await fetch('http://localhost:8001/api/settings/transcription', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(transcriptionSettings)
@@ -252,7 +252,7 @@ const Settings: React.FC = () => {
 
   const resetToDefaults = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/settings/reset', {
+      const response = await fetch('http://localhost:8001/api/settings/reset', {
         method: 'POST'
       });
       
@@ -293,7 +293,7 @@ const Settings: React.FC = () => {
         promises.push(saveTranscriptionSettings());
       } else if (activeTab === 'api-keys') {
         promises.push(
-          fetch('http://localhost:8000/api/settings/api-keys', {
+          fetch('http://localhost:8001/api/settings/api-keys', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(apiKeys)
@@ -301,7 +301,7 @@ const Settings: React.FC = () => {
         );
       } else if (activeTab === 'storage') {
         promises.push(
-          fetch('http://localhost:8000/api/settings/storage', {
+          fetch('http://localhost:8001/api/settings/storage', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(storageSettings)
@@ -309,7 +309,7 @@ const Settings: React.FC = () => {
         );
       } else if (activeTab === 'security') {
         promises.push(
-          fetch('http://localhost:8000/api/settings/security', {
+          fetch('http://localhost:8001/api/settings/security', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(securitySettings)

@@ -20,7 +20,7 @@ const EntityPanel: React.FC<EntityPanelProps> = ({ entities, isProcessing }) => 
       // For now, use current transcription ID or generate mock one
       const transcriptionId = 'transcript_001';
       
-      const response = await fetch(`http://localhost:8000/api/export/entities/${transcriptionId}?format=${format}`, {
+      const response = await fetch(`http://localhost:8001/api/export/entities/${transcriptionId}?format=${format}`, {
         method: 'POST'
       });
       

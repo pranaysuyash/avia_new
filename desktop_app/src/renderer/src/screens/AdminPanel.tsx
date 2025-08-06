@@ -36,7 +36,7 @@ const AdminPanel: React.FC = () => {
   const loadTranscriptions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/transcription/list?limit=100');
+      const response = await fetch('http://localhost:8001/api/transcription/list?limit=100');
       if (response.ok) {
         const result = await response.json();
         const items = result.data.items || [];
@@ -86,7 +86,7 @@ const AdminPanel: React.FC = () => {
       // Delete each selected item
       const itemsToDelete = Array.from(selectedItems);
       for (const id of itemsToDelete) {
-        await fetch(`http://localhost:8000/api/transcription/${id}`, {
+        await fetch(`http://localhost:8001/api/transcription/${id}`, {
           method: 'DELETE'
         });
       }

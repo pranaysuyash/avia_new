@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import logging
 from pydantic import BaseModel
 
-from api.auth import auth_required, create_api_response
+from api.dependencies import auth_required, create_api_response
 
 logger = logging.getLogger(__name__)
 

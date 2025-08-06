@@ -11,7 +11,7 @@ import logging
 from pydantic import BaseModel, ValidationError
 import json
 
-from api.auth import auth_required, create_api_response
+from api.dependencies import auth_required, create_api_response
 
 logger = logging.getLogger(__name__)
 

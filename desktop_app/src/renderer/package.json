@@ -9,9 +9,12 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.6.1",
+    "@ant-design/icons": "^6.0.0",
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
     "@stripe/stripe-js": "^7.8.0",
+    "antd": "^5.26.7",
     "axios": "^1.5.0",
     "date-fns": "^2.30.0",
     "docx": "^8.5.0",

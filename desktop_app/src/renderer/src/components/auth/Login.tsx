@@ -25,38 +25,17 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: email,
-          password: password,
-          remember_me: rememberMe,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Store tokens
-        localStorage.setItem('access_token', data.access_token);
-        if (data.refresh_token) {
-          localStorage.setItem('refresh_token', data.refresh_token);
-        }
-        
-        // Update auth context
-        await login(email, password);
-        
+      // Use only the AuthContext login function
+      const success = await login(email, password);
+      
+      if (success) {
         if (onSuccess) {
           onSuccess();
         } else {
           navigate('/dashboard');
         }
       } else {
-        const errorData = await response.json();
-        setError(errorData.detail || 'Invalid email or password');
+        setError('Invalid email or password');
       }
     } catch (err) {
       setError('Failed to connect to server. Please try again.');
@@ -68,12 +47,12 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
 
   const handleGoogleLogin = () => {
     // TODO: Implement OAuth login
-    window.location.href = 'http://localhost:8000/api/auth/google';
+    window.location.href = 'http://localhost:8001/api/auth/google';
   };
 
   const handleGithubLogin = () => {
     // TODO: Implement OAuth login
-    window.location.href = 'http://localhost:8000/api/auth/github';
+    window.location.href = 'http://localhost:8001/api/auth/github';
   };
 
   return (

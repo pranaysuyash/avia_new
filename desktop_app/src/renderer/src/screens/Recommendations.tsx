@@ -78,7 +78,7 @@ const Recommendations: React.FC = () => {
   const loadPersonalizedRecommendations = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/recommendations/personalized?limit=12');
+      const response = await fetch('http://localhost:8001/api/recommendations/personalized?limit=12');
       if (response.ok) {
         const result = await response.json();
         setRecommendations(result.data.recommendations);
@@ -93,7 +93,7 @@ const Recommendations: React.FC = () => {
   const loadTrendingTopics = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/recommendations/trending-topics?time_window=${timeWindow}&limit=10`);
+      const response = await fetch(`http://localhost:8001/api/recommendations/trending-topics?time_window=${timeWindow}&limit=10`);
       if (response.ok) {
         const result = await response.json();
         setTrendingTopics(result.data.trending_topics);
@@ -108,7 +108,7 @@ const Recommendations: React.FC = () => {
   const loadContentGaps = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/recommendations/content-gaps?limit=8');
+      const response = await fetch('http://localhost:8001/api/recommendations/content-gaps?limit=8');
       if (response.ok) {
         const result = await response.json();
         setContentGaps(result.data.content_gaps);
@@ -125,7 +125,7 @@ const Recommendations: React.FC = () => {
     
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/recommendations/smart-tags', {
+      const response = await fetch('http://localhost:8001/api/recommendations/smart-tags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript_id: selectedTranscript })
@@ -144,7 +144,7 @@ const Recommendations: React.FC = () => {
 
   const trackInteraction = async (transcriptId: string, actionType: string) => {
     try {
-      await fetch('http://localhost:8000/api/recommendations/track-interaction', {
+      await fetch('http://localhost:8001/api/recommendations/track-interaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

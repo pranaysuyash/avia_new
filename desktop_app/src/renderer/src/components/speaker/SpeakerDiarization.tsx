@@ -95,7 +95,7 @@ const SpeakerDiarization: React.FC<SpeakerDiarizationProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/speaker-diarization/process', {
+      const response = await fetch('http://localhost:8001/api/speaker-diarization/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ const SpeakerDiarization: React.FC<SpeakerDiarizationProps> = ({
     if (!diarizationResult) return;
 
     try {
-      const response = await fetch('http://localhost:8000/api/speaker-diarization/update-speaker', {
+      const response = await fetch('http://localhost:8001/api/speaker-diarization/update-speaker', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,7 +166,7 @@ const SpeakerDiarization: React.FC<SpeakerDiarizationProps> = ({
     if (!diarizationResult) return;
 
     try {
-      const response = await fetch('http://localhost:8000/api/speaker-diarization/merge-speakers', {
+      const response = await fetch('http://localhost:8001/api/speaker-diarization/merge-speakers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

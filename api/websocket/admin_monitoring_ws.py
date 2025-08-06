@@ -7,14 +7,15 @@ Real-time system monitoring for administrators
 import logging
 import asyncio
 import json
-from typing import Dict, Any, Set
-from datetime import datetime
+from typing import Dict, Any, Set, Optional
+from datetime import datetime, timedelta
 from fastapi import WebSocket, WebSocketDisconnect, Depends, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
-from database.models import User
+from database.models import User, Transcript
 from database.connection import get_db
-from api.auth_routes_enhanced import get_current_user_ws
+from api.auth_routes_enhanced import get_current_user
 from services.system_monitoring_service import monitoring_service
 
 logger = logging.getLogger(__name__)
@@ -244,7 +245,7 @@ admin_monitoring_manager = AdminMonitoringManager()
 
 async def admin_monitoring_endpoint(
     websocket: WebSocket,
-    current_user: User = Depends(get_current_user_ws),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """WebSocket endpoint for admin monitoring"""

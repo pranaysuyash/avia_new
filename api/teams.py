@@ -31,7 +31,7 @@ class TeamUpdate(BaseModel):
 
 class TeamMemberAdd(BaseModel):
     email: str
-    role: str = Field("member", regex="^(admin|member|viewer)$")
+    role: str = Field("member", pattern="^(admin|member|viewer)$")
 
 
 class TeamResponse(BaseModel):
@@ -364,7 +364,7 @@ async def remove_team_member(
 async def update_member_role(
     team_id: int,
     user_id: int,
-    role: str = Query(..., regex="^(admin|member|viewer)$"),
+    role: str = Query(..., pattern="^(admin|member|viewer)$"),
     current_user: User = Depends(get_current_user)
 ):
     """Update a member's role"""

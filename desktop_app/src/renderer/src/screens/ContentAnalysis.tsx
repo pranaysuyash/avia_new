@@ -130,7 +130,7 @@ const ContentAnalysis: React.FC = () => {
   const analyzeContent = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/content-analysis/analyze', {
+      const response = await fetch('http://localhost:8001/api/content-analysis/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript_id: selectedTranscript })

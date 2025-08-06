@@ -28,7 +28,7 @@ const History: React.FC = () => {
   const loadHistory = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/transcriptions?limit=50', {
+      const response = await fetch('http://localhost:8001/api/transcriptions?limit=50', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -70,7 +70,7 @@ const History: React.FC = () => {
 
   const deleteItem = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/transcriptions/${id}`, {
+      const response = await fetch(`http://localhost:8001/api/transcriptions/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`

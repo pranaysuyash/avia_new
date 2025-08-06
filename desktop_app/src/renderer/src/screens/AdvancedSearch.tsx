@@ -120,7 +120,7 @@ const AdvancedSearch: React.FC = () => {
 
   const loadOperators = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/search/operators');
+      const response = await fetch('http://localhost:8001/api/search/operators');
       if (response.ok) {
         const result = await response.json();
         setOperators(result.data);
@@ -132,7 +132,7 @@ const AdvancedSearch: React.FC = () => {
 
   const loadSuggestions = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/search/suggestions?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`http://localhost:8001/api/search/suggestions?q=${encodeURIComponent(query)}`);
       if (response.ok) {
         const result = await response.json();
         setSuggestions(result.data.suggestions);
@@ -145,7 +145,7 @@ const AdvancedSearch: React.FC = () => {
 
   const loadSearchHistory = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/search/history');
+      const response = await fetch('http://localhost:8001/api/search/history');
       if (response.ok) {
         const result = await response.json();
         setSearchHistory(result.data.history);
@@ -157,7 +157,7 @@ const AdvancedSearch: React.FC = () => {
 
   const loadSavedSearches = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/search/saved');
+      const response = await fetch('http://localhost:8001/api/search/saved');
       if (response.ok) {
         const result = await response.json();
         setSavedSearches(result.data.saved_searches);
@@ -174,7 +174,7 @@ const AdvancedSearch: React.FC = () => {
     setShowSuggestions(false);
     
     try {
-      const response = await fetch('http://localhost:8000/api/search/advanced', {
+      const response = await fetch('http://localhost:8001/api/search/advanced', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -218,7 +218,7 @@ const AdvancedSearch: React.FC = () => {
     if (!name) return;
 
     try {
-      const response = await fetch('http://localhost:8000/api/search/save', {
+      const response = await fetch('http://localhost:8001/api/search/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

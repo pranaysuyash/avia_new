@@ -15,7 +15,7 @@ from database.models import User, Team, Transcript, Notification
 from database.subscription_models import Subscription, Payment, UsageRecord
 from database.connection import get_db
 from api.auth_routes_enhanced import get_current_user
-from auth.rbac_service import require_role
+from api.dependencies import require_role
 from services.usage_analytics_service import UsageAnalyticsService
 from pydantic import BaseModel, Field, EmailStr
 

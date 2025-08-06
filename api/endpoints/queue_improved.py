@@ -13,7 +13,7 @@ import json
 from pydantic import BaseModel, ValidationError
 import uuid
 
-from api.auth import auth_required, create_api_response
+from api.dependencies import auth_required, create_api_response
 
 logger = logging.getLogger(__name__)
 

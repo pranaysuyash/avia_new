@@ -24,6 +24,8 @@ from api.auth import (
     create_api_key
 )
 from api.storage import storage_service
+from api.graphql_api import create_graphql_router, get_graphql_playground_html
+from api.docs.interactive_explorer import setup_api_explorer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -72,6 +74,19 @@ if redis_client:
         requests_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
         requests_per_hour=int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
     )
+
+# Setup GraphQL
+graphql_router = create_graphql_router()
+app.include_router(graphql_router)
+
+# Setup API Explorer and Documentation
+api_explorer = setup_api_explorer(app)
+
+# GraphQL Playground (development only)
+if os.getenv("ENVIRONMENT", "development") == "development":
+    @app.get("/graphql-playground", response_class=HTMLResponse)
+    async def graphql_playground():
+        return get_graphql_playground_html()
 
 # ===========================
 # Pydantic Models
@@ -128,7 +143,7 @@ class TeamCreate(BaseModel):
 
 class TeamMemberInvite(BaseModel):
     email: EmailStr
-    role: str = Field(default="member", regex="^(admin|member|viewer)$")
+    role: str = Field(default="member", pattern="^(admin|member|viewer)$")
 
 class APIKeyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)

@@ -14,6 +14,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import func, and_, or_
 import os
 from enum import Enum
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from api.auth import auth_required, read_required, create_api_response
+from api.dependencies import auth_required, read_required, create_api_response
 from api.models import (
     InsightRequest, InsightResponse, InsightResult,
     SentimentAnalysis, TopicAnalysis, ContentSummary
@@ -229,7 +229,7 @@ async def get_topic_analysis(
 @router.get("/summary/{transcript_id}")
 async def get_content_summary(
     transcript_id: str,
-    summary_type: str = Query(default="detailed", regex="^(brief|detailed|key_points)$"),
+    summary_type: str = Query(default="detailed", pattern="^(brief|detailed|key_points)$"),
     user_id: str = Depends(read_required)
 ):
     """Get content summary for specific transcript"""

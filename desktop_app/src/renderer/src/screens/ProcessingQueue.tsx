@@ -47,7 +47,7 @@ const ProcessingQueue: React.FC = () => {
   const loadQueueStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/queue/status');
+      const response = await fetch('http://localhost:8001/api/queue/status');
       if (response.ok) {
         const result = await response.json();
         setQueueItems(result.items || []);
@@ -62,7 +62,7 @@ const ProcessingQueue: React.FC = () => {
 
   const setupWebSocket = () => {
     try {
-      const ws = new WebSocket('ws://localhost:8000/api/queue/ws');
+      const ws = new WebSocket('ws://localhost:8001/api/queue/ws');
       
       ws.onopen = () => {
         setWsConnected(true);
@@ -91,7 +91,7 @@ const ProcessingQueue: React.FC = () => {
 
   const cancelItem = async (queueId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/queue/${queueId}/cancel`, {
+      const response = await fetch(`http://localhost:8001/api/queue/${queueId}/cancel`, {
         method: 'POST'
       });
       if (response.ok) {
@@ -106,7 +106,7 @@ const ProcessingQueue: React.FC = () => {
 
   const retryItem = async (queueId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/queue/${queueId}/retry`, {
+      const response = await fetch(`http://localhost:8001/api/queue/${queueId}/retry`, {
         method: 'POST'
       });
       if (response.ok) {
@@ -121,7 +121,7 @@ const ProcessingQueue: React.FC = () => {
 
   const clearCompleted = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/queue/clear', {
+      const response = await fetch('http://localhost:8001/api/queue/clear', {
         method: 'DELETE'
       });
       if (response.ok) {

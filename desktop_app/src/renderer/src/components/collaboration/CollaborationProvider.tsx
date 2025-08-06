@@ -83,7 +83,7 @@ interface CollaborationProviderProps {
 
 export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ 
   children, 
-  serverUrl = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8000' 
+  serverUrl = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8001' 
 }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);

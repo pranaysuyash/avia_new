@@ -1,26 +1,18 @@
 import React from 'react';
-import {
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-} from 'react-native';
-
-import VideoProcessor from './components/video/VideoProcessor';
+import { StatusBar } from 'react-native';
+import { AuthProvider } from './contexts/AuthContext';
+import { UsageProvider } from './contexts/UsageContext';
+import AppNavigator from './navigation/AppNavigator';
 
 const App: React.FC = () => {
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
-      <VideoProcessor />
-    </SafeAreaView>
+    <AuthProvider>
+      <UsageProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#3498db" />
+        <AppNavigator />
+      </UsageProvider>
+    </AuthProvider>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-});
 
 export default App;

@@ -17,7 +17,7 @@ import json
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from api.auth import auth_required, write_required, create_api_response
+from api.dependencies import auth_required, write_required, create_api_response
 from api.models import TranscriptionRequest, TranscriptionResponse, TranscriptionResult
 from api.models import FileUploadResponse
 

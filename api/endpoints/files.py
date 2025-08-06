@@ -10,7 +10,7 @@ import logging
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 
-from api.auth import auth_required, create_api_response
+from api.dependencies import auth_required, create_api_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/files", tags=["File Management"])

@@ -6,6 +6,7 @@ const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const findFreePort = require('find-free-port');
+const axios = require('axios');
 const NativeIntegrations = require('./native-integrations');
 
 // Initialize electron store for app settings
@@ -92,8 +93,14 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  // Load the React app
-  loadReactApp();
+  // Show loading page initially
+  mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+
+  // Load the React app (don't await here, let it load in background)
+  loadReactApp().catch(error => {
+    log.error('Failed to load React app:', error);
+    showReactError();
+  });
 }
 
 async function findAvailablePort() {
@@ -119,6 +126,15 @@ async function checkExistingStreamlit() {
 
 async function startReactApp() {
   if (isDev) {
+    // Check if React is already running
+    try {
+      await axios.get('http://localhost:3000', { timeout: 2000 });
+      log.info('React server is already running');
+      return;
+    } catch (error) {
+      log.info('React server not running, starting it...');
+    }
+
     // In development, start React dev server
     try {
       const reactPath = path.join(__dirname, 'renderer');
@@ -150,8 +166,7 @@ async function startReactApp() {
         showReactError();
       });
 
-      // Wait for React to start
-      await waitForReact();
+      log.info('React startup initiated');
       
     } catch (error) {
       log.error('Failed to start React app:', error);
@@ -163,60 +178,34 @@ async function startReactApp() {
   }
 }
 
-async function startFastApiBackend() {
+async function checkFastApiBackend() {
   try {
-    // Find the project root (2 levels up from desktop_app/src)
-    const projectRoot = path.join(__dirname, '../../');
-    log.info(`Starting FastAPI backend from ${projectRoot}`);
+    log.info(`Checking existing FastAPI backend on port 8001`);
     
-    // Start FastAPI server using the run_api.py script
-    // Use the venv Python to ensure all dependencies are available
-    const venvPython = path.join(projectRoot, 'venv', 'bin', 'python');
-    fastApiProcess = spawn(venvPython, ['run_api.py'], {
-      cwd: projectRoot,
-      env: {
-        ...process.env,
-        API_HOST: '127.0.0.1',
-        API_PORT: '8000',
-        API_RELOAD: 'true'
-      },
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    fastApiProcess.stdout.on('data', (data) => {
-      log.info(`FastAPI: ${data.toString()}`);
-    });
-
-    fastApiProcess.stderr.on('data', (data) => {
-      log.error(`FastAPI Error: ${data.toString()}`);
-    });
-
-    fastApiProcess.on('close', (code) => {
-      log.info(`FastAPI process closed with code ${code}`);
-    });
-
-    // Wait for FastAPI to start
+    // Wait for FastAPI to be available (don't start it, just check)
     await waitForFastApi();
     
   } catch (error) {
-    log.error('Failed to start FastAPI backend:', error);
+    log.error('FastAPI backend not available on port 8001. Please start the API server first:', error);
     throw error;
   }
 }
 
 function waitForFastApi() {
   return new Promise((resolve, reject) => {
-    const axios = require('axios');
     let attempts = 0;
     const maxAttempts = 30;
 
     const checkFastApi = async () => {
       try {
-        await axios.get('http://localhost:8000/api/health');
-        log.info('FastAPI server is ready');
+        const response = await axios.get('http://127.0.0.1:8001/api/health', {
+          timeout: 5000
+        });
+        log.info('FastAPI server is ready:', response.data);
         resolve();
       } catch (error) {
         attempts++;
+        log.info(`FastAPI connection attempt ${attempts}/${maxAttempts}: ${error.message}`);
         if (attempts < maxAttempts) {
           setTimeout(checkFastApi, 1000);
         } else {
@@ -234,17 +223,29 @@ function waitForReact() {
   return new Promise((resolve, reject) => {
     const axios = require('axios');
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 60; // Increased timeout
 
     const checkReact = async () => {
       try {
-        await axios.get('http://localhost:3000');
-        log.info('React server is ready');
-        resolve();
+        const response = await axios.get('http://localhost:3000', {
+          timeout: 3000,
+          headers: {
+            'User-Agent': 'Electron-App'
+          }
+        });
+        
+        // Check if we get actual HTML content, not just a connection
+        if (response.data && response.data.includes('<title>')) {
+          log.info('React server is ready with content');
+          resolve();
+        } else {
+          throw new Error('React server not fully ready');
+        }
       } catch (error) {
         attempts++;
+        log.info(`Waiting for React... attempt ${attempts}/${maxAttempts}`);
         if (attempts < maxAttempts) {
-          setTimeout(checkReact, 1000);
+          setTimeout(checkReact, 500); // Reduced interval
         } else {
           log.error('React server failed to start within timeout');
           reject(new Error('React server timeout'));
@@ -256,15 +257,21 @@ function waitForReact() {
   });
 }
 
-function loadReactApp() {
+async function loadReactApp() {
   const reactUrl = 'http://localhost:3000';
   
-  mainWindow.loadURL(reactUrl).catch((error) => {
-    log.error('Failed to load React app:', error);
-    
-    // Show error page
-    mainWindow.loadFile(path.join(__dirname, 'error.html'));
-  });
+  // Simple approach: wait a few seconds then load React
+  setTimeout(async () => {
+    try {
+      log.info('Loading React app...');
+      await mainWindow.loadURL(reactUrl);
+      log.info('Successfully loaded React app');
+    } catch (error) {
+      log.error('Failed to load React app:', error);
+      // Show error page
+      mainWindow.loadFile(path.join(__dirname, 'error.html'));
+    }
+  }, 3000); // Wait 3 seconds for React to be ready
 }
 
 function showReactError() {
@@ -462,15 +469,15 @@ function createMenu() {
 // App event handlers
 app.whenReady().then(async () => {
   try {
-    // Start FastAPI backend first
-    log.info('Starting FastAPI backend...');
-    await startFastApiBackend();
+    // Check FastAPI backend is running
+    log.info('Checking FastAPI backend...');
+    await checkFastApiBackend();
     
-    // Then start React app
+    // Start React app (don't wait for it to complete)
     log.info('Starting React frontend...');
-    await startReactApp();
+    startReactApp(); // Don't await this
     
-    // Create main window
+    // Create main window immediately
     createWindow();
     
     // Create application menu

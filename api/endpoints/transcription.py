@@ -17,7 +17,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from api.auth_middleware import get_current_active_user, require_write
-from api.auth import create_api_response, create_error_response
+from api.dependencies import create_api_response, create_error_response
 from api.models import (
     TranscriptionRequest, TranscriptionResponse, TranscriptionResult,
     Entity, SpeakerSegment, FileUploadResponse

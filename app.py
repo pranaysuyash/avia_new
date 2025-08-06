@@ -13,14 +13,26 @@ from typing import Optional, Dict, Any
 from ui_styles_fixed import apply_theme, render_theme_selector
 
 
-# Import configuration and backend modules
+# Import configuration
 from config import Config, validate_environment, print_configuration_status
-import media
-import stt
-import ner_basic
-import ner_advanced
-import tts
-import utils
+
+# Import API wrappers instead of direct backend modules
+try:
+    # Try to use API wrappers if available
+    from api_wrappers import media, stt, ner_basic, ner_advanced, tts, utils
+    USING_API = True
+except ImportError:
+    # Fall back to direct imports if API wrappers not available
+    import media
+    import stt
+    import ner_basic
+    import ner_advanced
+    import tts
+    import utils
+    USING_API = False
+    
+# Import API client for additional functionality
+from api_client import get_api_client
 from errors import (
     handle_error, create_user_error_message, AppError, 
     APIError, FileProcessingError, MediaProcessingError,
@@ -231,6 +243,22 @@ def main():
     render_theme_selector()
     
     st.sidebar.title("Configuration")
+    
+    # Show API/Direct mode status
+    if USING_API:
+        st.sidebar.success("🌐 Using API Mode")
+        try:
+            api_client = get_api_client()
+            health = api_client._make_request("GET", "/api/v1/health")
+            if health.get('status') == 'healthy':
+                st.sidebar.caption("✅ API connection healthy")
+            else:
+                st.sidebar.caption("⚠️ API connection unstable")
+        except:
+            st.sidebar.caption("❌ API connection failed")
+    else:
+        st.sidebar.info("💻 Using Direct Mode")
+        st.sidebar.caption("Running backend modules locally")
     
     # API key status
     api_status = check_api_keys()

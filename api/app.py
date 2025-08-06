@@ -19,7 +19,7 @@ from .teams import teams_router
 from .media import media_router
 from .users import users_router
 from .websocket_routes import websocket_router
-from .middleware import RateLimitMiddleware, LoggingMiddleware
+from .middleware import RateLimitMiddleware, create_rate_limiter
 from .middleware.monitoring_middleware import (
     MonitoringMiddleware,
     ErrorLoggingMiddleware,
@@ -142,8 +142,8 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityLoggingMiddleware)
     
     # Custom middlewares
-    app.add_middleware(RateLimitMiddleware, calls=100, period=60)
-    app.add_middleware(LoggingMiddleware)
+    rate_limiter = create_rate_limiter(redis_url=None)
+    app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
     app.add_middleware(AuditMiddleware)
     app.add_middleware(APIAuthMiddleware)
     
@@ -223,6 +223,42 @@ def create_app() -> FastAPI:
     app.include_router(developers_router, tags=["Developers"])
     app.include_router(structured_analysis_router, prefix="/api", tags=["Structured Analysis"])
     app.include_router(content_insights_router, prefix="/api", tags=["Content Insights"])
+    
+    # Include new feature routers
+    from .endpoints.enterprise_sales import router as sales_router
+    from .endpoints.customer_support import router as support_router
+    from .endpoints.compliance_security import router as compliance_router
+    from .endpoints.api_platform import router as api_platform_router
+    from .endpoints.marketing_growth import router as marketing_router
+    
+    app.include_router(sales_router, tags=["Enterprise Sales"])
+    app.include_router(support_router, tags=["Customer Support"])
+    app.include_router(compliance_router, tags=["Compliance & Security"])
+    app.include_router(api_platform_router, tags=["API Platform"])
+    app.include_router(marketing_router, tags=["Marketing & Growth"])
+    
+    # Include core functionality routers
+    from .endpoints.tts import router as tts_router
+    from .endpoints.audio_enhancement import router as audio_router
+    from .endpoints.ocr import router as ocr_router
+    from .endpoints.collaboration import router as collaboration_router
+    from .endpoints.ner import router as ner_router
+    from .endpoints.ai_customization import router as ai_customization_router
+    from .endpoints.usage import router as usage_router
+    from .endpoints.data_retention import router as data_retention_router
+    
+    app.include_router(tts_router, tags=["Text-to-Speech"])
+    app.include_router(audio_router, tags=["Audio Enhancement"])
+    app.include_router(ocr_router, tags=["OCR"])
+    app.include_router(collaboration_router, tags=["Collaboration"])
+    app.include_router(ner_router, tags=["Named Entity Recognition"])
+    app.include_router(ai_customization_router, tags=["AI Customization"])
+    app.include_router(usage_router, tags=["Usage Tracking"])
+    app.include_router(data_retention_router, tags=["Data Retention"])
+    
+    # Include image annotation router
+    from .endpoints.annotation import router as annotation_router
+    app.include_router(annotation_router, prefix="/api", tags=["Image Annotation"])
     
     # Admin monitoring WebSocket
     from api.websocket.admin_monitoring_ws import admin_monitoring_endpoint

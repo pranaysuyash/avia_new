@@ -134,7 +134,7 @@ export const VideoProcessing: React.FC = () => {
   const downloadOutput = async (jobId: string) => {
     try {
       // Use fetch directly for blob download
-      const response = await fetch(`http://localhost:8000/video-processing/jobs/${jobId}/download`, {
+      const response = await fetch(`http://localhost:8001/video-processing/jobs/${jobId}/download`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`

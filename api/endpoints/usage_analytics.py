@@ -253,7 +253,7 @@ async def update_alert_settings(
 
 @router.post("/summary/{period}")
 async def send_usage_summary(
-    period: str = Query(..., pattern="^(weekly|monthly)$"),
+    period: str,
     current_user: User = Depends(get_current_user)
 ):
     """Send usage summary email"""

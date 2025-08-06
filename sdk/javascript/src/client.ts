@@ -1,328 +1,439 @@
 /**
- * Transcription Platform Client
- * Main client class for interacting with the API
+ * Main client for the Transcription API JavaScript/TypeScript SDK
  */
 
-import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import FormData from 'form-data';
 import {
-  TranscriptionError,
+  Transcript,
+  Team,
+  User,
+  TranscriptionOptions,
+  ClientConfig,
+  PaginationOptions,
+  ListResponse,
+  APIKey,
+  UsageStats,
+  WebhookEvent
+} from './types';
+import {
+  TranscriptionAPIError,
   AuthenticationError,
   RateLimitError,
   ValidationError,
   NotFoundError,
   ServerError,
+  TimeoutError,
+  ConnectionError
 } from './exceptions';
-import {
-  Transcript,
-  Team,
-  Usage,
-  Webhook,
-  TranscriptCreateOptions,
-  TranscriptListOptions,
-  TranscriptExportOptions,
-  TranscriptExportFormat,
-  WebhookCreateOptions,
-  PaginatedResponse,
-  ClientOptions,
-} from './types';
+import { validateApiKey, isValidFileType } from './utils';
 
+/**
+ * Main client for interacting with the Transcription API
+ * 
+ * @example
+ * ```typescript
+ * const client = new TranscriptionClient({ apiKey: 'your_api_key' });
+ * 
+ * // Upload and transcribe a file
+ * const file = new File([audioBlob], 'recording.mp3');
+ * const transcript = await client.transcribeFile(file, { title: 'My Recording' });
+ * 
+ * // Wait for completion
+ * const completed = await client.waitForCompletion(transcript.id);
+ * console.log(completed.text);
+ * ```
+ */
 export class TranscriptionClient {
   private client: AxiosInstance;
   private apiKey: string;
+  private baseUrl: string;
 
-  constructor(apiKey: string, options: ClientOptions = {}) {
-    if (!apiKey) {
-      throw new Error('API key is required');
+  constructor(config: ClientConfig) {
+    this.apiKey = config.apiKey || process.env.TRANSCRIPTION_API_KEY || '';
+    
+    if (!this.apiKey) {
+      throw new AuthenticationError(
+        'API key is required. Provide it in config or set TRANSCRIPTION_API_KEY environment variable.'
+      );
     }
 
-    this.apiKey = apiKey;
+    if (!validateApiKey(this.apiKey)) {
+      throw new AuthenticationError('Invalid API key format.');
+    }
 
-    // Create axios instance with defaults
+    this.baseUrl = config.baseUrl || 'https://api.transcriptionplatform.com/v1';
+
+    // Create axios instance
     this.client = axios.create({
-      baseURL: options.baseURL || 'https://api.example.com/v1',
-      timeout: options.timeout || 30000,
+      baseURL: this.baseUrl,
+      timeout: config.timeout || 30000,
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'User-Agent': `transcription-platform-js/1.0.0`,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+        'User-Agent': `transcription-api-js/1.0.0`,
+        'Accept': 'application/json'
+      }
+    });
+
+    // Setup request/response interceptors
+    this.setupInterceptors();
+  }
+
+  private setupInterceptors(): void {
+    // Request interceptor
+    this.client.interceptors.request.use(
+      (config) => {
+        // Add timestamp to prevent caching
+        if (config.params) {
+          config.params._t = Date.now();
+        } else {
+          config.params = { _t: Date.now() };
+        }
+        return config;
       },
-    });
-
-    // Add retry interceptor
-    this.setupRetryInterceptor(options.maxRetries || 3);
-
-    // Add error interceptor
-    this.setupErrorInterceptor();
-  }
-
-  private setupRetryInterceptor(maxRetries: number): void {
-    let retryCount = 0;
-
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const config = error.config;
-
-        // Only retry on specific status codes
-        if (!config || retryCount >= maxRetries) {
-          return Promise.reject(error);
-        }
-
-        const shouldRetry = 
-          error.response?.status === 429 || // Rate limit
-          error.response?.status >= 500 || // Server errors
-          error.code === 'ECONNABORTED' || // Timeout
-          error.code === 'ENOTFOUND'; // DNS issues
-
-        if (!shouldRetry) {
-          return Promise.reject(error);
-        }
-
-        retryCount++;
-
-        // Calculate delay
-        let delay = 1000 * Math.pow(2, retryCount); // Exponential backoff
-
-        // Use Retry-After header if available
-        if (error.response?.status === 429) {
-          const retryAfter = error.response.headers['retry-after'];
-          if (retryAfter) {
-            delay = parseInt(retryAfter) * 1000;
-          }
-        }
-
-        await new Promise(resolve => setTimeout(resolve, delay));
-
-        return this.client(config);
-      }
+      (error) => Promise.reject(error)
     );
-  }
 
-  private setupErrorInterceptor(): void {
+    // Response interceptor
     this.client.interceptors.response.use(
-      (response) => response,
+      (response: AxiosResponse) => response,
       (error: AxiosError) => {
-        if (!error.response) {
-          throw new TranscriptionError('Network error occurred');
-        }
-
-        const status = error.response.status;
-        const data = error.response.data as any;
-        const message = data?.message || error.message;
-
-        switch (status) {
-          case 401:
-            throw new AuthenticationError(message);
-          case 404:
-            throw new NotFoundError(message);
-          case 400:
-          case 422:
-            throw new ValidationError(message);
-          case 429:
-            const retryAfter = parseInt(error.response.headers['retry-after'] || '60');
-            const resetTime = parseInt(error.response.headers['x-ratelimit-reset'] || '0');
-            throw new RateLimitError(message, retryAfter, resetTime);
-          default:
-            if (status >= 500) {
-              throw new ServerError(message);
-            }
-            throw new TranscriptionError(message);
-        }
+        return Promise.reject(this.handleError(error));
       }
     );
   }
 
-  // Transcript methods
+  private handleError(error: AxiosError): TranscriptionAPIError {
+    if (error.code === 'ECONNABORTED') {
+      return new TimeoutError('Request timed out');
+    }
 
-  async createTranscript(options: TranscriptCreateOptions): Promise<Transcript> {
-    if ('audioFile' in options && options.audioFile) {
-      // File upload
-      const formData = new FormData();
-      formData.append('file', options.audioFile);
-      formData.append('language', options.language || 'en');
-      formData.append('enable_diarization', String(options.enableDiarization || false));
-      
-      if (options.maxSpeakers) {
-        formData.append('max_speakers', String(options.maxSpeakers));
-      }
-      if (options.webhookUrl) {
-        formData.append('webhook_url', options.webhookUrl);
-      }
-      if (options.metadata) {
-        formData.append('metadata', JSON.stringify(options.metadata));
-      }
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      return new ConnectionError('Connection failed');
+    }
 
-      const response = await this.client.post<Transcript>('/transcripts/upload', formData, {
-        headers: {
-          ...formData.getHeaders(),
-        },
-      });
+    if (!error.response) {
+      return new TranscriptionAPIError('Network error occurred');
+    }
 
-      return response.data;
-    } else if ('audioUrl' in options && options.audioUrl) {
-      // URL submission
-      const response = await this.client.post<Transcript>('/transcripts', {
-        audio_url: options.audioUrl,
-        language: options.language || 'en',
-        enable_diarization: options.enableDiarization || false,
-        max_speakers: options.maxSpeakers,
-        webhook_url: options.webhookUrl,
-        metadata: options.metadata,
-      });
+    const { status, data } = error.response;
+    const message = (data as any)?.detail || error.message;
 
-      return response.data;
-    } else {
-      throw new ValidationError('Either audioUrl or audioFile must be provided');
+    switch (status) {
+      case 401:
+        return new AuthenticationError('Invalid API key or authentication failed');
+      case 400:
+        return new ValidationError(message);
+      case 404:
+        return new NotFoundError('Resource not found');
+      case 429:
+        const retryAfter = error.response.headers['retry-after'];
+        return new RateLimitError(
+          `Rate limit exceeded. Retry after ${retryAfter || 60} seconds.`,
+          retryAfter ? parseInt(retryAfter) : undefined
+        );
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return new ServerError(`Server error: ${status}`);
+      default:
+        return new TranscriptionAPIError(`HTTP ${status}: ${message}`);
     }
   }
 
-  async getTranscript(transcriptId: string): Promise<Transcript> {
-    const response = await this.client.get<Transcript>(`/transcripts/${transcriptId}`);
-    return response.data;
-  }
+  // Transcription methods
 
-  async listTranscripts(options: TranscriptListOptions = {}): Promise<PaginatedResponse<Transcript>> {
-    const params: any = {
-      page: options.page || 1,
-      per_page: Math.min(options.perPage || 20, 100),
-    };
-
-    if (options.status) params.status = options.status;
-    if (options.language) params.language = options.language;
-    if (options.teamId) params.team_id = options.teamId;
-
-    const response = await this.client.get<PaginatedResponse<Transcript>>('/transcripts', { params });
-    return response.data;
-  }
-
-  async updateTranscript(
-    transcriptId: string,
-    updates: { title?: string; metadata?: Record<string, any> }
+  /**
+   * Upload and transcribe an audio/video file
+   */
+  async transcribeFile(
+    file: File | Blob,
+    options: {
+      title?: string;
+      transcriptionOptions?: TranscriptionOptions;
+    } = {}
   ): Promise<Transcript> {
-    const response = await this.client.put<Transcript>(`/transcripts/${transcriptId}`, updates);
-    return response.data;
-  }
+    const { title, transcriptionOptions = {} } = options;
 
-  async deleteTranscript(transcriptId: string): Promise<{ message: string }> {
-    const response = await this.client.delete<{ message: string }>(`/transcripts/${transcriptId}`);
-    return response.data;
-  }
-
-  async exportTranscript(
-    transcriptId: string,
-    options: TranscriptExportOptions = {}
-  ): Promise<string | Record<string, any>> {
-    const params: any = {
-      format: options.format || 'txt',
-      include_timestamps: options.includeTimestamps || false,
-      include_speakers: options.includeSpeakers !== false,
-    };
-
-    const response = await this.client.get(`/transcripts/${transcriptId}/export`, { params });
-
-    if (options.format === 'json') {
-      return response.data;
-    } else {
-      return response.data.content || '';
+    // Validate file type
+    if (file instanceof File && !isValidFileType(file.type)) {
+      throw new ValidationError(`Unsupported file type: ${file.type}`);
     }
-  }
 
-  // Team methods
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', file, title || 'audio_file');
+    formData.append('title', title || 'Untitled');
+    formData.append('language', transcriptionOptions.language || 'auto');
+    formData.append('method', transcriptionOptions.method || 'basic');
+    
+    if (transcriptionOptions.teamId) {
+      formData.append('team_id', transcriptionOptions.teamId.toString());
+    }
 
-  async listTeams(): Promise<Team[]> {
-    const response = await this.client.get<{ data: Team[] }>('/teams');
-    return response.data.data;
-  }
-
-  async getTeam(teamId: number): Promise<Team> {
-    const response = await this.client.get<Team>(`/teams/${teamId}`);
-    return response.data;
-  }
-
-  async createTeam(name: string, description?: string): Promise<Team> {
-    const response = await this.client.post<Team>('/teams', { name, description });
-    return response.data;
-  }
-
-  // Analytics methods
-
-  async getUsage(options: {
-    startDate?: string;
-    endDate?: string;
-    usageType?: string;
-  } = {}): Promise<Usage> {
-    const params: any = {};
-    if (options.startDate) params.start_date = options.startDate;
-    if (options.endDate) params.end_date = options.endDate;
-    if (options.usageType) params.usage_type = options.usageType;
-
-    const response = await this.client.get<Usage>('/analytics/usage', { params });
-    return response.data;
-  }
-
-  // Webhook methods
-
-  async listWebhooks(): Promise<Webhook[]> {
-    const response = await this.client.get<Webhook[]>('/developers/webhooks');
-    return response.data;
-  }
-
-  async createWebhook(options: WebhookCreateOptions): Promise<Webhook> {
-    const response = await this.client.post<Webhook>('/developers/webhooks', {
-      name: options.name,
-      url: options.url,
-      events: options.events,
-      secret: options.secret,
+    const response = await this.client.post('/transcriptions/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     });
+
     return response.data;
-  }
-
-  async deleteWebhook(webhookId: number): Promise<{ message: string }> {
-    const response = await this.client.delete<{ message: string }>(`/developers/webhooks/${webhookId}`);
-    return response.data;
-  }
-
-  // Utility methods
-
-  async getSupportedLanguages(): Promise<Array<{ code: string; name: string }>> {
-    const response = await this.client.get<{ languages: Array<{ code: string; name: string }> }>('/languages');
-    return response.data.languages;
   }
 
   /**
-   * Wait for a transcript to complete
-   * @param transcriptId Transcript ID
-   * @param options Polling options
-   * @returns Completed transcript
+   * Get a transcript by ID
+   */
+  async getTranscript(transcriptId: string): Promise<Transcript> {
+    const response = await this.client.get(`/transcriptions/${transcriptId}`);
+    return response.data;
+  }
+
+  /**
+   * List user's transcripts
+   */
+  async listTranscripts(options: PaginationOptions & {
+    teamId?: number;
+  } = {}): Promise<ListResponse<Transcript>> {
+    const params: any = {
+      skip: options.skip || 0,
+      limit: options.limit || 20
+    };
+
+    if (options.teamId) {
+      params.team_id = options.teamId;
+    }
+
+    const response = await this.client.get('/transcriptions', { params });
+    
+    return {
+      items: response.data,
+      total: response.headers['x-total-count'] ? parseInt(response.headers['x-total-count']) : response.data.length,
+      skip: params.skip,
+      limit: params.limit
+    };
+  }
+
+  /**
+   * Delete a transcript
+   */
+  async deleteTranscript(transcriptId: string): Promise<void> {
+    await this.client.delete(`/transcriptions/${transcriptId}`);
+  }
+
+  /**
+   * Wait for a transcript to complete processing
    */
   async waitForCompletion(
     transcriptId: string,
     options: {
+      timeout?: number;
       pollInterval?: number;
-      maxAttempts?: number;
-      onProgress?: (transcript: Transcript) => void;
     } = {}
   ): Promise<Transcript> {
-    const pollInterval = options.pollInterval || 5000;
-    const maxAttempts = options.maxAttempts || 360; // 30 minutes with 5s interval
-    let attempts = 0;
+    const { timeout = 300000, pollInterval = 5000 } = options; // 5 minutes default timeout
+    const startTime = Date.now();
 
-    while (attempts < maxAttempts) {
+    while (Date.now() - startTime < timeout) {
       const transcript = await this.getTranscript(transcriptId);
 
-      if (options.onProgress) {
-        options.onProgress(transcript);
-      }
-
-      if (transcript.status === 'completed' || transcript.status === 'failed') {
+      if (transcript.status === 'completed') {
         return transcript;
+      } else if (transcript.status === 'failed') {
+        throw new TranscriptionAPIError('Transcription failed');
       }
 
-      attempts++;
+      // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
 
-    throw new TranscriptionError('Transcript processing timed out');
+    throw new TimeoutError('Transcription timed out');
+  }
+
+  // Team methods
+
+  /**
+   * Create a new team
+   */
+  async createTeam(name: string, description?: string): Promise<Team> {
+    const data: any = { name };
+    if (description) {
+      data.description = description;
+    }
+
+    const response = await this.client.post('/teams', data);
+    return response.data;
+  }
+
+  /**
+   * List user's teams
+   */
+  async listTeams(): Promise<Team[]> {
+    const response = await this.client.get('/teams');
+    return response.data;
+  }
+
+  /**
+   * Get team details
+   */
+  async getTeam(teamId: number): Promise<Team> {
+    const response = await this.client.get(`/teams/${teamId}`);
+    return response.data;
+  }
+
+  /**
+   * Invite a member to a team
+   */
+  async inviteTeamMember(
+    teamId: number,
+    email: string,
+    role: string = 'member'
+  ): Promise<{ message: string; user_id: number; email: string; role: string }> {
+    const response = await this.client.post(`/teams/${teamId}/members`, {
+      email,
+      role
+    });
+    return response.data;
+  }
+
+  /**
+   * Remove a member from a team
+   */
+  async removeTeamMember(teamId: number, userId: number): Promise<void> {
+    await this.client.delete(`/teams/${teamId}/members/${userId}`);
+  }
+
+  // User methods
+
+  /**
+   * Get current user profile
+   */
+  async getProfile(): Promise<User> {
+    const response = await this.client.get('/users/profile');
+    return response.data;
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(name?: string): Promise<User> {
+    const data: any = {};
+    if (name) {
+      data.name = name;
+    }
+
+    const response = await this.client.put('/users/profile', data);
+    return response.data;
+  }
+
+  // API Key methods
+
+  /**
+   * Create a new API key
+   */
+  async createApiKey(
+    name: string,
+    expiresInDays?: number
+  ): Promise<APIKey & { key: string }> {
+    const data: any = { name };
+    if (expiresInDays) {
+      data.expires_in_days = expiresInDays;
+    }
+
+    const response = await this.client.post('/users/api-keys', data);
+    return response.data;
+  }
+
+  /**
+   * List user's API keys
+   */
+  async listApiKeys(): Promise<APIKey[]> {
+    const response = await this.client.get('/users/api-keys');
+    return response.data;
+  }
+
+  /**
+   * Delete an API key
+   */
+  async deleteApiKey(keyId: number): Promise<void> {
+    await this.client.delete(`/users/api-keys/${keyId}`);
+  }
+
+  // Utility methods
+
+  /**
+   * Check API health
+   */
+  async healthCheck(): Promise<{
+    status: string;
+    timestamp: string;
+    version: string;
+    environment: string;
+  }> {
+    const response = await this.client.get('/health');
+    return response.data;
+  }
+
+  /**
+   * Get usage statistics
+   */
+  async getUsageStats(): Promise<UsageStats> {
+    const response = await this.client.get('/usage');
+    return response.data;
+  }
+
+  /**
+   * Search transcripts
+   */
+  async searchTranscripts(
+    query: string,
+    options: PaginationOptions = {}
+  ): Promise<ListResponse<Transcript>> {
+    const params = {
+      q: query,
+      skip: options.skip || 0,
+      limit: options.limit || 20
+    };
+
+    const response = await this.client.get('/search/transcripts', { params });
+    
+    return {
+      items: response.data.results || response.data,
+      total: response.data.total || response.data.length,
+      skip: params.skip,
+      limit: params.limit
+    };
+  }
+
+  /**
+   * Get presigned upload URL for direct file upload
+   */
+  async getPresignedUploadUrl(
+    filename: string,
+    contentType?: string
+  ): Promise<{
+    uploadUrl: string;
+    objectKey: string;
+    expiresIn: number;
+  }> {
+    const params: any = { filename };
+    if (contentType) {
+      params.content_type = contentType;
+    }
+
+    const response = await this.client.get('/storage/presigned-upload', { params });
+    return response.data;
+  }
+
+  /**
+   * Get download URL for a transcription file
+   */
+  async getDownloadUrl(transcriptionId: string): Promise<{
+    downloadUrl: string;
+    filename: string;
+    expiresIn: number;
+  }> {
+    const response = await this.client.get(`/storage/download/${transcriptionId}`);
+    return response.data;
   }
 }

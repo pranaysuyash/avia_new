@@ -57,7 +57,7 @@ class TranscriptListResponse(BaseModel):
 
 
 class ShareRequest(BaseModel):
-    permission: str = Field(..., regex="^(view|edit|admin)$")
+    permission: str = Field(..., pattern="^(view|edit|admin)$")
     expires_at: Optional[datetime] = None
     password: Optional[str] = None
     max_views: Optional[int] = None

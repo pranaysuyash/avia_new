@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, List
 import psutil
 import os
 
-from api.auth_middleware import get_current_active_user, require_admin
+from api.auth_middleware import get_current_active_user, get_admin_user
 from monitoring.metrics_collector import metrics_collector, app_metrics
 from monitoring.audit_logger import audit_logger, AuditEventType
 from monitoring.logger_config import get_logger
@@ -56,7 +56,7 @@ async def health_check():
     }
 
 
-@router.get("/health/detailed", dependencies=[Depends(require_admin)])
+@router.get("/health/detailed", dependencies=[Depends(get_admin_user)])
 async def detailed_health_check(current_user: dict = Depends(get_current_active_user)):
     """
     Detailed health check with comprehensive system information
@@ -199,7 +199,7 @@ async def get_metric_history(
     }
 
 
-@router.get("/logs/audit", dependencies=[Depends(require_admin)])
+@router.get("/logs/audit", dependencies=[Depends(get_admin_user)])
 async def get_audit_logs(
     user_id: Optional[int] = None,
     event_type: Optional[str] = None,
@@ -276,7 +276,7 @@ async def get_audit_logs(
     }
 
 
-@router.get("/logs/compliance-report", dependencies=[Depends(require_admin)])
+@router.get("/logs/compliance-report", dependencies=[Depends(get_admin_user)])
 async def generate_compliance_report(
     start_date: datetime,
     end_date: datetime,
@@ -309,7 +309,7 @@ async def generate_compliance_report(
     return report
 
 
-@router.get("/errors/recent", dependencies=[Depends(require_admin)])
+@router.get("/errors/recent", dependencies=[Depends(get_admin_user)])
 async def get_recent_errors(current_user: dict = Depends(get_current_active_user)):
     """
     Get recent application errors
@@ -329,7 +329,7 @@ async def get_recent_errors(current_user: dict = Depends(get_current_active_user
     return error_stats
 
 
-@router.get("/performance/stats", dependencies=[Depends(require_admin)])
+@router.get("/performance/stats", dependencies=[Depends(get_admin_user)])
 async def get_performance_stats(current_user: dict = Depends(get_current_active_user)):
     """
     Get application performance statistics

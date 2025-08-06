@@ -47,7 +47,7 @@ class ApiService {
   
   constructor() {
     // Connect to the FastAPI backend that has real REST endpoints
-    this.baseUrl = 'http://localhost:8000'; // Our FastAPI backend
+    this.baseUrl = 'http://localhost:8001'; // Our FastAPI backend
   }
 
   // Check if backend is healthy

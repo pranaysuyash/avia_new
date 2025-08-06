@@ -2,217 +2,178 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
+  StyleSheet,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
-  ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { Input, Button } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles from './styles';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
-interface LoginProps {
-  onSuccess?: () => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onSuccess }) => {
-  const navigation = useNavigation();
-  
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const validateForm = () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
-      return false;
-    }
-    
-    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return false;
-    }
-    
-    if (!password) {
-      Alert.alert('Error', 'Please enter your password');
-      return false;
-    }
-    
-    return true;
-  };
+  
+  const { login } = useAuth();
+  const navigation = useNavigation();
 
   const handleLogin = async () => {
-    if (!validateForm()) return;
-    
-    setIsLoading(true);
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: email,
-          password: password,
-          remember_me: rememberMe,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Store tokens
-        await AsyncStorage.setItem('access_token', data.access_token);
-        if (data.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', data.refresh_token);
-        }
-        
-        // Store user data
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
-        
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          navigation.navigate('Dashboard' as never);
-        }
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Login Failed', errorData.detail || 'Invalid email or password');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to connect to server. Please try again.');
-      console.error('Login error:', error);
+      setLoading(true);
+      await login(email, password);
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-
-  const handleForgotPassword = () => {
-    navigation.navigate('ForgotPassword' as never);
-  };
-
-  const handleRegister = () => {
-    navigation.navigate('Register' as never);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
+    <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
     >
-      <ScrollView
+      <ScrollView 
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
-          <Icon name="mic" size={60} color="#007AFF" />
-          <Text style={styles.appName}>Video NER</Text>
+          <Icon name="transcribe" size={80} color="#3498db" />
+          <Text style={styles.appName}>NER Platform</Text>
+          <Text style={styles.tagline}>Advanced Video Transcription & Analytics</Text>
         </View>
 
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to your account</Text>
+          <Input
+            placeholder="Email"
+            leftIcon={<Icon name="email" size={20} color="#95a5a6" />}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            containerStyle={styles.inputContainer}
+            inputStyle={styles.input}
+          />
 
-          <View style={styles.inputContainer}>
-            <Icon name="email" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Icon name="lock" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoComplete="password"
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.passwordToggle}
-            >
-              <Icon
-                name={showPassword ? 'visibility-off' : 'visibility'}
-                size={20}
-                color="#666"
+          <Input
+            placeholder="Password"
+            leftIcon={<Icon name="lock" size={20} color="#95a5a6" />}
+            rightIcon={
+              <Icon 
+                name={showPassword ? 'visibility-off' : 'visibility'} 
+                size={20} 
+                color="#95a5a6"
+                onPress={() => setShowPassword(!showPassword)}
               />
-            </TouchableOpacity>
-          </View>
+            }
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            containerStyle={styles.inputContainer}
+            inputStyle={styles.input}
+          />
 
-          <View style={styles.optionsRow}>
-            <TouchableOpacity
-              style={styles.rememberMe}
-              onPress={() => setRememberMe(!rememberMe)}
-            >
-              <Icon
-                name={rememberMe ? 'check-box' : 'check-box-outline-blank'}
-                size={20}
-                color={rememberMe ? '#007AFF' : '#666'}
-              />
-              <Text style={styles.rememberMeText}>Remember me</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text style={styles.forgotPassword}>Forgot password?</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+          <Button
+            title="Login"
+            loading={loading}
+            buttonStyle={styles.loginButton}
+            titleStyle={styles.loginButtonText}
             onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
+          />
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity style={styles.socialButton}>
-            <Icon name="g-translate" size={20} color="#DB4437" />
-            <Text style={styles.socialButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.socialButton}>
-            <Icon name="apple" size={20} color="#000000" />
-            <Text style={styles.socialButtonText}>Continue with Apple</Text>
-          </TouchableOpacity>
-
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={handleRegister}>
-              <Text style={styles.registerLink}>Sign Up</Text>
-            </TouchableOpacity>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text 
+              style={styles.signupLink}
+              onPress={() => navigation.navigate('Register' as never)}
+            >
+              Sign Up
+            </Text>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 50,
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginTop: 15,
+  },
+  tagline: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginTop: 5,
+  },
+  formContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  input: {
+    fontSize: 16,
+  },
+  loginButton: {
+    backgroundColor: '#3498db',
+    borderRadius: 25,
+    paddingVertical: 15,
+    marginTop: 10,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  footerText: {
+    color: '#7f8c8d',
+    fontSize: 14,
+  },
+  signupLink: {
+    color: '#3498db',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
 
 export default Login;

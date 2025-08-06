@@ -41,7 +41,7 @@ export interface ProcessingStatus {
 }
 
 class TranscriptionAPI {
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = 'http://localhost:8001';
   
   async uploadAndTranscribe(request: TranscriptionRequest): Promise<string> {
     const formData = new FormData();

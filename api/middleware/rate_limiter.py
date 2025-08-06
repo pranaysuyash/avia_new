@@ -5,6 +5,7 @@ Implements token bucket algorithm with Redis support for distributed rate limiti
 
 import time
 import json
+import os
 from typing import Dict, Optional, Tuple, Union
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -118,31 +119,62 @@ class RateLimiter:
         self.local_buckets: Dict[str, TokenBucket] = {}
         self.local_counters: Dict[str, Dict[str, int]] = defaultdict(dict)
         
+        # Check if we're in development mode
+        is_development = os.getenv("ENVIRONMENT", "development") == "development"
+        
         # Rate limit configurations by endpoint
-        self.endpoint_limits = {
-            # High frequency endpoints
-            "/api/health": {"limit": 1000, "window": 60},
-            "/api/monitoring/metrics": {"limit": 100, "window": 60},
-            
-            # Authentication endpoints
-            "/api/auth/login": {"limit": 10, "window": 300},  # 10 per 5 minutes
-            "/api/auth/register": {"limit": 5, "window": 3600},  # 5 per hour
-            "/api/auth/refresh": {"limit": 20, "window": 300},
-            
-            # Transcription endpoints
-            "/api/transcription/upload": {"limit": 50, "window": 3600},  # 50 per hour
-            "/api/transcription/process": {"limit": 20, "window": 3600},  # 20 per hour
-            
-            # Search and analytics
-            "/api/search": {"limit": 100, "window": 300},  # 100 per 5 minutes
-            "/api/analytics": {"limit": 50, "window": 300},
-            
-            # Export endpoints
-            "/api/export": {"limit": 30, "window": 3600},  # 30 per hour
-            
-            # WebSocket endpoints
-            "/ws": {"limit": 10, "window": 60},  # 10 connections per minute
-        }
+        if is_development:
+            # Very lenient limits for development
+            self.endpoint_limits = {
+                # High frequency endpoints
+                "/api/health": {"limit": 10000, "window": 60},
+                "/api/monitoring/metrics": {"limit": 1000, "window": 60},
+                
+                # Authentication endpoints - much more lenient for dev
+                "/api/auth/login": {"limit": 100, "window": 60},  # 100 per minute
+                "/api/auth/register": {"limit": 50, "window": 60},  # 50 per minute 
+                "/api/auth/refresh": {"limit": 100, "window": 60},
+                
+                # Transcription endpoints
+                "/api/transcription/upload": {"limit": 500, "window": 3600},  
+                "/api/transcription/process": {"limit": 200, "window": 3600},  
+                
+                # Search and analytics
+                "/api/search": {"limit": 1000, "window": 300},  
+                "/api/analytics": {"limit": 500, "window": 300},
+                
+                # Export endpoints
+                "/api/export": {"limit": 300, "window": 3600},  
+                
+                # WebSocket endpoints
+                "/ws": {"limit": 100, "window": 60},  
+            }
+        else:
+            # Production limits
+            self.endpoint_limits = {
+                # High frequency endpoints
+                "/api/health": {"limit": 1000, "window": 60},
+                "/api/monitoring/metrics": {"limit": 100, "window": 60},
+                
+                # Authentication endpoints
+                "/api/auth/login": {"limit": 10, "window": 300},  # 10 per 5 minutes
+                "/api/auth/register": {"limit": 5, "window": 3600},  # 5 per hour
+                "/api/auth/refresh": {"limit": 20, "window": 300},
+                
+                # Transcription endpoints
+                "/api/transcription/upload": {"limit": 50, "window": 3600},  # 50 per hour
+                "/api/transcription/process": {"limit": 20, "window": 3600},  # 20 per hour
+                
+                # Search and analytics
+                "/api/search": {"limit": 100, "window": 300},  # 100 per 5 minutes
+                "/api/analytics": {"limit": 50, "window": 300},
+                
+                # Export endpoints
+                "/api/export": {"limit": 30, "window": 3600},  # 30 per hour
+                
+                # WebSocket endpoints
+                "/ws": {"limit": 10, "window": 60},  # 10 connections per minute
+            }
         
         # User tier limits (can be overridden per user)
         self.tier_limits = {

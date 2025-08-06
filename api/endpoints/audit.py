@@ -15,7 +15,7 @@ import io
 from database.models import User
 from database.connection import get_db
 from api.auth_routes_enhanced import get_current_user
-from auth.rbac_service import require_role
+from api.dependencies import require_role
 from services.audit_logging_service import audit_service, AuditEventType
 from pydantic import BaseModel, Field
 
