@@ -1,0 +1,67 @@
+{
+  "timestamp": "2025-08-07T15:23:26.812834",
+  "tests": {
+    "api_server": {
+      "success_rate": 0.0,
+      "tests": [
+        [
+          "API Documentation",
+          "FAILED",
+          "HTTPConnectionPool(host='localhost', port=8001): Read timed out. (read timeout=10)"
+        ],
+        [
+          "I18n Languages",
+          "FAILED",
+          "HTTPConnectionPool(host='localhost', port=8001): Read timed out. (read timeout=10)"
+        ],
+        [
+          "Transcription Formats",
+          "FAILED",
+          "HTTPConnectionPool(host='localhost', port=8001): Read timed out. (read timeout=10)"
+        ]
+      ],
+      "status": "FAILED"
+    },
+    "streamlit_app": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "App Accessibility",
+          "PASSED",
+          "App accessible and contains expected content"
+        ],
+        [
+          "App Health",
+          "PASSED",
+          "Streamlit responding to requests"
+        ]
+      ],
+      "status": "PASSED"
+    },
+    "i18n_integration": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "I18n UI Module",
+          "PASSED",
+          "Module structure correct"
+        ],
+        [
+          "I18n Service Features",
+          "PASSED",
+          "3/4 features found"
+        ],
+        [
+          "Cross-platform Components",
+          "PASSED",
+          "All 3 platforms have i18n components"
+        ]
+      ],
+      "status": "PASSED"
+    }
+  },
+  "overall_status": "GOOD",
+  "overall_success_rate": 66.66666666666666,
+  "passed_tests": 2,
+  "total_tests": 3
+}

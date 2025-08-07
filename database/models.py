@@ -60,6 +60,7 @@ class User(Base):
     team_memberships = relationship("TeamMember", foreign_keys="TeamMember.user_id", back_populates="user", cascade="all, delete-orphan")
     owned_teams = relationship("Team", back_populates="owner")
     api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
+    upload_sessions = relationship("UploadSession", back_populates="user", cascade="all, delete-orphan")
 
 class Session(Base):
     """User session management"""

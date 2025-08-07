@@ -129,10 +129,9 @@ class ClickableTranscript:
                     help="Automatically highlight current segment during playback"
                 )
             
-            # Audio player
-            with open(audio_file_path, "rb") as audio_file:
-                audio_bytes = audio_file.read()
-                st.audio(audio_bytes, format="audio/wav", start_time=st.session_state.audio_current_time)
+            # Enhanced audio player with jump capability
+            from enhanced_audio_player import render_enhanced_audio_player
+            render_enhanced_audio_player(audio_file_path, height=120, key="transcript_audio_player")
             
             # Auto-update current segment based on playback time
             if st.session_state.auto_highlight:
@@ -329,9 +328,10 @@ class ClickableTranscript:
                     help="Click to jump to this segment",
                     type="primary" if is_current_playback else "secondary"
                 ):
+                    from enhanced_audio_player import jump_to_audio_time
                     st.session_state.audio_current_time = start_time
                     st.session_state.selected_segment = segment['id']
-                    st.rerun()
+                    jump_to_audio_time(start_time, auto_play=True)
             
             with col2:
                 # Segment metadata

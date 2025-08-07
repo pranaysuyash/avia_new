@@ -180,13 +180,13 @@ async function startReactApp() {
 
 async function checkFastApiBackend() {
   try {
-    log.info(`Checking existing FastAPI backend on port 8001`);
+    log.info(`Checking existing FastAPI backend on port 8000`);
     
     // Wait for FastAPI to be available (don't start it, just check)
     await waitForFastApi();
     
   } catch (error) {
-    log.error('FastAPI backend not available on port 8001. Please start the API server first:', error);
+    log.error('FastAPI backend not available on port 8000. Please start the API server first:', error);
     throw error;
   }
 }
@@ -198,7 +198,7 @@ function waitForFastApi() {
 
     const checkFastApi = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8001/api/health', {
+        const response = await axios.get('http://127.0.0.1:8000/api/health', {
           timeout: 5000
         });
         log.info('FastAPI server is ready:', response.data);

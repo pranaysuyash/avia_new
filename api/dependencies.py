@@ -74,3 +74,21 @@ def require_roles(roles: list):
         wrapper.__doc__ = func.__doc__
         return wrapper
     return decorator
+
+def require_quota(quota_type: str = "api_calls"):
+    """Check if user has sufficient quota"""
+    def decorator(func):
+        async def wrapper(*args, current_user: Dict[str, Any] = Depends(get_current_user), **kwargs):
+            # Simple quota check - in production this would check actual usage
+            user_quota = current_user.get("quota", {})
+            if quota_type in user_quota and user_quota[quota_type] <= 0:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Insufficient {quota_type} quota"
+                )
+            return await func(*args, current_user=current_user, **kwargs)
+        # Copy function attributes for FastAPI
+        wrapper.__name__ = func.__name__
+        wrapper.__doc__ = func.__doc__
+        return wrapper
+    return decorator

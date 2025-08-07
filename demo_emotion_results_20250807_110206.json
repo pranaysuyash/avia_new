@@ -1,0 +1,429 @@
+{
+  "audio_path": "demo_complete_audio.wav",
+  "transcript": "\n        Hello everyone, welcome to today's meeting. I'm excited to share our progress on the new initiative.\n        We've made significant strides over the past few weeks, and I think you'll be impressed with what we've accomplished.\n        \n        However, I must admit that the journey hasn't been without its challenges. We've faced some unexpected obstacles\n        that have caused me quite a bit of stress. The tight deadlines are really putting pressure on the entire team.\n        \n        But you know what? I believe in our ability to overcome these challenges. We're a strong team, and when we work together,\n        there's nothing we can't achieve. I'm feeling more optimistic about our chances of success.\n        \n        That said, I am getting a bit tired from all the late nights we've been pulling. I think we all need to make sure\n        we're taking care of ourselves and not burning out. Our health and well-being are just as important as meeting our goals.\n        \n        In conclusion, while there are challenges ahead, I'm confident that we can navigate them successfully.\n        Let's stay focused, support each other, and make this project a great success!\n        ",
+  "analysis_timestamp": "2025-08-07T11:01:15.832622",
+  "emotions": [
+    {
+      "timestamp": 0.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 3.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 6.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 9.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 12.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 15.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 18.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 21.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 24.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 27.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 30.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 33.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 36.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 39.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    },
+    {
+      "timestamp": 42.0,
+      "duration": 3.0,
+      "primary_emotion": "neutral",
+      "emotion_scores": {
+        "neutral": 1.0
+      },
+      "confidence": 0.5,
+      "arousal": 0.5,
+      "valence": 0.5,
+      "intensity": 0.5
+    }
+  ],
+  "sentiments": [
+    {
+      "timestamp": 0.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.3525,
+      "subjectivity": 0.825,
+      "confidence": 0.5,
+      "text_sentiment": 0.5875,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 3.0,
+      "duration": 3.0,
+      "sentiment": "neutral",
+      "polarity": 0.009204545454545451,
+      "subjectivity": 0.41988636363636367,
+      "confidence": 0.5,
+      "text_sentiment": 0.015340909090909086,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 6.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.36,
+      "subjectivity": 0.75,
+      "confidence": 0.5,
+      "text_sentiment": 0.6,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 9.0,
+      "duration": 3.0,
+      "sentiment": "neutral",
+      "polarity": 0.0,
+      "subjectivity": 0.0,
+      "confidence": 0.5,
+      "text_sentiment": 0.0,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 12.0,
+      "duration": 3.0,
+      "sentiment": "neutral",
+      "polarity": 0.015,
+      "subjectivity": 0.5,
+      "confidence": 0.5,
+      "text_sentiment": 0.025,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 15.0,
+      "duration": 3.0,
+      "sentiment": "neutral",
+      "polarity": 0.004285714285714287,
+      "subjectivity": 0.37023809523809526,
+      "confidence": 0.5,
+      "text_sentiment": 0.007142857142857145,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 18.0,
+      "duration": 3.0,
+      "sentiment": "neutral",
+      "polarity": 0.0,
+      "subjectivity": 0.0,
+      "confidence": 0.5,
+      "text_sentiment": 0.0,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 21.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.26,
+      "subjectivity": 0.7333333333333334,
+      "confidence": 0.5,
+      "text_sentiment": 0.43333333333333335,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 24.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.24,
+      "subjectivity": 0.25,
+      "confidence": 0.5,
+      "text_sentiment": 0.4,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 27.0,
+      "duration": 3.0,
+      "sentiment": "negative",
+      "polarity": -0.21,
+      "subjectivity": 0.6499999999999999,
+      "confidence": 0.5,
+      "text_sentiment": -0.35,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 30.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.3,
+      "subjectivity": 0.8888888888888888,
+      "confidence": 0.5,
+      "text_sentiment": 0.5,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 33.0,
+      "duration": 3.0,
+      "sentiment": "neutral",
+      "polarity": 0.0,
+      "subjectivity": 0.0,
+      "confidence": 0.5,
+      "text_sentiment": 0.0,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 36.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.24,
+      "subjectivity": 1.0,
+      "confidence": 0.5,
+      "text_sentiment": 0.4,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 39.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.375,
+      "subjectivity": 0.8916666666666666,
+      "confidence": 0.5,
+      "text_sentiment": 0.625,
+      "audio_sentiment": 0.0
+    },
+    {
+      "timestamp": 42.0,
+      "duration": 3.0,
+      "sentiment": "positive",
+      "polarity": 0.21000000000000002,
+      "subjectivity": 0.375,
+      "confidence": 0.5,
+      "text_sentiment": 0.35000000000000003,
+      "audio_sentiment": 0.0
+    }
+  ],
+  "mood_states": [
+    {
+      "timestamp": 0,
+      "mood": "neutral",
+      "energy_level": 0.5,
+      "stress_level": 0.5,
+      "fatigue_level": 0.5,
+      "engagement_level": 0.5,
+      "emotional_stability": 0.5
+    },
+    {
+      "timestamp": 30.0,
+      "mood": "neutral",
+      "energy_level": 0.5,
+      "stress_level": 0.5,
+      "fatigue_level": 0.5,
+      "engagement_level": 0.5,
+      "emotional_stability": 0.5
+    }
+  ],
+  "stress_fatigue": [
+    {
+      "timestamp": 0.0,
+      "stress_level": 0.7069347298592371,
+      "fatigue_level": 0,
+      "cognitive_load": 0.6900792305618949,
+      "vocal_strain": 0.7261530965333804,
+      "speaking_rate_deviation": 1.0,
+      "pause_frequency": 0.3
+    },
+    {
+      "timestamp": 10.0,
+      "stress_level": 0.5099233333465966,
+      "fatigue_level": 0,
+      "cognitive_load": 0.6824728564178691,
+      "vocal_strain": 0.4059578919550404,
+      "speaking_rate_deviation": 1.0,
+      "pause_frequency": 0.3
+    },
+    {
+      "timestamp": 20.0,
+      "stress_level": 0.7125528012756336,
+      "fatigue_level": 0,
+      "cognitive_load": 0.6883307690790291,
+      "vocal_strain": 0.7416916025104001,
+      "speaking_rate_deviation": 1.0,
+      "pause_frequency": 0.3
+    },
+    {
+      "timestamp": 30.0,
+      "stress_level": 0.7167669624345336,
+      "fatigue_level": 0,
+      "cognitive_load": 0.6794871794871794,
+      "vocal_strain": 0.7381473816931248,
+      "speaking_rate_deviation": 1.0,
+      "pause_frequency": 0.3
+    },
+    {
+      "timestamp": 40.0,
+      "stress_level": 0.7007012063501653,
+      "fatigue_level": 0,
+      "cognitive_load": 0.6833333333333332,
+      "vocal_strain": 0.6975227880369251,
+      "speaking_rate_deviation": 1.0,
+      "pause_frequency": 0.2
+    }
+  ],
+  "visualizations": {
+    "emotion_timeline": "emotion_timeline.html",
+    "sentiment_heatmap": "sentiment_heatmap.html",
+    "mood_dashboard": "mood_dashboard.html",
+    "stress_fatigue_analysis": "stress_fatigue_analysis.html"
+  },
+  "summary": {
+    "duration_analyzed": 45.0,
+    "dominant_emotion": "neutral",
+    "average_sentiment": 0.143732683982684,
+    "emotional_stability": 0.5,
+    "stress_indicators": {
+      "average_stress_level": 0.6693758066532333,
+      "average_fatigue_level": 0.0,
+      "average_cognitive_load": 0.6847406737758611,
+      "high_stress_periods": 4,
+      "high_fatigue_periods": 0
+    },
+    "key_insights": [
+      "Elevated stress levels detected",
+      "4 high-stress periods identified"
+    ]
+  }
+}

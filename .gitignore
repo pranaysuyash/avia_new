@@ -83,12 +83,31 @@ test_validation_results.json
 temp/
 
 # Node modules and build artifacts
+**/node_modules/
+node_modules/
 desktop_app/node_modules/
-mobile_app/node_modules/
+mobile/node_modules/  
+frontend/node_modules/
 desktop_app/dist/
-mobile_app/.expo/
-package-lock.json
-yarn.lock
+desktop_app/out/
+mobile/.expo/
+frontend/build/
+frontend/dist/
+
+# Package manager locks (uncomment if you want to track these)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Ignore all package-lock.json files
+**/package-lock.json
+
+# Build outputs
+**/dist/
+**/build/
+**/.next/
+**/.nuxt/
+**/out/
 
 # Kiro specs
 .kiro/

@@ -20,10 +20,14 @@ import sqlite3
 import time
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
+from decimal import Decimal, getcontext
 from typing import List, Dict, Optional, Tuple, Any, Union
 import wave
 import numpy as np
 from pathlib import Path
+
+# Set decimal precision for high-precision timestamps
+getcontext().prec = 10
 
 # Audio processing libraries
 try:
@@ -43,77 +47,118 @@ DATABASE_PATH = "timestamping_system.db"
 
 @dataclass
 class WordTimestamp:
-    """Word-level timestamp with confidence scoring"""
+    """Word-level timestamp with confidence scoring using Decimal precision"""
     word: str
-    start_time: float
-    end_time: float
-    confidence: float
+    start_time: Union[float, Decimal]
+    end_time: Union[float, Decimal]
+    confidence: Union[float, Decimal]
     speaker_id: Optional[str] = None
     segment_id: Optional[str] = None
     
-    def duration(self) -> float:
+    def __post_init__(self):
+        # Convert to Decimal for high precision
+        self.start_time = Decimal(str(self.start_time))
+        self.end_time = Decimal(str(self.end_time))
+        self.confidence = Decimal(str(self.confidence))
+    
+    def duration(self) -> Decimal:
         return self.end_time - self.start_time
     
     def to_dict(self) -> Dict[str, Any]:
-        data = asdict(self)
-        data['duration'] = self.duration()
+        data = {
+            'word': self.word,
+            'start_time': float(self.start_time),
+            'end_time': float(self.end_time),
+            'confidence': float(self.confidence),
+            'speaker_id': self.speaker_id,
+            'segment_id': self.segment_id,
+            'duration': float(self.duration())
+        }
         return data
 
 @dataclass
 class SegmentTimestamp:
-    """Segment-level timestamp for speakers or topics"""
+    """Segment-level timestamp for speakers or topics with Decimal precision"""
     id: str
-    start_time: float
-    end_time: float
+    start_time: Union[float, Decimal]
+    end_time: Union[float, Decimal]
     segment_type: str  # 'speaker', 'topic', 'silence', 'music'
     content: str
     speaker_id: Optional[str] = None
     topic: Optional[str] = None
-    confidence: float = 1.0
+    confidence: Union[float, Decimal] = Decimal('1.0')
     metadata: Dict[str, Any] = None
     
     def __post_init__(self):
         if self.metadata is None:
             self.metadata = {}
+        # Convert to Decimal for high precision
+        self.start_time = Decimal(str(self.start_time))
+        self.end_time = Decimal(str(self.end_time))
+        self.confidence = Decimal(str(self.confidence))
     
-    def duration(self) -> float:
+    def duration(self) -> Decimal:
         return self.end_time - self.start_time
     
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        return {
+            'id': self.id,
+            'start_time': float(self.start_time),
+            'end_time': float(self.end_time),
+            'segment_type': self.segment_type,
+            'content': self.content,
+            'speaker_id': self.speaker_id,
+            'topic': self.topic,
+            'confidence': float(self.confidence),
+            'metadata': self.metadata,
+            'duration': float(self.duration())
+        }
 
 @dataclass
 class TimeCode:
-    """Time code reference for easy navigation"""
-    timestamp: float
+    """Time code reference for easy navigation with Decimal precision"""
+    timestamp: Union[float, Decimal]
     label: str
     description: Optional[str] = None
     category: str = "general"  # 'chapter', 'topic', 'speaker_change', 'bookmark'
     
+    def __post_init__(self):
+        # Convert to Decimal for high precision
+        self.timestamp = Decimal(str(self.timestamp))
+    
     def format_time(self, format_type: str = "hms") -> str:
-        """Format timestamp in various formats"""
+        """Format timestamp in various formats with high precision"""
+        timestamp_float = float(self.timestamp)
+        
         if format_type == "hms":
-            hours = int(self.timestamp // 3600)
-            minutes = int((self.timestamp % 3600) // 60)
-            seconds = int(self.timestamp % 60)
-            milliseconds = int((self.timestamp % 1) * 1000)
+            hours = int(timestamp_float // 3600)
+            minutes = int((timestamp_float % 3600) // 60)
+            seconds = int(timestamp_float % 60)
+            milliseconds = int((timestamp_float % 1) * 1000)
             return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
         elif format_type == "ms":
-            minutes = int(self.timestamp // 60)
-            seconds = self.timestamp % 60
+            minutes = int(timestamp_float // 60)
+            seconds = timestamp_float % 60
             return f"{minutes:02d}:{seconds:06.3f}"
         elif format_type == "seconds":
-            return f"{self.timestamp:.3f}s"
+            return f"{self.timestamp:.6f}s"
+        elif format_type == "precise":
+            return f"{self.timestamp:.9f}s"
         return str(self.timestamp)
     
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        return {
+            'timestamp': float(self.timestamp),
+            'label': self.label,
+            'description': self.description,
+            'category': self.category
+        }
 
 @dataclass
 class Bookmark:
-    """Bookmark for important moments"""
+    """Bookmark for important moments with Decimal precision"""
     id: str
-    timestamp: float
+    timestamp: Union[float, Decimal]
     title: str
     description: Optional[str] = None
     tags: List[str] = None
@@ -125,34 +170,55 @@ class Bookmark:
             self.tags = []
         if self.created_at is None:
             self.created_at = datetime.now()
+        # Convert to Decimal for high precision
+        self.timestamp = Decimal(str(self.timestamp))
     
     def to_dict(self) -> Dict[str, Any]:
-        data = asdict(self)
-        data['created_at'] = self.created_at.isoformat()
-        return data
+        return {
+            'id': self.id,
+            'timestamp': float(self.timestamp),
+            'title': self.title,
+            'description': self.description,
+            'tags': self.tags,
+            'created_at': self.created_at.isoformat(),
+            'user_id': self.user_id
+        }
 
 @dataclass
 class TranscriptSegment:
-    """Enhanced transcript segment with timing"""
+    """Enhanced transcript segment with timing using Decimal precision"""
     text: str
-    start_time: float
-    end_time: float
+    start_time: Union[float, Decimal]
+    end_time: Union[float, Decimal]
     words: List[WordTimestamp]
     speaker_id: Optional[str] = None
-    confidence: float = 1.0
+    confidence: Union[float, Decimal] = Decimal('1.0')
     is_clickable: bool = True
     
-    def get_word_at_time(self, timestamp: float) -> Optional[WordTimestamp]:
+    def __post_init__(self):
+        # Convert to Decimal for high precision
+        self.start_time = Decimal(str(self.start_time))
+        self.end_time = Decimal(str(self.end_time))
+        self.confidence = Decimal(str(self.confidence))
+    
+    def get_word_at_time(self, timestamp: Union[float, Decimal]) -> Optional[WordTimestamp]:
         """Get the word being spoken at a specific timestamp"""
+        timestamp = Decimal(str(timestamp))
         for word in self.words:
             if word.start_time <= timestamp <= word.end_time:
                 return word
         return None
     
     def to_dict(self) -> Dict[str, Any]:
-        data = asdict(self)
-        data['words'] = [word.to_dict() for word in self.words]
-        return data
+        return {
+            'text': self.text,
+            'start_time': float(self.start_time),
+            'end_time': float(self.end_time),
+            'words': [word.to_dict() for word in self.words],
+            'speaker_id': self.speaker_id,
+            'confidence': float(self.confidence),
+            'is_clickable': self.is_clickable
+        }
 
 class TimestampingSystem:
     """Comprehensive timestamping system for audio/video content"""
@@ -514,8 +580,12 @@ class TimestampingSystem:
         for current_start, current_end in sorted_segments[1:]:
             last_start, last_end = merged[-1]
             
-            # If gap is small enough, merge segments
-            if current_start - last_end <= gap_threshold:
+            # Calculate gap between segments
+            gap = current_start - last_end
+            
+            # If gap is small enough (or negative for overlapping), merge segments
+            # Use small epsilon to handle floating-point precision issues
+            if gap <= gap_threshold + 1e-10:
                 merged[-1] = (last_start, max(last_end, current_end))
             else:
                 merged.append((current_start, current_end))
@@ -1142,6 +1212,135 @@ class TimestampingSystem:
             # Fallback: even distribution
             return list(range(0, len(features[0]), len(features[0]) // num_words))[:num_words]
     
+    def calculate_quality_metrics(self, word_timestamps: List[WordTimestamp], 
+                                 content_id: str) -> Dict[str, Any]:
+        """Calculate comprehensive quality metrics for timestamps"""
+        if not word_timestamps:
+            return {
+                'overall_score': Decimal('0.0'),
+                'rating': 'No Data',
+                'metrics': {},
+                'recommendations': []
+            }
+        
+        # Convert to Decimal for precise calculations
+        confidences = [Decimal(str(w.confidence)) for w in word_timestamps]
+        durations = [w.duration() for w in word_timestamps]
+        
+        # Basic metrics
+        total_words = len(word_timestamps)
+        total_duration = max(w.end_time for w in word_timestamps)
+        avg_confidence = sum(confidences) / total_words
+        
+        # Realistic words per minute calculation (accounting for pauses)
+        # Assume 20% of time is pauses/silence
+        effective_speaking_time = total_duration * Decimal('0.8')
+        words_per_minute = (Decimal(str(total_words)) / effective_speaking_time) * Decimal('60') if effective_speaking_time > 0 else Decimal('0')
+        
+        # Confidence distribution
+        high_confidence = sum(1 for c in confidences if c >= Decimal('0.9'))
+        medium_confidence = sum(1 for c in confidences if Decimal('0.7') <= c < Decimal('0.9'))
+        low_confidence = sum(1 for c in confidences if c < Decimal('0.7'))
+        
+        # Duration consistency (words should have reasonable durations)
+        avg_duration = sum(durations) / len(durations)
+        duration_variance = sum((d - avg_duration) ** 2 for d in durations) / len(durations)
+        duration_consistency = max(Decimal('0'), Decimal('1') - (duration_variance / avg_duration))
+        
+        # Speaking rate quality (optimal range: 120-180 WPM)
+        optimal_wpm_min = Decimal('120')
+        optimal_wpm_max = Decimal('180')
+        
+        if optimal_wpm_min <= words_per_minute <= optimal_wpm_max:
+            rate_score = Decimal('1.0')
+        elif words_per_minute < optimal_wpm_min:
+            rate_score = words_per_minute / optimal_wpm_min
+        else:
+            # Penalize very fast speech more heavily
+            excess = words_per_minute - optimal_wpm_max
+            rate_score = max(Decimal('0.1'), Decimal('1.0') - (excess / optimal_wpm_max))
+        
+        # Timestamp precision (check for overlaps and gaps)
+        precision_issues = 0
+        for i in range(len(word_timestamps) - 1):
+            current_end = word_timestamps[i].end_time
+            next_start = word_timestamps[i + 1].start_time
+            
+            # Check for overlaps or unrealistic gaps
+            if current_end > next_start:  # Overlap
+                precision_issues += 1
+            elif next_start - current_end > Decimal('2.0'):  # Gap > 2 seconds
+                precision_issues += 1
+        
+        precision_score = max(Decimal('0'), Decimal('1') - (Decimal(str(precision_issues)) / Decimal(str(total_words))))
+        
+        # Calculate overall quality score with improved weighting
+        confidence_weight = Decimal('0.4')
+        rate_weight = Decimal('0.25')
+        precision_weight = Decimal('0.2')
+        consistency_weight = Decimal('0.15')
+        
+        overall_score = (
+            avg_confidence * confidence_weight +
+            rate_score * rate_weight +
+            precision_score * precision_weight +
+            duration_consistency * consistency_weight
+        )
+        
+        # Determine rating
+        if overall_score >= Decimal('0.9'):
+            rating = "Excellent"
+        elif overall_score >= Decimal('0.8'):
+            rating = "Very Good"
+        elif overall_score >= Decimal('0.7'):
+            rating = "Good"
+        elif overall_score >= Decimal('0.6'):
+            rating = "Fair"
+        elif overall_score >= Decimal('0.4'):
+            rating = "Needs Improvement"
+        else:
+            rating = "Poor"
+        
+        # Generate recommendations
+        recommendations = []
+        
+        if avg_confidence < Decimal('0.8'):
+            recommendations.append("Improve audio quality for better transcription accuracy")
+        
+        if words_per_minute > optimal_wpm_max:
+            recommendations.append("Speaking rate is fast - consider slowing down for better clarity")
+        elif words_per_minute < optimal_wpm_min:
+            recommendations.append("Speaking rate is slow - consider increasing pace for better engagement")
+        
+        if low_confidence > total_words * 0.3:
+            recommendations.append("High number of low-confidence words - check audio quality and background noise")
+        
+        if precision_issues > total_words * 0.1:
+            recommendations.append("Timestamp precision issues detected - consider using better alignment methods")
+        
+        if duration_consistency < Decimal('0.7'):
+            recommendations.append("Inconsistent word durations - may indicate audio processing issues")
+        
+        return {
+            'overall_score': overall_score,
+            'rating': rating,
+            'metrics': {
+                'total_words': total_words,
+                'total_duration': float(total_duration),
+                'avg_confidence': float(avg_confidence),
+                'words_per_minute': float(words_per_minute),
+                'confidence_distribution': {
+                    'high': high_confidence,
+                    'medium': medium_confidence,
+                    'low': low_confidence
+                },
+                'duration_consistency': float(duration_consistency),
+                'precision_score': float(precision_score),
+                'rate_score': float(rate_score)
+            },
+            'recommendations': recommendations
+        }
+    
     def _calculate_ml_confidence(self, features: np.ndarray, start_time: float, 
                                end_time: float) -> float:
         """Calculate confidence score for ML-based timestamping"""
@@ -1248,8 +1447,8 @@ class TimestampingSystem:
                 cursor.execute('''
                     INSERT INTO word_timestamps (content_id, word, start_time, end_time, confidence, speaker_id, segment_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (content_id, word_ts.word, word_ts.start_time, word_ts.end_time, 
-                     word_ts.confidence, word_ts.speaker_id, word_ts.segment_id))
+                ''', (content_id, word_ts.word, float(word_ts.start_time), float(word_ts.end_time), 
+                     float(word_ts.confidence), word_ts.speaker_id, word_ts.segment_id))
             
             conn.commit()
             conn.close()
@@ -1272,9 +1471,9 @@ class TimestampingSystem:
                 cursor.execute('''
                     INSERT INTO segment_timestamps (id, content_id, start_time, end_time, segment_type, content, speaker_id, topic, confidence, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (segment.id, content_id, segment.start_time, segment.end_time, 
+                ''', (segment.id, content_id, float(segment.start_time), float(segment.end_time), 
                      segment.segment_type, segment.content, segment.speaker_id, 
-                     segment.topic, segment.confidence, metadata_json))
+                     segment.topic, float(segment.confidence), metadata_json))
             
             conn.commit()
             conn.close()
@@ -1296,7 +1495,7 @@ class TimestampingSystem:
                 cursor.execute('''
                     INSERT INTO time_codes (content_id, timestamp, label, description, category)
                     VALUES (?, ?, ?, ?, ?)
-                ''', (content_id, time_code.timestamp, time_code.label, 
+                ''', (content_id, float(time_code.timestamp), time_code.label, 
                      time_code.description, time_code.category))
             
             conn.commit()
@@ -1315,7 +1514,7 @@ class TimestampingSystem:
             cursor.execute('''
                 INSERT OR REPLACE INTO bookmarks (id, content_id, timestamp, title, description, tags, user_id, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (bookmark.id, content_id, bookmark.timestamp, bookmark.title, 
+            ''', (bookmark.id, content_id, float(bookmark.timestamp), bookmark.title, 
                  bookmark.description, tags_json, bookmark.user_id, 
                  bookmark.created_at.isoformat()))
             
@@ -1339,8 +1538,8 @@ class TimestampingSystem:
                 cursor.execute('''
                     INSERT INTO transcript_segments (content_id, text, start_time, end_time, speaker_id, confidence, is_clickable)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (content_id, segment.text, segment.start_time, segment.end_time, 
-                     segment.speaker_id, segment.confidence, segment.is_clickable))
+                ''', (content_id, segment.text, float(segment.start_time), float(segment.end_time), 
+                     segment.speaker_id, float(segment.confidence), segment.is_clickable))
             
             conn.commit()
             conn.close()

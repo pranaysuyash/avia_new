@@ -1,0 +1,114 @@
+{
+  "timestamp": "2025-08-07T15:12:29.497710",
+  "overall_success_rate": 63.63636363636363,
+  "total_tests": 11,
+  "passed_tests": 7,
+  "detailed_results": {
+    "api_imports": [
+      [
+        "FastAPI",
+        true,
+        null
+      ],
+      [
+        "Database",
+        false,
+        "cannot import name 'audit_log' from 'api.middleware.audit_logging' (/Users/pranay/Projects/LLM/video/ner/api/middleware/audit_logging.py)"
+      ],
+      [
+        "Auth",
+        true,
+        null
+      ],
+      [
+        "I18n Service",
+        true,
+        null
+      ],
+      [
+        "I18n API",
+        true,
+        null
+      ],
+      [
+        "Models",
+        true,
+        null
+      ]
+    ],
+    "api_endpoints": {
+      "internationalization.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoint_count": 15,
+        "size_kb": 17.7
+      },
+      "transcription.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoint_count": 10,
+        "size_kb": 25.7
+      },
+      "analytics.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoint_count": 4,
+        "size_kb": 10.6
+      },
+      "auth_endpoints.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoint_count": 9,
+        "size_kb": 12.5
+      },
+      "users.py": {
+        "exists": false
+      },
+      "media.py": {
+        "exists": false
+      }
+    },
+    "streamlit_app": {
+      "exists": true,
+      "size_kb": 178.4,
+      "components_found": 5,
+      "total_components": 5
+    },
+    "i18n_ui": {
+      "exists": true,
+      "size_kb": 32.5,
+      "features_found": 5,
+      "total_features": 5
+    },
+    "frontend": {
+      "InternationalizationProvider": {
+        "exists": true,
+        "size_kb": 11.1,
+        "patterns_found": 4,
+        "total_patterns": 4
+      },
+      "TranslationManager": {
+        "exists": true,
+        "size_kb": 21.2,
+        "patterns_found": 4,
+        "total_patterns": 4
+      },
+      "InternationalizationDesktop": {
+        "exists": true,
+        "size_kb": 21.2,
+        "patterns_found": 4,
+        "total_patterns": 4
+      },
+      "InternationalizationMobile": {
+        "exists": true,
+        "size_kb": 27.2,
+        "patterns_found": 4,
+        "total_patterns": 4
+      }
+    },
+    "functionality": {
+      "service_instantiated": true,
+      "mock_languages": 3
+    }
+  }
+}

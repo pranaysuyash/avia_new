@@ -17,12 +17,12 @@ import logging
 # Import existing components
 from image_ocr_processor import OCRManager
 from document_analysis_system import DocumentAnalysisSystem
-from image_entity_extraction_system import ImageEntityExtractor
+from image_entity_extraction_system import ImageEntityExtractionSystem as ImageEntityExtractor
 from image_annotation_system import AnnotationManager
-from intelligent_content_search import SemanticSearchEngine, UnifiedSearchEngine
+from intelligent_content_search import SemanticVideoSearchEngine as SemanticSearchEngine, IntelligentContentSearchSystem as UnifiedSearchEngine
 
 # Import transcription components
-from stt import transcribe_audio
+from stt import transcribe
 from ner_basic import extract_entities as extract_entities_basic
 from ner_advanced import extract_entities_gpt
 
@@ -235,7 +235,7 @@ class ImageTextIntegrationPipeline:
         
         try:
             # Transcribe audio
-            transcript = transcribe_audio(file_path)
+            transcript = transcribe(file_path)
             if transcript:
                 media_content.transcript_text = transcript
                 media_content.metadata['transcript_length'] = len(transcript.split())

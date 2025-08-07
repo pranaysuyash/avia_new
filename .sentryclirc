@@ -1,0 +1,6 @@
+[defaults]
+org = media-analysis-platform
+project = web-app
+
+[auth]
+# Token should be set via SENTRY_AUTH_TOKEN environment variable

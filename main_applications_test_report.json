@@ -1,0 +1,134 @@
+{
+  "timestamp": "2025-08-07T15:50:03.587261",
+  "test_suite": "Main Applications Integration Test",
+  "tests": {
+    "react_web": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "Package Configuration",
+          "PASSED",
+          "package.json exists"
+        ],
+        [
+          "React Dependency",
+          "PASSED",
+          "React dependency found"
+        ],
+        [
+          "Component Structure",
+          "PASSED",
+          "33 component categories"
+        ],
+        [
+          "Key Components",
+          "PASSED",
+          "4/4 key components"
+        ]
+      ],
+      "status": "PASSED"
+    },
+    "electron_desktop": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "Desktop Package Config",
+          "PASSED",
+          "package.json exists"
+        ],
+        [
+          "Electron Framework",
+          "PASSED",
+          "Electron dependency found"
+        ],
+        [
+          "Main Entry Point",
+          "PASSED",
+          "Correct main entry"
+        ],
+        [
+          "Main Process File",
+          "PASSED",
+          "Electron main process properly configured"
+        ],
+        [
+          "Desktop I18n Component",
+          "PASSED",
+          "Desktop i18n component exists"
+        ],
+        [
+          "Dependencies Installed",
+          "PASSED",
+          "node_modules exists"
+        ]
+      ],
+      "status": "PASSED"
+    },
+    "react_native_mobile": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "Mobile Package Config",
+          "PASSED",
+          "package.json exists"
+        ],
+        [
+          "React Native Framework",
+          "PASSED",
+          "React Native 0.72.6"
+        ],
+        [
+          "Navigation System",
+          "PASSED",
+          "React Navigation found"
+        ],
+        [
+          "App Entry Point",
+          "PASSED",
+          "App.tsx properly configured"
+        ],
+        [
+          "Mobile Components",
+          "PASSED",
+          "30 component categories"
+        ],
+        [
+          "Mobile I18n Component",
+          "PASSED",
+          "Mobile i18n component exists"
+        ],
+        [
+          "Configuration Files",
+          "PASSED",
+          "3/3 config files"
+        ]
+      ],
+      "status": "PASSED"
+    },
+    "api_integration": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "API Endpoints",
+          "PASSED",
+          "71 endpoint files"
+        ],
+        [
+          "Core Services",
+          "PASSED",
+          "All core services exist"
+        ],
+        [
+          "API Models",
+          "PASSED",
+          "2 model files"
+        ]
+      ],
+      "status": "PASSED"
+    }
+  },
+  "overall_status": "EXCELLENT",
+  "overall_success_rate": 100.0,
+  "passed_tests": 4,
+  "total_tests": 4
+}

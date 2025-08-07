@@ -1,5 +1,23 @@
 {
+  "name": "media-analysis-platform",
+  "version": "1.0.0",
+  "description": "Comprehensive audio/video transcription and analysis platform",
+  "scripts": {
+    "analyze:web": "webpack --config webpack.analyze.js --env target=web",
+    "analyze:desktop": "webpack --config webpack.analyze.js --env target=desktop",
+    "analyze:all": "npm run analyze:web && npm run analyze:desktop",
+    "lighthouse": "lhci autorun",
+    "lighthouse:local": "lhci autorun --collect.startServerCommand='npm run serve'",
+    "performance:report": "node scripts/performance-report.js",
+    "budget:check": "node scripts/check-budgets.js"
+  },
   "dependencies": {
     "playwright": "^1.54.2"
+  },
+  "devDependencies": {
+    "@lhci/cli": "^0.12.0",
+    "webpack-bundle-analyzer": "^4.9.0",
+    "speed-measure-webpack-plugin": "^1.5.0",
+    "web-vitals": "^3.5.0"
   }
 }

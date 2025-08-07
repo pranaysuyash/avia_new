@@ -31,6 +31,10 @@ from api.docs.interactive_explorer import setup_api_explorer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Initialize Sentry
+from api.utils.sentry_config import init_sentry, sentry_middleware
+init_sentry(app_name="transcription-api")
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Transcription Platform API",
@@ -61,6 +65,9 @@ app.add_middleware(
 # Add security headers
 app.add_middleware(SecurityHeadersMiddleware)
 
+# Add Sentry middleware
+app.middleware("http")(sentry_middleware)
+
 # Add logging middleware
 if os.getenv("ENABLE_REQUEST_LOGGING", "true").lower() == "true":
     app.add_middleware(LoggingMiddleware)
@@ -78,6 +85,14 @@ if redis_client:
 # Setup GraphQL
 graphql_router = create_graphql_router()
 app.include_router(graphql_router)
+
+# Import and include upload endpoints
+from api.endpoints.upload import router as upload_router
+app.include_router(upload_router)
+
+# Import and include cached transcription endpoints
+from api.endpoints.transcription_cached import router as transcription_cached_router
+app.include_router(transcription_cached_router)
 
 # Setup API Explorer and Documentation
 api_explorer = setup_api_explorer(app)
@@ -888,6 +903,33 @@ async def health_check():
         "version": "1.0.0",
         "environment": os.getenv("ENVIRONMENT", "development")
     }
+
+# Import signaling server
+from api.websocket.signaling_server import signaling_server
+
+# ===========================
+# WebSocket endpoints
+# ===========================
+
+@app.websocket("/ws/signaling")
+async def websocket_signaling(websocket: WebSocket):
+    """WebRTC signaling endpoint for real-time collaboration"""
+    await signaling_server.handle_connection(websocket)
+
+@app.get("/api/v1/rooms/{room_id}")
+async def get_room_info(
+    room_id: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get information about a collaboration room"""
+    return signaling_server.get_room_info(room_id)
+
+@app.get("/api/v1/rooms")
+async def get_all_rooms(
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Get all active collaboration rooms (admin only)"""
+    return signaling_server.get_all_rooms()
 
 # ===========================
 # WebSocket for Real-time

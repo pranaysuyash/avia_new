@@ -30,48 +30,50 @@ router = APIRouter()
 # Global annotation manager (in production, use proper storage)
 annotation_manager = AnnotationManager()
 
-class AnnotationRequest:
+from pydantic import BaseModel, Field
+
+class AnnotationRequest(BaseModel):
     """Base annotation request model"""
-    annotation_type: str
-    label: Optional[str] = None
-    style: Dict[str, Any] = {}
-    metadata: Dict[str, Any] = {}
+    annotation_type: str = Field(..., description="Type of annotation")
+    label: Optional[str] = Field(None, description="Annotation label")
+    style: Dict[str, Any] = Field(default_factory=dict, description="Style properties")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 class BoundingBoxRequest(AnnotationRequest):
     """Bounding box annotation request"""
-    top_left: Dict[str, float]
-    bottom_right: Dict[str, float]
+    top_left: Dict[str, float] = Field(..., description="Top-left coordinate")
+    bottom_right: Dict[str, float] = Field(..., description="Bottom-right coordinate")
 
 class CircleRequest(AnnotationRequest):
     """Circle annotation request"""
-    center: Dict[str, float]
-    radius: float
+    center: Dict[str, float] = Field(..., description="Center coordinate")
+    radius: float = Field(..., description="Circle radius")
 
 class TextRequest(AnnotationRequest):
     """Text annotation request"""
-    position: Dict[str, float]
-    text: str
+    position: Dict[str, float] = Field(..., description="Text position")
+    text: str = Field(..., description="Text content")
 
 class PolygonRequest(AnnotationRequest):
     """Polygon annotation request"""
-    points: List[Dict[str, float]]
-    closed: bool = True
+    points: List[Dict[str, float]] = Field(..., description="Polygon points")
+    closed: bool = Field(True, description="Whether polygon is closed")
 
 class LineRequest(AnnotationRequest):
     """Line annotation request"""
-    start: Dict[str, float]
-    end: Dict[str, float]
+    start: Dict[str, float] = Field(..., description="Line start point")
+    end: Dict[str, float] = Field(..., description="Line end point")
 
 class ArrowRequest(AnnotationRequest):
     """Arrow annotation request"""
-    start: Dict[str, float]
-    end: Dict[str, float]
-    arrow_size: float = 10.0
+    start: Dict[str, float] = Field(..., description="Arrow start point")
+    end: Dict[str, float] = Field(..., description="Arrow end point")
+    arrow_size: float = Field(10.0, description="Arrow size")
 
 class FreehandRequest(AnnotationRequest):
     """Freehand annotation request"""
-    points: List[Dict[str, float]]
-    smooth: bool = True
+    points: List[Dict[str, float]] = Field(..., description="Freehand points")
+    smooth: bool = Field(True, description="Apply smoothing")
 
 @router.post("/images/upload")
 async def upload_image(

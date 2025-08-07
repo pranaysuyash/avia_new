@@ -14,8 +14,8 @@ import tempfile
 import asyncio
 from pathlib import Path
 
-from ..auth.dependencies import get_current_user, require_quota
-from ..middleware.rate_limiter import apply_rate_limit
+from ..dependencies import get_current_user, require_quota
+# from ..middleware.rate_limiter import apply_rate_limit
 
 router = APIRouter(
     prefix="/api/v1/ai_dubbing",
@@ -323,7 +323,7 @@ async def list_supported_languages(
     }
 
 @router.post("/synthesize", response_model=Dict[str, Any])
-@apply_rate_limit("dubbing_synthesis", requests=20, window=3600)
+# @apply_rate_limit("dubbing_synthesis", requests=20, window=3600)
 async def synthesize_speech(
     request: DubbingRequest,
     background_tasks: BackgroundTasks,
@@ -368,7 +368,7 @@ async def synthesize_speech(
     }
 
 @router.post("/video/dub", response_model=Dict[str, Any])
-@apply_rate_limit("video_dubbing", requests=5, window=3600)
+# @apply_rate_limit("video_dubbing", requests=5, window=3600)
 async def dub_video(
     request: VideoDubbingRequest,
     background_tasks: BackgroundTasks,
@@ -413,7 +413,7 @@ async def dub_video(
     }
 
 @router.post("/batch", response_model=Dict[str, Any])
-@apply_rate_limit("batch_dubbing", requests=10, window=3600)
+# @apply_rate_limit("batch_dubbing", requests=10, window=3600)
 async def batch_synthesize(
     request: BatchDubbingRequest,
     background_tasks: BackgroundTasks,

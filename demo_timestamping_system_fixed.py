@@ -185,34 +185,53 @@ class TimestampingSystemDemo:
             print(f"❌ Word timestamp demo failed: {e}")
     
     def create_simulated_word_timestamps(self):
-        """Create simulated word timestamps for demo purposes"""
+        """Create simulated word timestamps for demo purposes with realistic timing"""
         words = self.demo_transcript.split()
         word_timestamps = []
         
+        # More realistic speaking parameters
+        base_wpm = 150  # Target 150 words per minute
         current_time = 0.0
+        
         for i, word in enumerate(words):
             # Clean word
             clean_word = word.strip('.,!?;:')
             
-            # Variable word duration based on length
-            base_duration = 0.3
-            length_factor = len(clean_word) * 0.05
-            duration = base_duration + length_factor
+            # More realistic word duration based on syllables and length
+            syllable_count = max(1, len(clean_word) // 3)  # Rough syllable estimate
+            base_duration = (syllable_count * 0.2) + 0.1  # ~0.2s per syllable + base
             
-            # Add some natural pauses
+            # Add natural variation
+            variation = (i % 7 - 3) * 0.02  # Small random-like variation
+            duration = max(0.1, base_duration + variation)
+            
+            # Natural pauses based on punctuation and sentence structure
             if word.endswith('.') or word.endswith('!') or word.endswith('?'):
-                pause = 0.5
+                pause = 0.6 + (i % 3) * 0.1  # Sentence end pause
             elif word.endswith(',') or word.endswith(';'):
-                pause = 0.2
+                pause = 0.3 + (i % 2) * 0.05  # Clause pause
+            elif i > 0 and i % 8 == 0:  # Breathing pause every ~8 words
+                pause = 0.4
             else:
-                pause = 0.1
+                pause = 0.05 + (i % 4) * 0.02  # Small inter-word pause
             
             start_time = current_time
             end_time = current_time + duration
             current_time = end_time + pause
             
-            # Variable confidence
-            confidence = 0.85 + (i % 5) * 0.03  # Varies between 0.85-0.97
+            # More realistic confidence distribution
+            # Most words should have good confidence, some lower
+            base_confidence = 0.88
+            if len(clean_word) <= 2:  # Short words often less confident
+                confidence_adjustment = -0.15
+            elif len(clean_word) >= 8:  # Long words might be less confident
+                confidence_adjustment = -0.08
+            elif clean_word.lower() in ['the', 'and', 'is', 'are', 'of', 'to']:  # Common words high confidence
+                confidence_adjustment = 0.08
+            else:
+                confidence_adjustment = (i % 11 - 5) * 0.02  # Some variation
+            
+            confidence = max(0.5, min(0.98, base_confidence + confidence_adjustment))
             
             word_timestamps.append(WordTimestamp(
                 word=clean_word,
@@ -652,71 +671,78 @@ class TimestampingSystemDemo:
             if not self.stored_word_timestamps:
                 self.stored_word_timestamps = self.create_simulated_word_timestamps()
             
-            print("📈 Generating analytics insights...")
+            print("📈 Generating comprehensive analytics insights...")
             
-            # Word-level analytics
-            total_words = len(self.stored_word_timestamps)
-            total_duration = max(w.end_time for w in self.stored_word_timestamps)
-            avg_confidence = sum(w.confidence for w in self.stored_word_timestamps) / total_words
-            words_per_minute = (total_words / total_duration) * 60
+            # Use the improved quality metrics system
+            quality_metrics = self.ts_system.calculate_quality_metrics(
+                self.stored_word_timestamps, 
+                self.demo_content_id
+            )
+            
+            metrics = quality_metrics['metrics']
             
             print(f"📊 Word-level analytics:")
-            print(f"   Total words: {total_words}")
-            print(f"   Total duration: {total_duration:.2f} seconds")
-            print(f"   Average confidence: {avg_confidence:.2f}")
-            print(f"   Words per minute: {words_per_minute:.1f}")
+            print(f"   Total words: {metrics['total_words']}")
+            print(f"   Total duration: {metrics['total_duration']:.2f} seconds")
+            print(f"   Average confidence: {metrics['avg_confidence']:.3f}")
+            print(f"   Words per minute: {metrics['words_per_minute']:.1f}")
             
             # Confidence distribution
-            high_confidence = sum(1 for w in self.stored_word_timestamps if w.confidence >= 0.9)
-            medium_confidence = sum(1 for w in self.stored_word_timestamps if 0.8 <= w.confidence < 0.9)
-            low_confidence = sum(1 for w in self.stored_word_timestamps if w.confidence < 0.8)
+            conf_dist = metrics['confidence_distribution']
+            total_words = metrics['total_words']
             
             print(f"\n🎯 Confidence distribution:")
-            print(f"   High (≥0.9): {high_confidence} words ({high_confidence/total_words*100:.1f}%)")
-            print(f"   Medium (0.8-0.9): {medium_confidence} words ({medium_confidence/total_words*100:.1f}%)")
-            print(f"   Low (<0.8): {low_confidence} words ({low_confidence/total_words*100:.1f}%)")
+            print(f"   High (≥0.9): {conf_dist['high']} words ({conf_dist['high']/total_words*100:.1f}%)")
+            print(f"   Medium (0.7-0.9): {conf_dist['medium']} words ({conf_dist['medium']/total_words*100:.1f}%)")
+            print(f"   Low (<0.7): {conf_dist['low']} words ({conf_dist['low']/total_words*100:.1f}%)")
             
             # Speaking pattern analysis
-            word_durations = [w.end_time - w.start_time for w in self.stored_word_timestamps]
+            word_durations = [float(w.duration()) for w in self.stored_word_timestamps]
             avg_word_duration = sum(word_durations) / len(word_durations)
             
             print(f"\n🗣️ Speaking pattern analysis:")
-            print(f"   Average word duration: {avg_word_duration:.2f} seconds")
-            print(f"   Longest word: {max(word_durations):.2f} seconds")
-            print(f"   Shortest word: {min(word_durations):.2f} seconds")
+            print(f"   Average word duration: {avg_word_duration:.3f} seconds")
+            print(f"   Longest word: {max(word_durations):.3f} seconds")
+            print(f"   Shortest word: {min(word_durations):.3f} seconds")
+            print(f"   Duration consistency: {metrics['duration_consistency']:.3f}")
             
-            # Quality assessment
-            quality_score = avg_confidence * 0.7 + (1 - min(1.0, abs(words_per_minute - 150) / 150)) * 0.3
+            # Advanced quality metrics
+            print(f"\n📈 Advanced quality metrics:")
+            print(f"   Precision score: {metrics['precision_score']:.3f}")
+            print(f"   Rate score: {metrics['rate_score']:.3f}")
+            print(f"   Overall quality components:")
+            print(f"     • Confidence: {metrics['avg_confidence']:.3f} (40% weight)")
+            print(f"     • Speaking rate: {metrics['rate_score']:.3f} (25% weight)")
+            print(f"     • Precision: {metrics['precision_score']:.3f} (20% weight)")
+            print(f"     • Consistency: {metrics['duration_consistency']:.3f} (15% weight)")
             
+            # Overall quality assessment
             print(f"\n⭐ Overall quality assessment:")
-            print(f"   Quality score: {quality_score:.2f}/1.0")
+            print(f"   Quality score: {float(quality_metrics['overall_score']):.3f}/1.0")
+            print(f"   Quality rating: {quality_metrics['rating']}")
             
-            if quality_score >= 0.9:
-                quality_rating = "Excellent"
-            elif quality_score >= 0.8:
-                quality_rating = "Good"
-            elif quality_score >= 0.7:
-                quality_rating = "Fair"
+            # Detailed recommendations
+            print(f"\n💡 Detailed recommendations:")
+            if quality_metrics['recommendations']:
+                for i, rec in enumerate(quality_metrics['recommendations'], 1):
+                    print(f"   {i}. {rec}")
             else:
-                quality_rating = "Needs Improvement"
+                print("   ✅ No specific recommendations - quality is good!")
             
-            print(f"   Quality rating: {quality_rating}")
-            
-            # Recommendations
-            print(f"\n💡 Recommendations:")
-            if avg_confidence < 0.8:
-                print("   • Consider improving audio quality for better transcription accuracy")
-            if words_per_minute > 180:
-                print("   • Speaking rate is quite fast - consider slowing down for better clarity")
-            elif words_per_minute < 120:
-                print("   • Speaking rate is slow - consider increasing pace for better engagement")
-            if low_confidence > total_words * 0.2:
-                print("   • High number of low-confidence words - review audio quality and background noise")
+            # Quality improvement tips
+            print(f"\n🔧 Quality improvement tips:")
+            print("   • Use high-quality audio recording equipment")
+            print("   • Record in a quiet environment with minimal background noise")
+            print("   • Maintain consistent speaking pace (120-180 words per minute)")
+            print("   • Ensure clear pronunciation and avoid mumbling")
+            print("   • Use proper microphone positioning (6-8 inches from mouth)")
             
             print("\n✅ Analytics and insights demo completed")
             
         except Exception as e:
+            import traceback
             logger.error(f"Analytics demo error: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             print(f"❌ Analytics demo failed: {e}")
     
     def cleanup_demo_data(self):

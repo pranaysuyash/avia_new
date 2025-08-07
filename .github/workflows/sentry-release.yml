@@ -1,0 +1,84 @@
+name: Sentry Release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+
+jobs:
+  create-sentry-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd frontend && npm ci
+          cd ../desktop_app && npm ci
+          cd ..
+      
+      - name: Get version
+        id: version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build frontend with source maps
+        env:
+          NODE_ENV: production
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: web-app
+          SENTRY_RELEASE: web-app@${{ steps.version.outputs.VERSION }}
+        run: |
+          cd frontend
+          npm run build:sentry
+      
+      - name: Build desktop app with source maps
+        env:
+          NODE_ENV: production
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: desktop-app
+          SENTRY_RELEASE: desktop-app@${{ steps.version.outputs.VERSION }}
+        run: |
+          cd desktop_app
+          npm run build:sentry
+      
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        with:
+          environment: production
+          version: ${{ steps.version.outputs.VERSION }}
+          projects: web-app desktop-app
+          finalize: true
+          sourcemaps: |
+            ./frontend/build
+            ./desktop_app/dist
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: production-builds
+          path: |
+            frontend/build
+            desktop_app/dist
+          retention-days: 30

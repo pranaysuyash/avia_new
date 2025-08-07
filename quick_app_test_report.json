@@ -1,0 +1,138 @@
+{
+  "timestamp": "2025-08-07T15:16:30.933105",
+  "overall_success_rate": 100.0,
+  "category_rates": {
+    "File Structure": 100.0,
+    "API Endpoints": 100.0,
+    "I18n Implementation": 100.0,
+    "Streamlit App": 100.0
+  },
+  "detailed_results": {
+    "file_structure": {
+      "API Core": [
+        [
+          "api/app.py",
+          true,
+          "13.9KB"
+        ],
+        [
+          "api/database.py",
+          true,
+          "2.3KB"
+        ],
+        [
+          "api/auth.py",
+          true,
+          "7.8KB"
+        ]
+      ],
+      "Services": [
+        [
+          "services/internationalization_service.py",
+          true,
+          "22.5KB"
+        ]
+      ],
+      "UI": [
+        [
+          "app.py",
+          true,
+          "179.6KB"
+        ],
+        [
+          "internationalization_ui.py",
+          true,
+          "32.9KB"
+        ]
+      ],
+      "Frontend": [
+        [
+          "frontend/src/components/i18n/InternationalizationProvider.tsx",
+          true,
+          "11.1KB"
+        ],
+        [
+          "desktop_app/src/renderer/src/components/i18n/InternationalizationDesktop.tsx",
+          true,
+          "21.2KB"
+        ],
+        [
+          "mobile/src/components/i18n/InternationalizationMobile.tsx",
+          true,
+          "27.3KB"
+        ]
+      ]
+    },
+    "api_endpoints": {
+      "internationalization.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoints": 15
+      },
+      "transcription.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoints": 10
+      },
+      "analytics.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoints": 4
+      },
+      "auth_endpoints.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoints": 9
+      },
+      "users.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoints": 4
+      },
+      "media.py": {
+        "exists": true,
+        "has_router": true,
+        "endpoints": 5
+      }
+    },
+    "i18n_implementation": {
+      "Backend Service": {
+        "exists": true,
+        "size_kb": 22.5419921875,
+        "patterns": 4
+      },
+      "API Endpoints": {
+        "exists": true,
+        "size_kb": 17.736328125,
+        "patterns": 4
+      },
+      "Streamlit UI": {
+        "exists": true,
+        "size_kb": 32.880859375,
+        "patterns": 4
+      },
+      "React Provider": {
+        "exists": true,
+        "size_kb": 11.0517578125,
+        "patterns": 3
+      },
+      "Desktop Component": {
+        "exists": true,
+        "size_kb": 21.166015625,
+        "patterns": 4
+      },
+      "Mobile Component": {
+        "exists": true,
+        "size_kb": 27.330078125,
+        "patterns": 3
+      }
+    },
+    "streamlit_app": {
+      "exists": true,
+      "size_kb": 179.630859375,
+      "patterns": 5,
+      "has_main": true,
+      "has_pages": true
+    }
+  }
+}

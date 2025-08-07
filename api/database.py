@@ -18,6 +18,9 @@ from database.models import (
     Project, Notification
 )
 
+# Import upload models
+from api.models.upload import UploadSession, UploadPart
+
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./transcription_app.db")
 

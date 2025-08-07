@@ -1,0 +1,28 @@
+{
+  "test_suite": "Internationalization System",
+  "timestamp": "2025-08-07T14:22:54.895515",
+  "total_tests": 22,
+  "passed_tests": 14,
+  "failed_tests": 8,
+  "success_rate": 63.63636363636363,
+  "components_tested": [
+    "InternationalizationService",
+    "API Endpoints",
+    "Streamlit UI",
+    "React Provider",
+    "React Native Component",
+    "Electron Desktop Component",
+    "Database Models",
+    "Error Handling"
+  ],
+  "features_validated": [
+    "Multi-language support (15+ languages)",
+    "RTL language support (Arabic, Hebrew)",
+    "Locale-specific formatting",
+    "User preference management",
+    "Language detection",
+    "Cross-platform consistency",
+    "API integration",
+    "Error handling"
+  ]
+}

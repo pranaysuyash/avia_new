@@ -141,9 +141,9 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowRequestLoggingMiddleware, threshold_ms=1000)
     app.add_middleware(SecurityLoggingMiddleware)
     
-    # Custom middlewares
-    rate_limiter = create_rate_limiter(redis_url=None)
-    app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
+    # Custom middlewares - Use advanced rate limiting
+    from api.middleware.advanced_rate_limit_middleware import create_advanced_rate_limit_middleware
+    app.add_middleware(create_advanced_rate_limit_middleware(enabled=True))
     app.add_middleware(AuditMiddleware)
     app.add_middleware(APIAuthMiddleware)
     
@@ -287,6 +287,42 @@ def create_app() -> FastAPI:
     # Include unified media router
     from .endpoints.unified_media import router as unified_media_router
     app.include_router(unified_media_router, prefix="/api", tags=["Unified Media"])
+    
+    # Include backup management router
+    from api.endpoints.backup import router as backup_router
+    app.include_router(backup_router, tags=["Backup"])
+    
+    # Include rate limiting management router
+    from api.endpoints.rate_limiting import router as rate_limiting_router
+    app.include_router(rate_limiting_router, tags=["Rate Limiting"])
+    
+    # Include GraphQL endpoint
+    from api.endpoints.graphql_endpoint import router as graphql_router
+    app.include_router(graphql_router, tags=["GraphQL"])
+    
+    # Include GDPR compliance router
+    from api.endpoints.gdpr_compliance import router as gdpr_router
+    app.include_router(gdpr_router, tags=["GDPR Compliance"])
+    
+    # Include comprehensive search router
+    from api.endpoints.comprehensive_search import router as comprehensive_search_router
+    app.include_router(comprehensive_search_router, tags=["Comprehensive Search"])
+    
+    # Include real-time collaboration router
+    from api.endpoints.realtime_collaboration import router as realtime_collaboration_router
+    app.include_router(realtime_collaboration_router, tags=["Real-time Collaboration"])
+    
+    # Include advanced analytics router
+    from api.endpoints.advanced_analytics import router as advanced_analytics_router
+    app.include_router(advanced_analytics_router, tags=["Advanced Analytics"])
+    
+    # Include AI suggestions router
+    from api.endpoints.ai_suggestions import router as ai_suggestions_router
+    app.include_router(ai_suggestions_router, tags=["AI Suggestions"])
+    
+    # Include internationalization router
+    from api.endpoints.internationalization import router as i18n_router
+    app.include_router(i18n_router, tags=["Internationalization"])
     
     # Admin monitoring WebSocket
     from api.websocket.admin_monitoring_ws import admin_monitoring_endpoint

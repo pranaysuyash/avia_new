@@ -374,3 +374,25 @@ def audit_admin_action(user_id: str, admin_action: str, target_user_id: str, ip_
         ip_address=ip_address,
         extra_data={'admin_action': admin_action, 'target_user': target_user_id}
     )
+
+def audit_log(
+    user_id: str,
+    action: str,
+    resource_type: str,
+    endpoint: str,
+    method: str = 'POST',
+    resource_id: Optional[str] = None,
+    ip_address: Optional[str] = None,
+    extra_data: Optional[Dict[str, Any]] = None
+):
+    """Simple audit logging function for database module"""
+    return audit_logger.log_action(
+        user_id=user_id,
+        action=action,
+        resource_type=resource_type,
+        endpoint=endpoint,
+        method=method,
+        resource_id=resource_id,
+        ip_address=ip_address,
+        extra_data=extra_data
+    )

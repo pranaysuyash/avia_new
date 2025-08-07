@@ -1,0 +1,35 @@
+=== SPEECH PATTERN ANALYSIS REPORT ===
+
+SPEECH RATE ANALYSIS:
+  Words per minute: 246.0
+  Syllables per minute: 474.0
+  Speaking time: 10.0s
+  Rate variability: 123.55
+
+PAUSE ANALYSIS:
+  Total pause time: 3.1s
+  Number of pauses: 3
+  Average pause duration: 1.02s
+  Pause frequency: 18.0 per minute
+
+FILLER WORD ANALYSIS:
+  Total filler words: 0
+  Filler percentage: 0.0%
+
+CONFIDENCE ANALYSIS:
+  Overall confidence: 0.72
+  Voice stability: 0.83
+  Pace consistency: 0.50
+  Volume consistency: 0.55
+
+COACHING SUGGESTIONS:
+  Overall Rating: Fair
+  Priority Areas:
+    - Speaking Pace
+    - Pause Management
+  Pace Suggestions:
+    - Your speaking pace is 246 WPM, which is faster than optimal. Try to slow down for better clarity.
+    - Take deliberate pauses between sentences to give your audience time to process.
+    - Your speaking pace varies significantly. Try to maintain more consistent pacing throughout your speech.
+  Filler Reduction Tips:
+    - Your filler word usage is within acceptable limits. Well done!

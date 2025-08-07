@@ -1,0 +1,57 @@
+{
+  "timestamp": "2025-08-07T15:42:01.642773",
+  "test_suite": "Complete Platform Integration Test",
+  "tests": {
+    "api_functionality": {
+      "status": "FAILED",
+      "success_rate": 0
+    },
+    "streamlit_functionality": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "Streamlit Accessibility",
+          "PASSED",
+          "App accessible with expected content"
+        ],
+        [
+          "Streamlit App Structure",
+          "PASSED",
+          "3/4 key features"
+        ],
+        [
+          "I18n UI Integration",
+          "PASSED",
+          "I18n UI properly structured"
+        ]
+      ],
+      "status": "PASSED"
+    },
+    "main_applications": {
+      "success_rate": 100.0,
+      "tests": [
+        [
+          "React Web App",
+          "PASSED",
+          "33 components"
+        ],
+        [
+          "Electron Desktop",
+          "PASSED",
+          "Main process configured"
+        ],
+        [
+          "React Native Mobile",
+          "PASSED",
+          "Mobile app configured"
+        ]
+      ],
+      "status": "PASSED"
+    }
+  },
+  "processes": {},
+  "overall_status": "GOOD",
+  "overall_success_rate": 66.66666666666666,
+  "passed_tests": 2,
+  "total_tests": 3
+}

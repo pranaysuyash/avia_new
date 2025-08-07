@@ -489,8 +489,7 @@ emotion_detector = EmotionDetector()
 speaking_pattern_analyzer = SpeakingPatternAnalyzer()
 complexity_analyzer = ContentComplexityAnalyzer()
 
-c
-lass BiasDetector:
+class BiasDetector:
     """Detect bias and analyze inclusive language"""
     
     def __init__(self):

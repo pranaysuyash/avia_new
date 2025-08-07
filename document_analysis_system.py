@@ -41,11 +41,16 @@ import tabula  # Alternative table extraction
 import pdfplumber  # PDF text and table extraction
 # Table Transformer - using transformers library directly
 # from table_transformer import TableTransformerForObjectDetection
-import detectron2
-from detectron2.utils.logger import setup_logger
-from detectron2 import model_zoo
-from detectron2.engine import DefaultPredictor
-from detectron2.config import get_cfg
+try:
+    import detectron2
+    from detectron2.utils.logger import setup_logger
+    from detectron2 import model_zoo
+    from detectron2.engine import DefaultPredictor
+    from detectron2.config import get_cfg
+    DETECTRON2_AVAILABLE = True
+except ImportError:
+    print("Warning: detectron2 not available - some advanced layout analysis features disabled")
+    DETECTRON2_AVAILABLE = False
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -211,26 +216,35 @@ class DocumentAnalysisSystem:
         """Initialize layout analysis models"""
         try:
             # LayoutParser models for different document types
-            self.layout_models = {
-                'newspaper': lp.Detectron2LayoutModel(
-                    'lp://NewspaperNavigator/faster_rcnn_R_50_FPN_3x/config',
-                    extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
-                    label_map={0: "Photograph", 1: "Illustration", 2: "Map", 3: "Comics/Cartoon", 4: "Editorial Cartoon", 5: "Headline", 6: "Advertisement"}
-                ),
-                'publaynet': lp.Detectron2LayoutModel(
-                    'lp://PubLayNet/faster_rcnn_R_50_FPN_3x/config',
-                    extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
-                    label_map={0: "Text", 1: "Title", 2: "List", 3: "Table", 4: "Figure"}
-                ),
-                'prima': lp.Detectron2LayoutModel(
-                    'lp://PrimaLayout/mask_rcnn_R_50_FPN_3x/config',
-                    extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
-                    label_map={1: "TextRegion", 2: "ImageRegion", 3: "TableRegion", 4: "MathsRegion", 5: "SeparatorRegion", 6: "OtherRegion"}
-                )
-            }
+            self.layout_models = {}
+            
+            # Only initialize if Detectron2LayoutModel is available
+            if hasattr(lp, 'Detectron2LayoutModel'):
+                self.layout_models = {
+                    'newspaper': lp.Detectron2LayoutModel(
+                        'lp://NewspaperNavigator/faster_rcnn_R_50_FPN_3x/config',
+                        extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
+                        label_map={0: "Photograph", 1: "Illustration", 2: "Map", 3: "Comics/Cartoon", 4: "Editorial Cartoon", 5: "Headline", 6: "Advertisement"}
+                    ),
+                    'publaynet': lp.Detectron2LayoutModel(
+                        'lp://PubLayNet/faster_rcnn_R_50_FPN_3x/config',
+                        extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
+                        label_map={0: "Text", 1: "Title", 2: "List", 3: "Table", 4: "Figure"}
+                    ),
+                    'prima': lp.Detectron2LayoutModel(
+                        'lp://PrimaLayout/mask_rcnn_R_50_FPN_3x/config',
+                        extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
+                        label_map={1: "TextRegion", 2: "ImageRegion", 3: "TableRegion", 4: "MathsRegion", 5: "SeparatorRegion", 6: "OtherRegion"}
+                    )
+                }
+            else:
+                logger.warning("Detectron2LayoutModel not available in layoutparser")
             
             # Detectron2 for custom layout detection
-            self.setup_detectron2()
+            if DETECTRON2_AVAILABLE:
+                self.setup_detectron2()
+            else:
+                self.detectron2_predictor = None
             
             logger.info("Layout models initialized successfully")
             
@@ -240,6 +254,10 @@ class DocumentAnalysisSystem:
     
     def setup_detectron2(self):
         """Setup Detectron2 for custom object detection"""
+        if not DETECTRON2_AVAILABLE:
+            self.detectron2_predictor = None
+            return
+            
         try:
             cfg = get_cfg()
             cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
