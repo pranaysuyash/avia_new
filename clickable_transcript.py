@@ -8,7 +8,7 @@ import logging
 from typing import List, Dict, Optional, Any
 import json
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +190,18 @@ class ClickableTranscript:
         with col4:
             compact_view = st.checkbox("📝 Compact", value=False, key="compact_view")
         
-        return show_timestamps, show_speakers, show_confidence, compact_view
+        # Edit mode toggle
+        col_edit, col_save = st.columns([1, 1])
+        with col_edit:
+            edit_mode = st.checkbox("✏️ Edit Mode", value=False, key="edit_mode", help="Enable inline transcript editing")
+        
+        with col_save:
+            if edit_mode and st.button("💾 Save Changes", help="Save transcript edits"):
+                self._save_transcript_changes()
+                st.success("Transcript changes saved!")
+                st.rerun()
+        
+        return show_timestamps, show_speakers, show_confidence, compact_view, edit_mode
     
     def _render_segments(self):
         """Render clickable transcript segments"""
@@ -198,6 +209,7 @@ class ClickableTranscript:
         show_speakers = st.session_state.get("show_speakers", True)
         show_confidence = st.session_state.get("show_confidence", False)
         compact_view = st.session_state.get("compact_view", False)
+        edit_mode = st.session_state.get("edit_mode", False)
         
         # Playback progress indicator
         if st.session_state.get('auto_highlight', False) and self.segments:
@@ -273,12 +285,12 @@ class ClickableTranscript:
                 """.format(segment_id=segment['id']), unsafe_allow_html=True)
             
             self._render_clickable_segment(
-                segment, i, show_timestamps, show_speakers, show_confidence, compact_view, search_term
+                segment, i, show_timestamps, show_speakers, show_confidence, compact_view, search_term, edit_mode
             )
     
     def _render_clickable_segment(self, segment: Dict, index: int, show_timestamps: bool, 
                                  show_speakers: bool, show_confidence: bool, compact_view: bool, 
-                                 search_term: str = ""):
+                                 search_term: str = "", edit_mode: bool = False):
         """Render a single clickable segment"""
         text = segment['text']
         start_time = segment['start_time']
@@ -339,8 +351,30 @@ class ClickableTranscript:
                 if metadata_parts:
                     st.caption(" | ".join(metadata_parts))
             
-            # Segment text
-            if compact_view:
+            # Segment text with optional editing
+            if edit_mode:
+                # Edit mode: show editable text area
+                edited_text = st.text_area(
+                    "Edit text",
+                    value=text,
+                    key=f"edit_segment_{segment['id']}",
+                    label_visibility="collapsed",
+                    height=60
+                )
+                
+                # Save edited text back to segment
+                if edited_text != text:
+                    segment['text'] = edited_text
+                    segment['edited'] = True
+                    if 'edited_segments' not in st.session_state:
+                        st.session_state.edited_segments = {}
+                    st.session_state.edited_segments[segment['id']] = edited_text
+                
+                # Show edit indicator
+                if segment.get('edited', False):
+                    st.caption("✏️ *Edited*")
+                    
+            elif compact_view:
                 # Compact view: text only
                 if search_term:
                     st.markdown(display_text, unsafe_allow_html=True)
@@ -355,6 +389,10 @@ class ClickableTranscript:
                     confidence=confidence
                 )
                 
+                # Show edit indicator if segment was edited
+                if segment.get('edited', False):
+                    segment_style += "border-left-color: #ff9800; border-left-width: 6px;"
+                
                 if search_term:
                     st.markdown(
                         f'<div style="{segment_style}">{display_text}</div>',
@@ -365,6 +403,10 @@ class ClickableTranscript:
                         f'<div style="{segment_style}">{text}</div>',
                         unsafe_allow_html=True
                     )
+                
+                # Show edit indicator
+                if segment.get('edited', False):
+                    st.caption("✏️ *Modified*")
             
             # Add some spacing between segments
             if not compact_view:
@@ -489,6 +531,71 @@ class ClickableTranscript:
         
         current_time = st.session_state.get('audio_current_time', 0)
         return segment['start_time'] <= current_time <= segment['end_time']
+    
+    def _save_transcript_changes(self):
+        """Save transcript changes to session state and optionally to file"""
+        if 'edited_segments' not in st.session_state:
+            return
+        
+        # Update segments with edited text
+        for segment in self.segments:
+            segment_id = segment.get('id')
+            if segment_id in st.session_state.edited_segments:
+                segment['text'] = st.session_state.edited_segments[segment_id]
+                segment['edited'] = True
+        
+        # Update the main transcript text
+        updated_transcript = []
+        for segment in self.segments:
+            text = segment.get('text', '').strip()
+            if segment.get('speaker') and segment.get('speaker') != 'Unknown':
+                updated_transcript.append(f"[{segment['speaker']}] {text}")
+            else:
+                updated_transcript.append(text)
+        
+        self.transcript_text = '\n\n'.join(updated_transcript)
+        
+        # Store in session state for persistence
+        if 'saved_transcript_edits' not in st.session_state:
+            st.session_state.saved_transcript_edits = {}
+        
+        st.session_state.saved_transcript_edits = {
+            'transcript': self.transcript_text,
+            'segments': self.segments.copy(),
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        logger.info(f"Saved transcript changes: {len(st.session_state.edited_segments)} segments modified")
+    
+    def export_edited_transcript(self, format: str = 'txt') -> str:
+        """Export the edited transcript in specified format"""
+        from export_manager import MultimediaExporter, ExportConfig
+        
+        if 'saved_transcript_edits' not in st.session_state:
+            return self.transcript_text
+        
+        # Prepare export data
+        export_data = {
+            'transcript': st.session_state.saved_transcript_edits['transcript'],
+            'segments': st.session_state.saved_transcript_edits['segments'],
+            'metadata': {
+                'edited': True,
+                'edit_timestamp': st.session_state.saved_transcript_edits['timestamp'],
+                'original_length': len(self.transcript_text),
+                'edited_length': len(st.session_state.saved_transcript_edits['transcript'])
+            }
+        }
+        
+        # Create exporter and export
+        exporter = MultimediaExporter()
+        config = ExportConfig(format=format, include_metadata=True)
+        
+        try:
+            file_path = exporter.export_transcript(export_data, config)
+            return file_path
+        except Exception as e:
+            logger.error(f"Export failed: {e}")
+            return self.transcript_text
 
 
 def render_clickable_transcript_ui(transcript_text: str, segments: Optional[List[Dict]] = None, 

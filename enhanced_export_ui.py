@@ -44,7 +44,7 @@ def render_quick_export_buttons(
     
     # Quick export buttons in columns
     st.markdown("### 📥 Quick Export")
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
     
     with col1:
         # Text export
@@ -94,6 +94,36 @@ def render_quick_export_buttons(
         )
     
     with col5:
+        # SRT subtitle export
+        if metadata and metadata.get('has_video', False):
+            srt_data = create_srt_export(export_data)
+            st.download_button(
+                label="🎬 SRT",
+                data=srt_data,
+                file_name=f"subtitle_{datetime.now().strftime('%Y%m%d_%H%M%S')}.srt",
+                mime="text/plain",
+                help="Download as SRT subtitle file",
+                use_container_width=True
+            )
+        else:
+            st.button("🎬 SRT", disabled=True, help="SRT export available for video content", use_container_width=True)
+    
+    with col6:
+        # VTT subtitle export  
+        if metadata and metadata.get('has_video', False):
+            vtt_data = create_vtt_export(export_data)
+            st.download_button(
+                label="📺 VTT",
+                data=vtt_data,
+                file_name=f"subtitle_{datetime.now().strftime('%Y%m%d_%H%M%S')}.vtt",
+                mime="text/vtt",
+                help="Download as WebVTT subtitle file", 
+                use_container_width=True
+            )
+        else:
+            st.button("📺 VTT", disabled=True, help="VTT export available for video content", use_container_width=True)
+    
+    with col7:
         # Advanced export options
         if st.button("🗂️ More", help="Access advanced export options", use_container_width=True):
             st.session_state.show_advanced_export = True
@@ -400,3 +430,77 @@ def highlight_search_matches(text: str, search_term: str, case_sensitive: bool =
     highlighted = highlighted.replace('\n', '<br>')
     
     return highlighted
+
+
+def create_srt_export(data: Dict[str, Any]) -> str:
+    """Create SRT subtitle export from transcript data"""
+    srt_content = []
+    segments = data.get('segments', [])
+    
+    if not segments:
+        # Create subtitle from full transcript
+        segments = [{
+            'start_time': 0,
+            'end_time': data.get('metadata', {}).get('duration', 60),
+            'text': data.get('transcript', ''),
+            'speaker': 'Speaker'
+        }]
+    
+    for i, segment in enumerate(segments, 1):
+        start_time = format_srt_time(segment.get('start_time', 0))
+        end_time = format_srt_time(segment.get('end_time', 0))
+        text = segment.get('text', '').strip()
+        
+        if segment.get('speaker'):
+            text = f"[{segment['speaker']}] {text}"
+        
+        srt_entry = f"{i}\n{start_time} --> {end_time}\n{text}\n\n"
+        srt_content.append(srt_entry)
+    
+    return ''.join(srt_content)
+
+
+def create_vtt_export(data: Dict[str, Any]) -> str:
+    """Create WebVTT subtitle export from transcript data"""
+    vtt_content = ["WEBVTT\n\n"]
+    segments = data.get('segments', [])
+    
+    if not segments:
+        # Create subtitle from full transcript
+        segments = [{
+            'start_time': 0,
+            'end_time': data.get('metadata', {}).get('duration', 60),
+            'text': data.get('transcript', ''),
+            'speaker': 'Speaker'
+        }]
+    
+    for segment in segments:
+        start_time = format_vtt_time(segment.get('start_time', 0))
+        end_time = format_vtt_time(segment.get('end_time', 0))
+        text = segment.get('text', '').strip()
+        
+        if segment.get('speaker'):
+            text = f"<v {segment['speaker']}>{text}"
+        
+        vtt_entry = f"{start_time} --> {end_time}\n{text}\n\n"
+        vtt_content.append(vtt_entry)
+    
+    return ''.join(vtt_content)
+
+
+def format_srt_time(seconds: float) -> str:
+    """Format time for SRT format (HH:MM:SS,mmm)"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millisecs = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millisecs:03d}"
+
+
+def format_vtt_time(seconds: float) -> str:
+    """Format time for VTT format (HH:MM:SS.mmm)"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millisecs = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millisecs:03d}"

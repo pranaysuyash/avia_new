@@ -1,0 +1,183 @@
+{
+  "business_meeting": {
+    "transcript": "Good morning everyone, thank you for joining today's quarterly review meeting. I'm Sarah Chen, VP of Operations. Let's start by reviewing our Q3 performance metrics. James, could you walk us through the sales numbers?",
+    "duration": 150,
+    "segments": [
+      {
+        "id": 1,
+        "start_time": 0.0,
+        "end_time": 8.5,
+        "text": "Good morning everyone, thank you for joining today's quarterly review meeting.",
+        "speaker": "Sarah Chen",
+        "confidence": 0.95
+      },
+      {
+        "id": 2,
+        "start_time": 8.5,
+        "end_time": 18.2,
+        "text": "I'm Sarah Chen, VP of Operations. Let's start by reviewing our Q3 performance metrics.",
+        "speaker": "Sarah Chen",
+        "confidence": 0.92
+      },
+      {
+        "id": 3,
+        "start_time": 18.2,
+        "end_time": 25.0,
+        "text": "James, could you walk us through the sales numbers?",
+        "speaker": "Sarah Chen",
+        "confidence": 0.88
+      }
+    ],
+    "entities": {
+      "PERSON": ["Sarah Chen", "James"],
+      "ORG": ["VP of Operations"],
+      "TIME": ["Q3", "quarterly"]
+    }
+  },
+  "technical_interview": {
+    "transcript": "Hi, I'm Alex Rodriguez, the Senior Software Engineer here. Thanks for coming in today. I'd like to start with some questions about your experience with Python and machine learning frameworks.",
+    "duration": 105,
+    "segments": [
+      {
+        "id": 1,
+        "start_time": 0.0,
+        "end_time": 12.3,
+        "text": "Hi, I'm Alex Rodriguez, the Senior Software Engineer here. Thanks for coming in today.",
+        "speaker": "Alex Rodriguez",
+        "confidence": 0.96
+      },
+      {
+        "id": 2,
+        "start_time": 12.3,
+        "end_time": 22.8,
+        "text": "I'd like to start with some questions about your experience with Python and machine learning frameworks.",
+        "speaker": "Alex Rodriguez",
+        "confidence": 0.91
+      }
+    ],
+    "entities": {
+      "PERSON": ["Alex Rodriguez"],
+      "POSITION": ["Senior Software Engineer"],
+      "TECHNOLOGY": ["Python", "machine learning"]
+    }
+  },
+  "educational_lecture": {
+    "transcript": "Welcome to Computer Science 101. Today we'll be discussing the fundamentals of algorithms and data structures. These concepts form the backbone of computer programming and software development.",
+    "duration": 195,
+    "segments": [
+      {
+        "id": 1,
+        "start_time": 0.0,
+        "end_time": 6.5,
+        "text": "Welcome to Computer Science 101.",
+        "speaker": "Professor",
+        "confidence": 0.98
+      },
+      {
+        "id": 2,
+        "start_time": 6.5,
+        "end_time": 18.2,
+        "text": "Today we'll be discussing the fundamentals of algorithms and data structures.",
+        "speaker": "Professor",
+        "confidence": 0.94
+      },
+      {
+        "id": 3,
+        "start_time": 18.2,
+        "end_time": 28.0,
+        "text": "These concepts form the backbone of computer programming and software development.",
+        "speaker": "Professor",
+        "confidence": 0.89
+      }
+    ],
+    "entities": {
+      "COURSE": ["Computer Science 101"],
+      "CONCEPT": ["algorithms", "data structures", "computer programming", "software development"]
+    }
+  },
+  "customer_service": {
+    "transcript": "Hello, thank you for calling TechSupport Solutions. This is Maria speaking. How can I assist you today? I understand you're having issues with your software installation. Let me help you troubleshoot this problem.",
+    "duration": 120,
+    "segments": [
+      {
+        "id": 1,
+        "start_time": 0.0,
+        "end_time": 8.5,
+        "text": "Hello, thank you for calling TechSupport Solutions. This is Maria speaking.",
+        "speaker": "Maria",
+        "confidence": 0.97
+      },
+      {
+        "id": 2,
+        "start_time": 8.5,
+        "end_time": 12.0,
+        "text": "How can I assist you today?",
+        "speaker": "Maria",
+        "confidence": 0.95
+      },
+      {
+        "id": 3,
+        "start_time": 12.0,
+        "end_time": 20.5,
+        "text": "I understand you're having issues with your software installation.",
+        "speaker": "Maria",
+        "confidence": 0.90
+      },
+      {
+        "id": 4,
+        "start_time": 20.5,
+        "end_time": 26.0,
+        "text": "Let me help you troubleshoot this problem.",
+        "speaker": "Maria",
+        "confidence": 0.93
+      }
+    ],
+    "entities": {
+      "PERSON": ["Maria"],
+      "ORG": ["TechSupport Solutions"],
+      "ISSUE": ["software installation", "troubleshoot"]
+    }
+  },
+  "medical_consultation": {
+    "transcript": "Good afternoon, I'm Dr. Jennifer Smith. I've reviewed your test results and medical history. Your blood pressure readings have improved since our last visit, which is excellent news. Let's discuss your current medication regimen.",
+    "duration": 180,
+    "segments": [
+      {
+        "id": 1,
+        "start_time": 0.0,
+        "end_time": 8.0,
+        "text": "Good afternoon, I'm Dr. Jennifer Smith.",
+        "speaker": "Dr. Jennifer Smith",
+        "confidence": 0.98
+      },
+      {
+        "id": 2,
+        "start_time": 8.0,
+        "end_time": 16.5,
+        "text": "I've reviewed your test results and medical history.",
+        "speaker": "Dr. Jennifer Smith",
+        "confidence": 0.94
+      },
+      {
+        "id": 3,
+        "start_time": 16.5,
+        "end_time": 26.8,
+        "text": "Your blood pressure readings have improved since our last visit, which is excellent news.",
+        "speaker": "Dr. Jennifer Smith",
+        "confidence": 0.91
+      },
+      {
+        "id": 4,
+        "start_time": 26.8,
+        "end_time": 32.0,
+        "text": "Let's discuss your current medication regimen.",
+        "speaker": "Dr. Jennifer Smith",
+        "confidence": 0.89
+      }
+    ],
+    "entities": {
+      "PERSON": ["Dr. Jennifer Smith"],
+      "MEDICAL": ["blood pressure", "test results", "medical history", "medication regimen"]
+    }
+  }
+}

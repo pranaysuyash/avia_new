@@ -87,7 +87,10 @@ class MultimediaExporter:
                 'html': self._export_html,
                 'txt': self._export_txt,
                 'xlsx': self._export_xlsx,
-                'md': self._export_markdown
+                'md': self._export_markdown,
+                'srt': self._export_srt,
+                'vtt': self._export_vtt,
+                'elan': self._export_elan
             }
             
             if config.format not in export_methods:
@@ -861,3 +864,182 @@ Transcript System
             'subject': subject,
             'body': body
         }
+    
+    def _export_srt(self, data: Dict[str, Any], config: ExportConfig) -> str:
+        """Export to SRT subtitle format"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"transcript_{timestamp}.srt"
+        output_path = self.output_dir / filename
+        
+        srt_content = []
+        segments = data.get('segments', [])
+        
+        if not segments:
+            # Create single subtitle from full transcript
+            segments = [{
+                'start_time': 0,
+                'end_time': data.get('duration', 60),
+                'text': data.get('transcript', ''),
+                'speaker': 'Speaker'
+            }]
+        
+        for i, segment in enumerate(segments, 1):
+            start_time = self._format_srt_time(segment.get('start_time', 0))
+            end_time = self._format_srt_time(segment.get('end_time', 0))
+            text = segment.get('text', '').strip()
+            
+            if config.include_speaker_info and segment.get('speaker'):
+                text = f"[{segment['speaker']}] {text}"
+            
+            srt_entry = f"{i}\n{start_time} --> {end_time}\n{text}\n\n"
+            srt_content.append(srt_entry)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(''.join(srt_content))
+        
+        logger.info(f"SRT subtitle file created: {output_path}")
+        return str(output_path)
+    
+    def _export_vtt(self, data: Dict[str, Any], config: ExportConfig) -> str:
+        """Export to WebVTT subtitle format"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"transcript_{timestamp}.vtt"
+        output_path = self.output_dir / filename
+        
+        vtt_content = ["WEBVTT\n\n"]
+        segments = data.get('segments', [])
+        
+        if not segments:
+            # Create single subtitle from full transcript
+            segments = [{
+                'start_time': 0,
+                'end_time': data.get('duration', 60),
+                'text': data.get('transcript', ''),
+                'speaker': 'Speaker'
+            }]
+        
+        for segment in segments:
+            start_time = self._format_vtt_time(segment.get('start_time', 0))
+            end_time = self._format_vtt_time(segment.get('end_time', 0))
+            text = segment.get('text', '').strip()
+            
+            if config.include_speaker_info and segment.get('speaker'):
+                text = f"<v {segment['speaker']}>{text}"
+            
+            vtt_entry = f"{start_time} --> {end_time}\n{text}\n\n"
+            vtt_content.append(vtt_entry)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(''.join(vtt_content))
+        
+        logger.info(f"VTT subtitle file created: {output_path}")
+        return str(output_path)
+    
+    def _export_elan(self, data: Dict[str, Any], config: ExportConfig) -> str:
+        """Export to ELAN annotation format"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"transcript_{timestamp}.eaf"
+        output_path = self.output_dir / filename
+        
+        # Create ELAN XML structure
+        root = ET.Element("ANNOTATION_DOCUMENT", {
+            "AUTHOR": "Transcript System",
+            "DATE": datetime.now().isoformat(),
+            "FORMAT": "3.0",
+            "VERSION": "3.0"
+        })
+        
+        # Header
+        header = ET.SubElement(root, "HEADER", {
+            "MEDIA_FILE": "",
+            "TIME_UNITS": "milliseconds"
+        })
+        
+        # Media descriptor
+        if data.get('media_file'):
+            media_desc = ET.SubElement(header, "MEDIA_DESCRIPTOR", {
+                "MEDIA_URL": data['media_file'],
+                "MIME_TYPE": data.get('media_type', 'audio/wav')
+            })
+        
+        # Time order
+        time_order = ET.SubElement(root, "TIME_ORDER")
+        
+        # Create time slots
+        segments = data.get('segments', [])
+        time_slot_id = 1
+        time_slots = {}
+        
+        for segment in segments:
+            start_time = int(segment.get('start_time', 0) * 1000)  # Convert to milliseconds
+            end_time = int(segment.get('end_time', 0) * 1000)
+            
+            start_slot = f"ts{time_slot_id}"
+            end_slot = f"ts{time_slot_id + 1}"
+            
+            ET.SubElement(time_order, "TIME_SLOT", {
+                "TIME_SLOT_ID": start_slot,
+                "TIME_VALUE": str(start_time)
+            })
+            
+            ET.SubElement(time_order, "TIME_SLOT", {
+                "TIME_SLOT_ID": end_slot,
+                "TIME_VALUE": str(end_time)
+            })
+            
+            time_slots[segment.get('id', len(time_slots))] = (start_slot, end_slot)
+            time_slot_id += 2
+        
+        # Create tier
+        tier = ET.SubElement(root, "TIER", {
+            "LINGUISTIC_TYPE_REF": "default-lt",
+            "TIER_ID": "transcript"
+        })
+        
+        # Add annotations
+        for i, segment in enumerate(segments):
+            annotation = ET.SubElement(tier, "ANNOTATION")
+            alignable_annotation = ET.SubElement(annotation, "ALIGNABLE_ANNOTATION", {
+                "ANNOTATION_ID": f"a{i+1}",
+                "TIME_SLOT_REF1": time_slots[segment.get('id', i)][0],
+                "TIME_SLOT_REF2": time_slots[segment.get('id', i)][1]
+            })
+            
+            annotation_value = ET.SubElement(alignable_annotation, "ANNOTATION_VALUE")
+            text = segment.get('text', '').strip()
+            
+            if config.include_speaker_info and segment.get('speaker'):
+                text = f"[{segment['speaker']}] {text}"
+            
+            annotation_value.text = text
+        
+        # Linguistic type
+        linguistic_type = ET.SubElement(root, "LINGUISTIC_TYPE", {
+            "GRAPHIC_REFERENCES": "false",
+            "LINGUISTIC_TYPE_ID": "default-lt",
+            "TIME_ALIGNABLE": "true"
+        })
+        
+        # Write to file
+        tree = ET.ElementTree(root)
+        ET.indent(tree, space="  ", level=0)
+        tree.write(output_path, encoding='utf-8', xml_declaration=True)
+        
+        logger.info(f"ELAN annotation file created: {output_path}")
+        return str(output_path)
+    
+    def _format_srt_time(self, seconds: float) -> str:
+        """Format time for SRT format (HH:MM:SS,mmm)"""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        millisecs = int((seconds % 1) * 1000)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d},{millisecs:03d}"
+    
+    def _format_vtt_time(self, seconds: float) -> str:
+        """Format time for VTT format (HH:MM:SS.mmm)"""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        millisecs = int((seconds % 1) * 1000)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millisecs:03d}"
