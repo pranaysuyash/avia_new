@@ -425,40 +425,37 @@ export const ComprehensiveSearch: React.FC<ComprehensiveSearchProps> = ({ classN
 
               {/* Search Type and Scope Controls */}
               <div className="flex gap-2 mt-3">
-                <Select value={searchType} onValueChange={setSearchType}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full_text">Full Text</SelectItem>
-                    <SelectItem value="exact">Exact Match</SelectItem>
-                    <SelectItem value="fuzzy">Fuzzy</SelectItem>
-                    <SelectItem value="regex">Regex</SelectItem>
-                  </SelectContent>
+                <Select 
+                  value={searchType} 
+                  onChange={(e) => setSearchType(e.target.value)}
+                  className="w-40"
+                >
+                  <option value="full_text">Full Text</option>
+                  <option value="exact">Exact Match</option>
+                  <option value="fuzzy">Fuzzy</option>
+                  <option value="regex">Regex</option>
                 </Select>
 
-                <Select value={searchScope} onValueChange={setSearchScope}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="transcripts">Transcripts</SelectItem>
-                    <SelectItem value="users">Users</SelectItem>
-                    <SelectItem value="content">Content</SelectItem>
-                  </SelectContent>
+                <Select 
+                  value={searchScope} 
+                  onChange={(e) => setSearchScope(e.target.value)}
+                  className="w-32"
+                >
+                  <option value="all">All</option>
+                  <option value="transcripts">Transcripts</option>
+                  <option value="users">Users</option>
+                  <option value="content">Content</option>
                 </Select>
 
-                <Select value={sortOrder} onValueChange={setSortOrder}>
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="relevance">Relevance</SelectItem>
-                    <SelectItem value="date_desc">Newest</SelectItem>
-                    <SelectItem value="date_asc">Oldest</SelectItem>
-                    <SelectItem value="title_asc">Title A-Z</SelectItem>
-                  </SelectContent>
+                <Select 
+                  value={sortOrder} 
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="w-36"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="date_desc">Newest</option>
+                  <option value="date_asc">Oldest</option>
+                  <option value="title_asc">Title A-Z</option>
                 </Select>
 
                 <Button

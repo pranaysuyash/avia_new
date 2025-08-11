@@ -64,8 +64,9 @@ class FormattedOutput:
     format_type: str
     template_name: str
     metadata: Dict[str, Any]
-    generated_at: datetimeclass Tem
-plateEngine:
+    generated_at: datetime
+
+class TemplateEngine:
     """Core template engine for dynamic output formatting"""
     
     def __init__(self, templates_dir: str = "templates"):

@@ -17,6 +17,7 @@ import {
   Popper,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   ListItemIcon,
   ListItemSecondaryAction,
@@ -54,7 +55,7 @@ import {
   FormatQuote as FormatQuoteIcon,
   TipsAndUpdates as TipsAndUpdatesIcon,
   Speed as SpeedIcon,
-  Grammar as GrammarIcon,
+  Spellcheck as GrammarIcon,
   Style as StyleIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -66,7 +67,23 @@ import {
   KeyboardArrowRight as KeyboardArrowRightIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { aiSuggestionsAPI } from '../../services/api';
+import apiService from '../../services/api';
+
+const aiSuggestionsAPI = {
+  analyzeGrammar: (text: string) => apiService.post('/api/v1/ai/grammar', { text }),
+  getSummary: (text: string) => apiService.post('/api/v1/ai/summary', { text }),
+  extractKeyPoints: (text: string) => apiService.post('/api/v1/ai/keypoints', { text }),
+  generateQuestions: (text: string) => apiService.post('/api/v1/ai/questions', { text }),
+  suggestCorrections: (text: string) => apiService.post('/api/v1/ai/corrections', { text }),
+  rewriteText: (text: string, style: string) => apiService.post('/api/v1/ai/rewrite', { text, style }),
+  factCheck: (text: string) => apiService.post('/api/v1/ai/factcheck', { text }),
+  getAutoCompletions: (params: any) => apiService.post('/api/v1/ai/autocomplete', params),
+  getContentSuggestions: (params: any) => apiService.post('/api/v1/ai/suggestions', params),
+  submitFeedback: (params: any) => apiService.post('/api/v1/ai/feedback', params),
+  getSmartReplies: (params: any) => apiService.post('/api/v1/ai/smart-replies', params),
+  checkGrammar: (text: string) => apiService.post('/api/v1/ai/check-grammar', { text }),
+  summarize: (text: string, level: string) => apiService.post('/api/v1/ai/summarize', { text, level })
+};
 import { debounce } from 'lodash';
 
 // Types
@@ -124,7 +141,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   helperText,
   error = false,
 }) => {
-  const { user } = useAuth();
+  const { user, tokens } = useAuth();
   const [completions, setCompletions] = useState<AutoCompletion[]>([]);
   const [showCompletions, setShowCompletions] = useState(false);
   const [selectedCompletionIndex, setSelectedCompletionIndex] = useState(-1);
@@ -142,7 +159,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
-  const textFieldRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+  const textFieldRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const completionTimeoutRef = useRef<NodeJS.Timeout>();
   const suggestionTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -152,9 +170,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
   // Initialize WebSocket connection
   useEffect(() => {
-    if (autoCompleteEnabled && user?.token) {
+    if (autoCompleteEnabled && tokens?.accessToken) {
       const ws = new WebSocket(
-        `${process.env.REACT_APP_WS_URL}/api/v1/ai-suggestions/ws/autocomplete?token=${user.token}`
+        `${process.env.REACT_APP_WS_URL}/api/v1/ai-suggestions/ws/autocomplete?token=${tokens.accessToken}`
       );
 
       ws.onopen = () => {
@@ -190,7 +208,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         ws.close();
       };
     }
-  }, [autoCompleteEnabled, user?.token]);
+  }, [autoCompleteEnabled, tokens?.accessToken]);
 
   // Debounced auto-completion
   const getAutoCompletions = useMemo(
@@ -345,10 +363,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     
     // Move cursor to end of completion
     setTimeout(() => {
-      if (textFieldRef.current) {
+      if (inputRef.current) {
         const newPosition = cursorPosition + completion.text.length;
-        textFieldRef.current.setSelectionRange(newPosition, newPosition);
-        textFieldRef.current.focus();
+        inputRef.current.setSelectionRange(newPosition, newPosition);
+        inputRef.current.focus();
       }
     }, 0);
     
@@ -495,28 +513,28 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             ) : (
               <List dense>
                 {completions.map((completion, index) => (
-                  <ListItem
-                    key={index}
-                    button
-                    selected={index === selectedCompletionIndex}
-                    onClick={() => applyCompletion(completion)}
-                    sx={{
-                      '&:hover': { backgroundColor: 'action.hover' },
-                      '&.Mui-selected': { backgroundColor: 'action.selected' },
-                    }}
-                  >
-                    <ListItemIcon>
-                      <AutoAwesomeIcon
-                        fontSize="small"
-                        sx={{
-                          color: completion.confidence > 0.8 ? 'success.main' : 'text.secondary',
-                        }}
+                  <ListItem key={index} disablePadding>
+                    <ListItemButton
+                      selected={index === selectedCompletionIndex}
+                      onClick={() => applyCompletion(completion)}
+                      sx={{
+                        '&:hover': { backgroundColor: 'action.hover' },
+                        '&.Mui-selected': { backgroundColor: 'action.selected' },
+                      }}
+                    >
+                      <ListItemIcon>
+                        <AutoAwesomeIcon
+                          fontSize="small"
+                          sx={{
+                            color: completion.confidence > 0.8 ? 'success.main' : 'text.secondary',
+                          }}
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={completion.text}
+                        secondary={`${Math.round(completion.confidence * 100)}% confidence`}
                       />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={completion.text}
-                      secondary={`${Math.round(completion.confidence * 100)}% confidence`}
-                    />
+                    </ListItemButton>
                     <ListItemSecondaryAction>
                       <Typography variant="caption" color="text.secondary">
                         Tab
@@ -672,6 +690,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <TextField
           ref={textFieldRef}
+          inputRef={inputRef}
           value={value}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}

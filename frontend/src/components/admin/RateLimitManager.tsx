@@ -600,17 +600,12 @@ export const RateLimitManager: React.FC<RateLimitManagerProps> = ({ className })
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="scope">Scope</Label>
-              <Select value={selectedScope} onValueChange={setSelectedScope}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="global">Global</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="ip">IP Address</SelectItem>
-                  <SelectItem value="api_key">API Key</SelectItem>
-                  <SelectItem value="endpoint">Endpoint</SelectItem>
-                </SelectContent>
+              <Select value={selectedScope} onChange={(e) => setSelectedScope(e.target.value)}>
+                <option value="global">Global</option>
+                <option value="user">User</option>
+                <option value="ip">IP Address</option>
+                <option value="api_key">API Key</option>
+                <option value="endpoint">Endpoint</option>
               </Select>
             </div>
 
@@ -653,17 +648,12 @@ export const RateLimitManager: React.FC<RateLimitManagerProps> = ({ className })
               <Label htmlFor="algorithm">Algorithm</Label>
               <Select
                 value={configForm.algorithm}
-                onValueChange={(value) => setConfigForm({ ...configForm, algorithm: value })}
+                onChange={(e) => setConfigForm({ ...configForm, algorithm: e.target.value })}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="token_bucket">Token Bucket</SelectItem>
-                  <SelectItem value="sliding_window">Sliding Window</SelectItem>
-                  <SelectItem value="fixed_window">Fixed Window</SelectItem>
-                  <SelectItem value="leaky_bucket">Leaky Bucket</SelectItem>
-                </SelectContent>
+                <option value="token_bucket">Token Bucket</option>
+                <option value="sliding_window">Sliding Window</option>
+                <option value="fixed_window">Fixed Window</option>
+                <option value="leaky_bucket">Leaky Bucket</option>
               </Select>
             </div>
           </div>
@@ -704,17 +694,12 @@ export const RateLimitManager: React.FC<RateLimitManagerProps> = ({ className })
               <Label htmlFor="reset_scope">Scope</Label>
               <Select
                 value={resetForm.scope}
-                onValueChange={(value) => setResetForm({ ...resetForm, scope: value })}
+                onChange={(e) => setResetForm({ ...resetForm, scope: e.target.value })}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="ip">IP Address</SelectItem>
-                  <SelectItem value="api_key">API Key</SelectItem>
-                  <SelectItem value="endpoint">Endpoint</SelectItem>
-                </SelectContent>
+                <option value="user">User</option>
+                <option value="ip">IP Address</option>
+                <option value="api_key">API Key</option>
+                <option value="endpoint">Endpoint</option>
               </Select>
             </div>
           </div>
@@ -756,16 +741,11 @@ export const RateLimitManager: React.FC<RateLimitManagerProps> = ({ className })
                 <Label htmlFor="test_scope">Scope</Label>
                 <Select
                   value={testForm.scope}
-                  onValueChange={(value) => setTestForm({ ...testForm, scope: value })}
+                  onChange={(e) => setTestForm({ ...testForm, scope: e.target.value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="ip">IP Address</SelectItem>
-                    <SelectItem value="api_key">API Key</SelectItem>
-                  </SelectContent>
+                  <option value="user">User</option>
+                  <option value="ip">IP Address</option>
+                  <option value="api_key">API Key</option>
                 </Select>
               </div>
 

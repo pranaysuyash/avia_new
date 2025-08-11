@@ -59,7 +59,7 @@ import {
   Info,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 
 interface DocumentMetadata {
   filename: string;
@@ -143,7 +143,7 @@ const DocumentAnalysis: React.FC = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await apiClient.get('/api/v1/document-analysis/templates');
+      const response = await apiService.get('/api/v1/document-analysis/templates');
       setTemplates(response.data.templates);
     } catch (err) {
       console.error('Failed to load templates:', err);
@@ -185,7 +185,7 @@ const DocumentAnalysis: React.FC = () => {
       formData.append('analysis_config', JSON.stringify(analysisConfig));
       formData.append('output_format', 'json');
 
-      const response = await apiClient.post('/api/v1/document-analysis/analyze/upload', formData, {
+      const response = await apiService.post('/api/v1/document-analysis/analyze/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -203,7 +203,7 @@ const DocumentAnalysis: React.FC = () => {
   const pollForResults = (taskId: string) => {
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const response = await apiClient.get(`/api/v1/document-analysis/status/${taskId}`);
+        const response = await apiService.get(`/api/v1/document-analysis/status/${taskId}`);
         const data = response.data;
 
         if (data.status === 'completed' && data.result) {
@@ -255,7 +255,7 @@ const DocumentAnalysis: React.FC = () => {
     if (!results?.task_id) return;
 
     try {
-      const response = await apiClient.get(
+      const response = await apiService.get(
         `/api/v1/document-analysis/report/${results.task_id}?format=${format}`
       );
       
@@ -284,7 +284,7 @@ const DocumentAnalysis: React.FC = () => {
     if (!results?.task_id) return;
 
     try {
-      const response = await apiClient.post(
+      const response = await apiService.get(
         `/api/v1/document-analysis/export/${results.task_id}?export_format=json&include_sections=${sections.join(',')}`
       );
       
@@ -695,7 +695,7 @@ const DocumentAnalysis: React.FC = () => {
                                   secondary={entity.confidence ? `Confidence: ${(entity.confidence * 100).toFixed(1)}%` : undefined}
                                 />
                               </ListItem>
-                              {index < results.entities.length - 1 && <Divider />}
+                              {index < (results.entities?.length ?? 0) - 1 && <Divider />}
                             </React.Fragment>
                           ))}
                         </List>

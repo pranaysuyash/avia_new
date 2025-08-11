@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePerformanceMonitor } from '../../utils/performanceMonitor';
-import { webTheme } from '../../../shared/theme';
+import { webTheme } from '../../shared/theme';
 
 interface MetricCardProps {
   name: string;

@@ -27,7 +27,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondary,
+  ListItemSecondaryAction,
   CircularProgress,
   Alert,
   Autocomplete,
@@ -47,7 +47,7 @@ import {
   Person,
   Language,
   Tag,
-  Confidence,
+  VerifiedUser,
   TrendingUp,
   Psychology,
   VolumeUp
@@ -456,7 +456,7 @@ export const AdvancedSearch: React.FC = () => {
                     value={filters.dateRange?.start || null}
                     onChange={(date) => setFilters({
                       ...filters,
-                      dateRange: { ...filters.dateRange, start: date }
+                      dateRange: { start: date, end: filters.dateRange?.end || null }
                     })}
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
                   />
@@ -467,7 +467,7 @@ export const AdvancedSearch: React.FC = () => {
                     value={filters.dateRange?.end || null}
                     onChange={(date) => setFilters({
                       ...filters,
-                      dateRange: { ...filters.dateRange, end: date }
+                      dateRange: { start: filters.dateRange?.start || null, end: date }
                     })}
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
                   />
@@ -803,7 +803,7 @@ export const AdvancedSearch: React.FC = () => {
                     
                     {result.confidence && (
                       <Chip
-                        icon={<Confidence />}
+                        icon={<VerifiedUser />}
                         label={`${(result.confidence * 100).toFixed(0)}%`}
                         size="small"
                         variant="outlined"

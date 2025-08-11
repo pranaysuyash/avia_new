@@ -37,8 +37,8 @@ import {
   Topic,
   Schedule,
   Person,
-  Priority,
-  Sentiment,
+  PriorityHigh,
+  SentimentSatisfied,
   ExpandMore,
   Download,
   Share,
@@ -738,7 +738,7 @@ const AIContentInsights: React.FC<AIContentInsightsProps> = ({
                 <React.Fragment key={index}>
                   <ListItem>
                     <ListItemIcon>
-                      <Sentiment sx={{ color: getSentimentColor(point.sentiment) }} />
+                      <SentimentSatisfied sx={{ color: getSentimentColor(point.sentiment) }} />
                     </ListItemIcon>
                     <ListItemText
                       primary={

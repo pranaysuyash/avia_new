@@ -518,8 +518,9 @@ class MarketplaceUI:
         st.subheader("➕ Create New Script Template")
         
         with st.expander("Create Script Template"):
-            self._render_create_script_template_form()    def
- _render_user_collections(self):
+            self._render_create_script_template_form()
+    
+    def _render_user_collections(self):
         """Render user collections"""
         st.header("⭐ My Collections")
         

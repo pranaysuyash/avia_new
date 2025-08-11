@@ -705,8 +705,9 @@ class AdminDashboardUI:
                     y=list(priority_dist.values()),
                     title="Ticket Priority Distribution"
                 )
-                st.plotly_chart(fig, use_container_width=True)  
-  def _render_business_intelligence(self):
+                st.plotly_chart(fig, use_container_width=True)
+    
+    def _render_business_intelligence(self):
         """Render business intelligence interface"""
         st.header("📈 Business Intelligence")
         

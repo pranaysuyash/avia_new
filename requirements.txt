@@ -77,6 +77,12 @@ python-json-logger>=2.0.7
 librosa>=0.10.0
 soundfile>=0.12.0
 
+# Audio Enhancement Pipeline (Task 117)
+noisereduce>=3.0.0
+scipy>=1.10.0  # Already included above but needed for audio enhancement
+matplotlib>=3.7.0  # Already included above but needed for visualizations
+plotly>=5.17.0  # Already included above but needed for UI visualizations
+
 # Database and Authentication
 sqlalchemy>=2.0.0
 passlib>=1.7.4

@@ -1,0 +1,72 @@
+/* Interactive Transcript Styles */
+
+.interactive-transcript {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.transcript-segment {
+  position: relative;
+  cursor: pointer;
+  user-select: text;
+  transition: all 0.2s ease;
+}
+
+.transcript-segment:hover {
+  transform: translateX(2px);
+}
+
+.transcript-segment.current-playing {
+  animation: pulse-highlight 2s infinite;
+}
+
+@keyframes pulse-highlight {
+  0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 193, 7, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+
+.segment-text {
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.segment-text mark {
+  background-color: #fef08a;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.audio-player-container audio {
+  width: 100%;
+  outline: none;
+}
+
+.audio-player-container audio::-webkit-media-controls-panel {
+  background-color: #f3f4f6;
+}
+
+/* Custom scrollbar for transcript */
+.transcript-segments {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.transcript-segments::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transcript-segments::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.transcript-segments::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.transcript-segments::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

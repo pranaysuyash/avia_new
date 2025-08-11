@@ -717,16 +717,11 @@ export const GDPRPrivacyDashboard: React.FC<GDPRPrivacyDashboardProps> = ({ clas
               <Label htmlFor="export_type">Export Type</Label>
               <Select
                 value={exportForm.export_type}
-                onValueChange={(value) => setExportForm({ ...exportForm, export_type: value })}
+                onChange={(e) => setExportForm({ ...exportForm, export_type: e.target.value })}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full_export">Full Export (All Data)</SelectItem>
-                  <SelectItem value="transcripts_only">Transcripts Only</SelectItem>
-                  <SelectItem value="analytics_only">Analytics Only</SelectItem>
-                </SelectContent>
+                <option value="full_export">Full Export (All Data)</option>
+                <option value="transcripts_only">Transcripts Only</option>
+                <option value="analytics_only">Analytics Only</option>
               </Select>
             </div>
 
@@ -734,16 +729,11 @@ export const GDPRPrivacyDashboard: React.FC<GDPRPrivacyDashboardProps> = ({ clas
               <Label htmlFor="format_type">Format</Label>
               <Select
                 value={exportForm.format_type}
-                onValueChange={(value) => setExportForm({ ...exportForm, format_type: value })}
+                onChange={(e) => setExportForm({ ...exportForm, format_type: e.target.value })}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="json">JSON</SelectItem>
-                  <SelectItem value="csv">CSV (ZIP)</SelectItem>
-                  <SelectItem value="xml">XML</SelectItem>
-                </SelectContent>
+                <option value="json">JSON</option>
+                <option value="csv">CSV (ZIP)</option>
+                <option value="xml">XML</option>
               </Select>
             </div>
 

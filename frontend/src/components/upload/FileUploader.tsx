@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { usePresignedUpload } from '../../hooks/usePresignedUpload';
-import { webTheme } from '../../../shared/theme';
+import { webTheme } from '../../shared/theme';
 import { formatFileSize, formatDuration } from '../../utils/formatters';
 
 interface FileUploaderProps {

@@ -487,8 +487,9 @@ class DynamicTemplatesUI:
                 'transcript_segments': segments
             }
         
-        return None    d
-ef parse_transcript_input(self, transcript_text: str) -> List[TranscriptSegment]:
+        return None
+    
+    def parse_transcript_input(self, transcript_text: str) -> List[TranscriptSegment]:
         """Parse user transcript input into segments"""
         segments = []
         lines = transcript_text.strip().split('\n')

@@ -580,8 +580,9 @@ class MarketplaceDatabase:
                 
         except Exception as e:
             logger.error(f"Error adding script template: {e}")
-            return Falseclass Te
-mplateMarketplace:
+            return False
+
+class TemplateMarketplace:
     """Template marketplace for common use cases"""
     
     def __init__(self, db: MarketplaceDatabase):

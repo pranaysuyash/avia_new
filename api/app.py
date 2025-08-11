@@ -320,9 +320,53 @@ def create_app() -> FastAPI:
     from api.endpoints.ai_suggestions import router as ai_suggestions_router
     app.include_router(ai_suggestions_router, tags=["AI Suggestions"])
     
+    # Include hybrid summarization router
+    from api.endpoints.hybrid_summarization import router as hybrid_summarization_router
+    app.include_router(hybrid_summarization_router, prefix="/api/v1", tags=["Hybrid Summarization"])
+    
+    # Include real-time transcription router
+    from api.endpoints.realtime_transcription import router as realtime_transcription_router
+    app.include_router(realtime_transcription_router, prefix="/api/v1", tags=["Real-time Transcription"])
+    
+    # Include voice activity detection router
+    from api.endpoints.voice_activity_detection import router as vad_router
+    app.include_router(vad_router, prefix="/api/v1", tags=["Voice Activity Detection"])
+    
+    # Include advanced timestamping router
+    from api.endpoints.advanced_timestamping import router as timestamping_router
+    app.include_router(timestamping_router, prefix="/api/v1", tags=["Advanced Timestamping"])
+    
+    # Include emotion/sentiment detection router
+    from api.endpoints.emotion_sentiment_detection import router as emotion_sentiment_router
+    app.include_router(emotion_sentiment_router, prefix="/api/v1", tags=["Emotion & Sentiment Detection"])
+    
+    # Include speech pattern analysis router
+    from api.endpoints.speech_pattern_analysis import router as speech_pattern_router
+    app.include_router(speech_pattern_router, prefix="/api/v1", tags=["Speech Pattern Analysis"])
+    
+    # Include custom vocabulary router
+    from api.endpoints.custom_vocabulary import router as custom_vocabulary_router
+    app.include_router(custom_vocabulary_router, prefix="/api/v1", tags=["Custom Vocabulary"])
+    
+    # Include audio enhancement router
+    from api.endpoints.audio_enhancement import router as audio_enhancement_router
+    app.include_router(audio_enhancement_router, prefix="/api/v1", tags=["Audio Enhancement"])
+    
+    # Include Whisper advanced router
+    from api.endpoints.whisper_advanced import router as whisper_advanced_router
+    app.include_router(whisper_advanced_router, prefix="/api/v1", tags=["Whisper Advanced"])
+    
     # Include internationalization router
     from api.endpoints.internationalization import router as i18n_router
     app.include_router(i18n_router, tags=["Internationalization"])
+    
+    # Include audio enhancement router
+    from api.endpoints.audio_enhancement import router as audio_enhancement_router
+    app.include_router(audio_enhancement_router, prefix="/api/v1", tags=["Audio Enhancement"])
+    
+    # Include Smart B-Roll router
+    from api.endpoints.smart_broll import router as smart_broll_router
+    app.include_router(smart_broll_router, tags=["Smart B-Roll"])
     
     # Admin monitoring WebSocket
     from api.websocket.admin_monitoring_ws import admin_monitoring_endpoint

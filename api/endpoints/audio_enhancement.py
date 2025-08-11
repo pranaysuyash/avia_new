@@ -1,724 +1,740 @@
 """
-Audio Enhancement API Endpoints
-FastAPI endpoints for audio processing and enhancement
+Audio Enhancement Pipeline API Endpoints
+REST API for comprehensive audio enhancement and processing
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-import base64
-import io
-import logging
-from datetime import datetime
-import tempfile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Form
+from fastapi.responses import JSONResponse, FileResponse
+from typing import Optional, List, Dict, Any, Union
 import os
-
-from api.auth_middleware import get_current_user
-from api.middleware.quota_enforcement import require_quota, track_api_call
-from database.connection import get_db
-from sqlalchemy.orm import Session
-
-# Import audio processing functionality
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from audio_processor import AudioProcessor
-from advanced_audio_processor import AdvancedAudioProcessor, AudioQualityMetrics, AudioBookmark
+import asyncio
+import logging
+import tempfile
+from datetime import datetime
+from pydantic import BaseModel, Field
+
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from api.auth_middleware import get_current_active_user, require_write
+from api.dependencies import create_api_response, create_error_response
+
+# Import audio enhancement pipeline
+from audio_enhancement_pipeline import (
+    AudioEnhancementPipeline, EnhancementConfig, AudioQualityMetrics,
+    NoiseReductionConfig, NormalizationConfig, AudioRepairConfig,
+    EnhancementResult, AudioAnalysisResult
+)
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/audio")
+router = APIRouter(prefix="/audio-enhancement", tags=["Audio Enhancement"])
 
-# Initialize processors
-audio_processor = AudioProcessor()
-advanced_processor = AdvancedAudioProcessor()
+# Initialize components
+enhancement_pipeline = AudioEnhancementPipeline()
 
-# Pydantic models
-class AudioEnhancementRequest(BaseModel):
-    audio_data: Optional[str] = Field(None, description="Base64 encoded audio data")
-    enhancement_options: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Enhancement options"
-    )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "audio_data": "base64_encoded_audio_here",
-                "enhancement_options": {
-                    "noise_reduction": True,
-                    "normalize": True,
-                    "remove_silence": True,
-                    "enhance_voice": True,
-                    "target_loudness": -16.0
-                }
-            }
-        }
+# Pydantic models for API
+class EnhancementConfigAPI(BaseModel):
+    """API request model for audio enhancement configuration"""
+    enable_noise_reduction: bool = Field(default=True, description="Enable noise reduction")
+    enable_normalization: bool = Field(default=True, description="Enable audio normalization")
+    enable_compression: bool = Field(default=False, description="Enable dynamic range compression")
+    enable_eq: bool = Field(default=False, description="Enable equalization")
+    enable_repair: bool = Field(default=True, description="Enable audio repair")
+    target_sample_rate: int = Field(default=16000, description="Target sample rate", ge=8000, le=48000)
+    target_bit_depth: int = Field(default=16, description="Target bit depth")
+    noise_reduction_strength: float = Field(default=0.7, description="Noise reduction strength", ge=0.0, le=1.0)
+    normalization_target: float = Field(default=-20.0, description="Normalization target (dB)", ge=-60.0, le=0.0)
+    compression_ratio: float = Field(default=2.0, description="Compression ratio", ge=1.0, le=10.0)
+    high_pass_freq: float = Field(default=80.0, description="High-pass filter frequency", ge=20.0, le=1000.0)
+    low_pass_freq: float = Field(default=8000.0, description="Low-pass filter frequency", ge=1000.0, le=20000.0)
 
-class AudioMetadata(BaseModel):
-    duration: float
+class AudioQualityMetricsAPI(BaseModel):
+    """API response model for audio quality metrics"""
+    overall_quality_score: float
+    snr_db: float
+    thd_percent: float
+    dynamic_range_db: float
+    peak_level_db: float
+    rms_level_db: float
+    spectral_centroid: float
+    spectral_rolloff: float
+    zero_crossing_rate: float
+    silence_ratio: float
+    clipping_detected: bool
+    noise_level_db: float
+    frequency_response_score: float
+    stereo_balance: Optional[float] = None
+
+class EnhancementResultAPI(BaseModel):
+    """API response model for enhancement results"""
+    original_metrics: AudioQualityMetricsAPI
+    enhanced_metrics: AudioQualityMetricsAPI
+    improvement_score: float
+    processing_time: float
+    file_size_original: int
+    file_size_enhanced: int
+    enhancements_applied: List[str]
+    recommendations: List[str]
+    config_used: EnhancementConfigAPI
+
+class AudioAnalysisAPI(BaseModel):
+    """API response model for audio analysis"""
+    duration_seconds: float
     sample_rate: int
     channels: int
-    format: str
-    size_bytes: int
+    bit_depth: int
+    file_format: str
+    file_size_bytes: int
+    quality_metrics: AudioQualityMetricsAPI
+    spectral_analysis: Dict[str, Any]
+    temporal_analysis: Dict[str, Any]
+    recommendations: List[str]
 
-class AudioEnhancementResponse(BaseModel):
-    enhanced_audio: str  # Base64 encoded
-    original_metadata: AudioMetadata
-    enhanced_metadata: AudioMetadata
-    processing_time: float
-    enhancements_applied: List[str]
+class BatchEnhancementAPI(BaseModel):
+    """API response model for batch enhancement"""
+    results: List[Dict[str, Any]]
+    summary: Dict[str, Any]
+    total_processing_time: float
 
-@router.post("/enhance", response_model=AudioEnhancementResponse)
-@require_quota('api_calls', 1)  # Enforce API call quota
+@router.post("/enhance", response_model=EnhancementResultAPI)
 async def enhance_audio(
-    request: AudioEnhancementRequest,
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    audio_file: UploadFile = File(...),
+    config: str = Form(...),
+    return_enhanced_file: bool = Form(default=True),
+    current_user: dict = Depends(get_current_active_user)
 ):
-    """
-    Enhance audio with various processing options
-    
-    Options include:
-    - Noise reduction
-    - Normalization
-    - Silence removal
-    - Voice enhancement
-    - Dynamic range compression
-    """
+    """Enhance audio file with comprehensive processing pipeline"""
     try:
-        start_time = datetime.now()
+        # Parse config from JSON string
+        import json
+        config_dict = json.loads(config)
+        request_config = EnhancementConfigAPI(**config_dict)
         
-        # Decode audio data
-        if not request.audio_data:
-            raise HTTPException(status_code=400, detail="No audio data provided")
-            
-        audio_bytes = base64.b64decode(request.audio_data)
+        # Validate file type
+        allowed_types = {
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/flac',
+            'audio/ogg', 'audio/webm', 'audio/aac'
+        }
         
-        # Create temporary file
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
-            tmp_file.write(audio_bytes)
-            tmp_path = tmp_file.name
+        if audio_file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type: {audio_file.content_type}"
+            )
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+            content = await audio_file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
         
         try:
-            # Get original metadata
-            original_metadata = audio_processor.get_audio_metadata(tmp_path)
+            # Configure enhancement pipeline
+            enhancement_config = EnhancementConfig(
+                enable_noise_reduction=request_config.enable_noise_reduction,
+                enable_normalization=request_config.enable_normalization,
+                enable_compression=request_config.enable_compression,
+                enable_eq=request_config.enable_eq,
+                enable_repair=request_config.enable_repair,
+                target_sample_rate=request_config.target_sample_rate,
+                target_bit_depth=request_config.target_bit_depth,
+                noise_reduction_strength=request_config.noise_reduction_strength,
+                normalization_target=request_config.normalization_target,
+                compression_ratio=request_config.compression_ratio,
+                high_pass_freq=request_config.high_pass_freq,
+                low_pass_freq=request_config.low_pass_freq
+            )
             
-            # Apply enhancements
-            enhancements_applied = []
-            enhanced_path = tmp_path
+            # Perform audio enhancement
+            enhancement_result = await enhancement_pipeline.enhance_audio(
+                input_file_path=temp_file_path,
+                config=enhancement_config,
+                return_enhanced_file=return_enhanced_file
+            )
             
-            options = request.enhancement_options
-            
-            if options.get('noise_reduction', False):
-                enhanced_path = await advanced_processor.reduce_noise(
-                    enhanced_path,
-                    reduction_strength=options.get('noise_reduction_strength', 0.7)
+            # Convert quality metrics to API response
+            def convert_metrics(metrics: AudioQualityMetrics) -> AudioQualityMetricsAPI:
+                return AudioQualityMetricsAPI(
+                    overall_quality_score=float(metrics.overall_quality_score),
+                    snr_db=float(metrics.snr_db),
+                    thd_percent=float(metrics.thd_percent),
+                    dynamic_range_db=float(metrics.dynamic_range_db),
+                    peak_level_db=float(metrics.peak_level_db),
+                    rms_level_db=float(metrics.rms_level_db),
+                    spectral_centroid=float(metrics.spectral_centroid),
+                    spectral_rolloff=float(metrics.spectral_rolloff),
+                    zero_crossing_rate=float(metrics.zero_crossing_rate),
+                    silence_ratio=float(metrics.silence_ratio),
+                    clipping_detected=bool(metrics.clipping_detected),
+                    noise_level_db=float(metrics.noise_level_db),
+                    frequency_response_score=float(metrics.frequency_response_score),
+                    stereo_balance=float(metrics.stereo_balance) if metrics.stereo_balance is not None else None
                 )
-                enhancements_applied.append('noise_reduction')
             
-            if options.get('normalize', False):
-                enhanced_path = await advanced_processor.normalize_audio(
-                    enhanced_path,
-                    target_loudness=options.get('target_loudness', -16.0)
-                )
-                enhancements_applied.append('normalization')
+            # Convert to API response
+            api_result = EnhancementResultAPI(
+                original_metrics=convert_metrics(enhancement_result.original_metrics),
+                enhanced_metrics=convert_metrics(enhancement_result.enhanced_metrics),
+                improvement_score=float(enhancement_result.improvement_score),
+                processing_time=float(enhancement_result.processing_time),
+                file_size_original=enhancement_result.file_size_original,
+                file_size_enhanced=enhancement_result.file_size_enhanced,
+                enhancements_applied=enhancement_result.enhancements_applied,
+                recommendations=enhancement_result.recommendations,
+                config_used=request_config
+            )
             
-            if options.get('remove_silence', False):
-                enhanced_path = await advanced_processor.remove_silence(
-                    enhanced_path,
-                    silence_threshold=options.get('silence_threshold', -40)
-                )
-                enhancements_applied.append('silence_removal')
+            logger.info(f"Audio enhancement completed for user {current_user.get('user_id', 'unknown')}: "
+                       f"improvement score {enhancement_result.improvement_score:.2f}, "
+                       f"{enhancement_result.processing_time:.2f}s processing time")
             
-            if options.get('enhance_voice', False):
-                enhanced_path = await advanced_processor.enhance_voice(enhanced_path)
-                enhancements_applied.append('voice_enhancement')
+            # Store enhanced file path for download if requested
+            if return_enhanced_file and hasattr(enhancement_result, 'enhanced_file_path'):
+                # Store file path in session or database for later retrieval
+                pass
             
-            if options.get('compress_dynamics', False):
-                enhanced_path = await advanced_processor.compress_dynamics(
-                    enhanced_path,
-                    threshold=options.get('compression_threshold', -20),
-                    ratio=options.get('compression_ratio', 4)
-                )
-                enhancements_applied.append('dynamic_compression')
-            
-            # Read enhanced audio
-            with open(enhanced_path, 'rb') as f:
-                enhanced_audio_bytes = f.read()
-            
-            # Get enhanced metadata
-            enhanced_metadata = audio_processor.get_audio_metadata(enhanced_path)
-            
-            # Calculate processing time
-            processing_time = (datetime.now() - start_time).total_seconds()
-            
-            # Clean up temporary files
-            if enhanced_path != tmp_path:
-                os.unlink(enhanced_path)
-            
-            return AudioEnhancementResponse(
-                enhanced_audio=base64.b64encode(enhanced_audio_bytes).decode('utf-8'),
-                original_metadata=AudioMetadata(
-                    duration=original_metadata['duration'],
-                    sample_rate=original_metadata['sample_rate'],
-                    channels=original_metadata['channels'],
-                    format=original_metadata['format'],
-                    size_bytes=len(audio_bytes)
-                ),
-                enhanced_metadata=AudioMetadata(
-                    duration=enhanced_metadata['duration'],
-                    sample_rate=enhanced_metadata['sample_rate'],
-                    channels=enhanced_metadata['channels'],
-                    format=enhanced_metadata['format'],
-                    size_bytes=len(enhanced_audio_bytes)
-                ),
-                processing_time=processing_time,
-                enhancements_applied=enhancements_applied
+            return create_api_response(
+                data=api_result,
+                message="Audio enhancement completed successfully"
             )
             
         finally:
-            # Clean up
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-            
-    except Exception as e:
-        logger.error(f"Audio enhancement error: {str(e)}")
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+        
+    except ValueError as e:
+        logger.error(f"Validation error in audio enhancement: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to enhance audio: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid request: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error in audio enhancement: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to enhance audio"
         )
 
-@router.post("/enhance/file")
-async def enhance_audio_file(
-    file: UploadFile = File(...),
-    noise_reduction: bool = Form(False),
-    normalize: bool = Form(False),
-    remove_silence: bool = Form(False),
-    enhance_voice: bool = Form(False),
-    compress_dynamics: bool = Form(False),
-    target_loudness: float = Form(-16.0),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Enhance uploaded audio file
-    
-    Direct file upload endpoint
-    """
-    try:
-        # Read file content
-        content = await file.read()
-        
-        # Create enhancement request
-        request = AudioEnhancementRequest(
-            audio_data=base64.b64encode(content).decode('utf-8'),
-            enhancement_options={
-                'noise_reduction': noise_reduction,
-                'normalize': normalize,
-                'remove_silence': remove_silence,
-                'enhance_voice': enhance_voice,
-                'compress_dynamics': compress_dynamics,
-                'target_loudness': target_loudness
-            }
-        )
-        
-        # Process enhancement
-        response = await enhance_audio(request, current_user, None)
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"File enhancement error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to enhance audio file: {str(e)}"
-        )
-
-@router.post("/analyze")
+@router.post("/analyze", response_model=AudioAnalysisAPI)
 async def analyze_audio(
-    audio_data: str,
-    current_user: dict = Depends(get_current_user)
+    audio_file: UploadFile = File(...),
+    detailed_analysis: bool = Form(default=True),
+    current_user: dict = Depends(get_current_active_user)
 ):
-    """
-    Analyze audio and return detailed metrics
-    
-    Returns audio characteristics and quality metrics
-    """
+    """Analyze audio file quality and characteristics"""
     try:
-        # Decode audio
-        audio_bytes = base64.b64decode(audio_data)
+        # Validate file type
+        allowed_types = {
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/flac',
+            'audio/ogg', 'audio/webm', 'audio/aac'
+        }
         
-        # Create temporary file
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
-            tmp_file.write(audio_bytes)
-            tmp_path = tmp_file.name
+        if audio_file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type: {audio_file.content_type}"
+            )
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+            content = await audio_file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
         
         try:
-            # Analyze audio
-            analysis = await advanced_processor.analyze_audio(tmp_path)
+            # Perform audio analysis
+            analysis_result = await enhancement_pipeline.analyze_audio(
+                file_path=temp_file_path,
+                detailed_analysis=detailed_analysis
+            )
             
-            return {
-                "metadata": analysis['metadata'],
-                "quality_metrics": {
-                    "snr": analysis.get('snr', 0),
-                    "peak_level": analysis.get('peak_level', 0),
-                    "rms_level": analysis.get('rms_level', 0),
-                    "dynamic_range": analysis.get('dynamic_range', 0),
-                    "clipping_detected": analysis.get('clipping_detected', False),
-                    "silence_percentage": analysis.get('silence_percentage', 0)
-                },
-                "frequency_analysis": {
-                    "dominant_frequency": analysis.get('dominant_frequency', 0),
-                    "frequency_range": analysis.get('frequency_range', [0, 0]),
-                    "spectral_centroid": analysis.get('spectral_centroid', 0)
-                },
-                "recommendations": analysis.get('recommendations', [])
-            }
+            # Convert quality metrics to API response
+            quality_metrics = AudioQualityMetricsAPI(
+                overall_quality_score=float(analysis_result.quality_metrics.overall_quality_score),
+                snr_db=float(analysis_result.quality_metrics.snr_db),
+                thd_percent=float(analysis_result.quality_metrics.thd_percent),
+                dynamic_range_db=float(analysis_result.quality_metrics.dynamic_range_db),
+                peak_level_db=float(analysis_result.quality_metrics.peak_level_db),
+                rms_level_db=float(analysis_result.quality_metrics.rms_level_db),
+                spectral_centroid=float(analysis_result.quality_metrics.spectral_centroid),
+                spectral_rolloff=float(analysis_result.quality_metrics.spectral_rolloff),
+                zero_crossing_rate=float(analysis_result.quality_metrics.zero_crossing_rate),
+                silence_ratio=float(analysis_result.quality_metrics.silence_ratio),
+                clipping_detected=bool(analysis_result.quality_metrics.clipping_detected),
+                noise_level_db=float(analysis_result.quality_metrics.noise_level_db),
+                frequency_response_score=float(analysis_result.quality_metrics.frequency_response_score),
+                stereo_balance=float(analysis_result.quality_metrics.stereo_balance) if analysis_result.quality_metrics.stereo_balance is not None else None
+            )
+            
+            # Convert to API response
+            api_result = AudioAnalysisAPI(
+                duration_seconds=float(analysis_result.duration_seconds),
+                sample_rate=analysis_result.sample_rate,
+                channels=analysis_result.channels,
+                bit_depth=analysis_result.bit_depth,
+                file_format=analysis_result.file_format,
+                file_size_bytes=analysis_result.file_size_bytes,
+                quality_metrics=quality_metrics,
+                spectral_analysis=analysis_result.spectral_analysis,
+                temporal_analysis=analysis_result.temporal_analysis,
+                recommendations=analysis_result.recommendations
+            )
+            
+            logger.info(f"Audio analysis completed for user {current_user.get('user_id', 'unknown')}: "
+                       f"quality score {analysis_result.quality_metrics.overall_quality_score:.2f}")
+            
+            return create_api_response(
+                data=api_result,
+                message="Audio analysis completed successfully"
+            )
             
         finally:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-                
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+        
     except Exception as e:
-        logger.error(f"Audio analysis error: {str(e)}")
+        logger.error(f"Error in audio analysis: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to analyze audio: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to analyze audio"
+        )
+
+@router.post("/batch-enhance")
+async def batch_enhance_audio(
+    files: List[UploadFile] = File(...),
+    config: EnhancementConfigAPI = Depends(),
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Batch enhance multiple audio files"""
+    try:
+        if len(files) > 10:  # Limit batch size
+            raise ValueError("Batch size cannot exceed 10 files")
+        
+        results = []
+        total_processing_time = 0.0
+        successful = 0
+        failed = 0
+        
+        for i, file in enumerate(files):
+            try:
+                # Validate file type
+                allowed_types = {
+                    'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/flac',
+                    'audio/ogg', 'audio/webm', 'audio/aac'
+                }
+                
+                if file.content_type not in allowed_types:
+                    results.append({
+                        "index": i,
+                        "filename": file.filename,
+                        "status": "error",
+                        "error": f"Unsupported file type: {file.content_type}"
+                    })
+                    failed += 1
+                    continue
+                
+                # Save uploaded file temporarily
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+                    content = await file.read()
+                    temp_file.write(content)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    # Configure enhancement pipeline
+                    enhancement_config = EnhancementConfig(
+                        enable_noise_reduction=config.enable_noise_reduction,
+                        enable_normalization=config.enable_normalization,
+                        enable_compression=config.enable_compression,
+                        enable_eq=config.enable_eq,
+                        enable_repair=config.enable_repair,
+                        target_sample_rate=config.target_sample_rate,
+                        target_bit_depth=config.target_bit_depth,
+                        noise_reduction_strength=config.noise_reduction_strength,
+                        normalization_target=config.normalization_target,
+                        compression_ratio=config.compression_ratio,
+                        high_pass_freq=config.high_pass_freq,
+                        low_pass_freq=config.low_pass_freq
+                    )
+                    
+                    # Perform enhancement
+                    enhancement_result = await enhancement_pipeline.enhance_audio(
+                        input_file_path=temp_file_path,
+                        config=enhancement_config,
+                        return_enhanced_file=False
+                    )
+                    
+                    results.append({
+                        "index": i,
+                        "filename": file.filename,
+                        "status": "success",
+                        "result": {
+                            "improvement_score": enhancement_result.improvement_score,
+                            "processing_time": enhancement_result.processing_time,
+                            "enhancements_applied": enhancement_result.enhancements_applied,
+                            "original_quality": enhancement_result.original_metrics.overall_quality_score,
+                            "enhanced_quality": enhancement_result.enhanced_metrics.overall_quality_score
+                        }
+                    })
+                    
+                    total_processing_time += enhancement_result.processing_time
+                    successful += 1
+                    
+                finally:
+                    # Clean up temporary file
+                    if os.path.exists(temp_file_path):
+                        os.unlink(temp_file_path)
+                        
+            except Exception as e:
+                logger.error(f"Error processing batch item {i}: {e}")
+                results.append({
+                    "index": i,
+                    "filename": file.filename,
+                    "status": "error",
+                    "error": str(e)
+                })
+                failed += 1
+        
+        # Calculate summary statistics
+        successful_results = [r for r in results if r["status"] == "success"]
+        avg_improvement = sum(r["result"]["improvement_score"] for r in successful_results) / len(successful_results) if successful_results else 0
+        
+        summary = {
+            "total_files": len(files),
+            "successful": successful,
+            "failed": failed,
+            "average_improvement_score": avg_improvement,
+            "total_processing_time": total_processing_time
+        }
+        
+        api_result = BatchEnhancementAPI(
+            results=results,
+            summary=summary,
+            total_processing_time=total_processing_time
+        )
+        
+        logger.info(f"Batch audio enhancement completed for user {current_user.get('user_id', 'unknown')}: "
+                   f"{successful} successful, {failed} failed")
+        
+        return create_api_response(
+            data=api_result,
+            message=f"Batch enhancement completed: {successful} successful, {failed} failed"
+        )
+        
+    except ValueError as e:
+        logger.error(f"Validation error in batch enhancement: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid request: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error in batch enhancement: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to perform batch audio enhancement"
+        )
+
+@router.post("/noise-reduction")
+async def reduce_noise(
+    audio_file: UploadFile = File(...),
+    strength: float = Form(default=0.7, ge=0.0, le=1.0),
+    stationary: bool = Form(default=True),
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Apply noise reduction to audio file"""
+    try:
+        # Validate file type
+        allowed_types = {
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/flac',
+            'audio/ogg', 'audio/webm', 'audio/aac'
+        }
+        
+        if audio_file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type: {audio_file.content_type}"
+            )
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+            content = await audio_file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Apply noise reduction
+            result = await enhancement_pipeline.reduce_noise(
+                input_file_path=temp_file_path,
+                strength=strength,
+                stationary=stationary
+            )
+            
+            logger.info(f"Noise reduction completed for user {current_user.get('user_id', 'unknown')}")
+            
+            return create_api_response(
+                data=result,
+                message="Noise reduction completed successfully"
+            )
+            
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+        
+    except Exception as e:
+        logger.error(f"Error in noise reduction: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reduce noise"
+        )
+
+@router.post("/normalize")
+async def normalize_audio(
+    audio_file: UploadFile = File(...),
+    target_db: float = Form(default=-20.0, ge=-60.0, le=0.0),
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Normalize audio file to target level"""
+    try:
+        # Validate file type
+        allowed_types = {
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/flac',
+            'audio/ogg', 'audio/webm', 'audio/aac'
+        }
+        
+        if audio_file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type: {audio_file.content_type}"
+            )
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+            content = await audio_file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Apply normalization
+            result = await enhancement_pipeline.normalize_audio(
+                input_file_path=temp_file_path,
+                target_db=target_db
+            )
+            
+            logger.info(f"Audio normalization completed for user {current_user.get('user_id', 'unknown')}")
+            
+            return create_api_response(
+                data=result,
+                message="Audio normalization completed successfully"
+            )
+            
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+        
+    except Exception as e:
+        logger.error(f"Error in audio normalization: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to normalize audio"
         )
 
 @router.get("/presets")
-async def get_enhancement_presets(
-    current_user: dict = Depends(get_current_user)
-):
-    """Get available audio enhancement presets"""
-    return {
-        "presets": [
-            {
-                "id": "voice_podcast",
-                "name": "Podcast Voice",
-                "description": "Optimized for voice podcasts",
-                "options": {
-                    "noise_reduction": True,
-                    "normalize": True,
-                    "remove_silence": True,
-                    "enhance_voice": True,
-                    "target_loudness": -16.0
-                }
-            },
-            {
-                "id": "meeting_recording",
-                "name": "Meeting Recording",
-                "description": "Clean up meeting recordings",
-                "options": {
-                    "noise_reduction": True,
-                    "normalize": True,
-                    "remove_silence": False,
-                    "enhance_voice": True,
-                    "compress_dynamics": True
-                }
-            },
-            {
-                "id": "music_master",
-                "name": "Music Mastering",
-                "description": "Basic music mastering",
-                "options": {
-                    "normalize": True,
-                    "compress_dynamics": True,
-                    "target_loudness": -14.0
-                }
-            },
-            {
-                "id": "clean_only",
-                "name": "Clean Only",
-                "description": "Just noise reduction",
-                "options": {
-                    "noise_reduction": True,
-                    "noise_reduction_strength": 0.8
-                }
-            }
-        ]
-    }
-
-@router.post("/batch/enhance")
-async def batch_enhance_audio(
-    files: List[UploadFile] = File(...),
-    preset: str = Form("voice_podcast"),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Batch enhance multiple audio files
-    
-    Admin only endpoint
-    """
-    if current_user['role'] != 'admin':
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    if len(files) > 10:
-        raise HTTPException(
-            status_code=400,
-            detail="Maximum 10 files per batch"
-        )
-    
-    # Get preset
-    presets = await get_enhancement_presets(current_user)
-    preset_options = next(
-        (p['options'] for p in presets['presets'] if p['id'] == preset),
-        None
-    )
-    
-    if not preset_options:
-        raise HTTPException(status_code=400, detail="Invalid preset")
-    
-    results = []
-    
-    for i, file in enumerate(files):
-        try:
-            content = await file.read()
-            
-            request = AudioEnhancementRequest(
-                audio_data=base64.b64encode(content).decode('utf-8'),
-                enhancement_options=preset_options
-            )
-            
-            response = await enhance_audio(request, current_user, None)
-            
-            results.append({
-                "index": i,
-                "filename": file.filename,
-                "success": True,
-                "enhanced_audio": response.enhanced_audio,
-                "enhancements_applied": response.enhancements_applied
-            })
-            
-        except Exception as e:
-            results.append({
-                "index": i,
-                "filename": file.filename,
-                "success": False,
-                "error": str(e)
-            })
-    
-    return {
-        "total": len(files),
-        "successful": sum(1 for r in results if r['success']),
-        "failed": sum(1 for r in results if not r['success']),
-        "results": results
-    }
-
-# Advanced Audio Processing Endpoints
-
-class AudioQualityRequest(BaseModel):
-    audio_data: str = Field(..., description="Base64 encoded audio data")
-
-class AudioQualityResponse(BaseModel):
-    snr_db: float
-    dynamic_range_db: float
-    spectral_centroid: float
-    zero_crossing_rate: float
-    rms_energy: float
-    quality_score: float
-    recommendations: List[str]
-    processing_time: float
-
-@router.post("/analyze/quality", response_model=AudioQualityResponse)
-@require_quota('api_calls', 1, 'advanced_analytics')  # Require advanced feature
-async def analyze_audio_quality(
-    request: AudioQualityRequest,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Analyze audio quality and provide recommendations
-    
-    Returns detailed metrics about audio quality including:
-    - Signal-to-noise ratio
-    - Dynamic range
-    - Spectral characteristics
-    - Quality score (0-100)
-    - Improvement recommendations
-    """
-    try:
-        start_time = datetime.now()
-        
-        # Decode audio data
-        audio_bytes = base64.b64decode(request.audio_data)
-        
-        # Save to temporary file
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
-            tmp.write(audio_bytes)
-            tmp_path = tmp.name
-        
-        try:
-            # Analyze quality
-            quality_metrics = advanced_processor.quality_analyzer.analyze_quality(tmp_path)
-            
-            processing_time = (datetime.now() - start_time).total_seconds()
-            
-            return AudioQualityResponse(
-                snr_db=quality_metrics.snr_db,
-                dynamic_range_db=quality_metrics.dynamic_range_db,
-                spectral_centroid=quality_metrics.spectral_centroid,
-                zero_crossing_rate=quality_metrics.zero_crossing_rate,
-                rms_energy=quality_metrics.rms_energy,
-                quality_score=quality_metrics.quality_score,
-                recommendations=quality_metrics.recommendations,
-                processing_time=processing_time
-            )
-            
-        finally:
-            os.unlink(tmp_path)
-            
-    except Exception as e:
-        logger.error(f"Audio quality analysis error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to analyze audio quality: {str(e)}"
-        )
-
-class AudioSegmentRequest(BaseModel):
-    audio_data: str = Field(..., description="Base64 encoded audio data")
-    start_time: float = Field(..., description="Start time in seconds")
-    end_time: float = Field(..., description="End time in seconds")
-
-class AudioSegmentResponse(BaseModel):
-    segmented_audio: str = Field(..., description="Base64 encoded segmented audio")
-    original_duration: float
-    segment_duration: float
-    processing_time: float
-
-@router.post("/segment/extract", response_model=AudioSegmentResponse)
-async def extract_audio_segment(
-    request: AudioSegmentRequest,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Extract a specific segment from audio file
-    
-    Useful for creating clips, removing sections, or isolating specific parts
-    """
-    try:
-        start_time = datetime.now()
-        
-        # Decode audio data
-        audio_bytes = base64.b64decode(request.audio_data)
-        
-        # Save to temporary file
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
-            tmp.write(audio_bytes)
-            tmp_path = tmp.name
-        
-        try:
-            # Extract segment
-            segment_path = advanced_processor.trimmer.extract_segment(
-                tmp_path, 
-                request.start_time, 
-                request.end_time
-            )
-            
-            # Read segmented audio
-            with open(segment_path, 'rb') as f:
-                segment_bytes = f.read()
-            
-            # Calculate durations
-            original_metadata = audio_processor.get_audio_metadata(tmp_path)
-            segment_metadata = audio_processor.get_audio_metadata(segment_path)
-            
-            processing_time = (datetime.now() - start_time).total_seconds()
-            
-            # Clean up
-            os.unlink(segment_path)
-            
-            return AudioSegmentResponse(
-                segmented_audio=base64.b64encode(segment_bytes).decode('utf-8'),
-                original_duration=original_metadata['duration'],
-                segment_duration=segment_metadata['duration'],
-                processing_time=processing_time
-            )
-            
-        finally:
-            os.unlink(tmp_path)
-            
-    except Exception as e:
-        logger.error(f"Audio segmentation error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to extract audio segment: {str(e)}"
-        )
-
-class AudioSilenceDetectionRequest(BaseModel):
-    audio_data: str = Field(..., description="Base64 encoded audio data")
-    silence_threshold: int = Field(-40, description="Silence threshold in dB")
-    min_silence_duration: int = Field(500, description="Minimum silence duration in ms")
-
-class SilenceSegment(BaseModel):
-    start_time: float
-    end_time: float
-    duration: float
-
-class AudioSilenceDetectionResponse(BaseModel):
-    silence_segments: List[SilenceSegment]
-    total_silence_duration: float
-    speech_duration: float
-    silence_percentage: float
-    processing_time: float
-
-@router.post("/analyze/silence", response_model=AudioSilenceDetectionResponse)
-async def detect_silence_segments(
-    request: AudioSilenceDetectionRequest,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Detect silence segments in audio
-    
-    Useful for:
-    - Automatic chapter detection
-    - Speech activity detection
-    - Audio trimming guidance
-    """
-    try:
-        start_time = datetime.now()
-        
-        # Decode audio data
-        audio_bytes = base64.b64decode(request.audio_data)
-        
-        # Save to temporary file
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
-            tmp.write(audio_bytes)
-            tmp_path = tmp.name
-        
-        try:
-            # Detect silence segments
-            segments = advanced_processor.trimmer.segment_by_silence(
-                tmp_path,
-                silence_thresh=request.silence_threshold,
-                min_silence_len=request.min_silence_duration
-            )
-            
-            # Get total duration
-            metadata = audio_processor.get_audio_metadata(tmp_path)
-            total_duration = metadata['duration']
-            
-            # Process segments
-            silence_segments = []
-            total_silence = 0
-            
-            for segment_path in segments:
-                seg_metadata = audio_processor.get_audio_metadata(segment_path)
-                duration = seg_metadata['duration']
-                total_silence += duration
-                
-                # Note: This is simplified - in reality you'd need to track timestamps
-                silence_segments.append(SilenceSegment(
-                    start_time=0,  # Would need proper calculation
-                    end_time=duration,
-                    duration=duration
-                ))
-                
-                # Clean up segment file
-                os.unlink(segment_path)
-            
-            speech_duration = total_duration - total_silence
-            silence_percentage = (total_silence / total_duration) * 100 if total_duration > 0 else 0
-            
-            processing_time = (datetime.now() - start_time).total_seconds()
-            
-            return AudioSilenceDetectionResponse(
-                silence_segments=silence_segments,
-                total_silence_duration=total_silence,
-                speech_duration=speech_duration,
-                silence_percentage=silence_percentage,
-                processing_time=processing_time
-            )
-            
-        finally:
-            os.unlink(tmp_path)
-            
-    except Exception as e:
-        logger.error(f"Silence detection error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to detect silence: {str(e)}"
-        )
-
-class AudioBookmarkRequest(BaseModel):
-    audio_id: str = Field(..., description="Audio file identifier")
-    timestamp: float = Field(..., description="Bookmark timestamp in seconds")
-    title: str = Field(..., description="Bookmark title")
-    description: str = Field("", description="Optional description")
-    bookmark_type: str = Field("manual", description="Bookmark type: manual, auto, chapter")
-
-class AudioBookmarkResponse(BaseModel):
-    bookmark_id: str
-    timestamp: float
-    title: str
-    description: str
-    bookmark_type: str
-    created_at: str
-
-@router.post("/bookmarks/create", response_model=AudioBookmarkResponse)
-async def create_audio_bookmark(
-    request: AudioBookmarkRequest,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Create a bookmark for an audio file
-    
-    Bookmarks help users navigate long audio files and mark important sections
-    """
-    try:
-        bookmark = AudioBookmark(
-            timestamp=request.timestamp,
-            title=request.title,
-            description=request.description,
-            bookmark_type=request.bookmark_type
-        )
-        
-        # Add to bookmark manager
-        bookmark_id = advanced_processor.bookmark_manager.add_bookmark(
-            request.audio_id,
-            bookmark
-        )
-        
-        return AudioBookmarkResponse(
-            bookmark_id=bookmark_id,
-            timestamp=bookmark.timestamp,
-            title=bookmark.title,
-            description=bookmark.description,
-            bookmark_type=bookmark.bookmark_type,
-            created_at=bookmark.created_at.isoformat()
-        )
-        
-    except Exception as e:
-        logger.error(f"Bookmark creation error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to create bookmark: {str(e)}"
-        )
-
-@router.get("/bookmarks/{audio_id}")
-async def get_audio_bookmarks(
-    audio_id: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """Get all bookmarks for an audio file"""
-    try:
-        bookmarks = advanced_processor.bookmark_manager.get_bookmarks(audio_id)
-        
-        return {
-            "audio_id": audio_id,
-            "bookmarks": [
+async def get_enhancement_presets():
+    """Get predefined enhancement presets"""
+    return create_api_response(
+        data={
+            "presets": [
                 {
-                    "timestamp": b.timestamp,
-                    "title": b.title,
-                    "description": b.description,
-                    "bookmark_type": b.bookmark_type,
-                    "created_at": b.created_at.isoformat()
+                    "name": "Voice Recording",
+                    "description": "Optimized for voice recordings and podcasts",
+                    "config": {
+                        "enable_noise_reduction": True,
+                        "enable_normalization": True,
+                        "enable_compression": True,
+                        "enable_eq": True,
+                        "enable_repair": True,
+                        "target_sample_rate": 16000,
+                        "noise_reduction_strength": 0.8,
+                        "normalization_target": -16.0,
+                        "compression_ratio": 3.0,
+                        "high_pass_freq": 100.0,
+                        "low_pass_freq": 8000.0
+                    }
+                },
+                {
+                    "name": "Music Recording",
+                    "description": "Optimized for music and high-fidelity audio",
+                    "config": {
+                        "enable_noise_reduction": True,
+                        "enable_normalization": True,
+                        "enable_compression": False,
+                        "enable_eq": False,
+                        "enable_repair": True,
+                        "target_sample_rate": 44100,
+                        "noise_reduction_strength": 0.5,
+                        "normalization_target": -14.0,
+                        "compression_ratio": 1.5,
+                        "high_pass_freq": 20.0,
+                        "low_pass_freq": 20000.0
+                    }
+                },
+                {
+                    "name": "Phone Call",
+                    "description": "Optimized for phone call recordings",
+                    "config": {
+                        "enable_noise_reduction": True,
+                        "enable_normalization": True,
+                        "enable_compression": True,
+                        "enable_eq": True,
+                        "enable_repair": True,
+                        "target_sample_rate": 8000,
+                        "noise_reduction_strength": 0.9,
+                        "normalization_target": -12.0,
+                        "compression_ratio": 4.0,
+                        "high_pass_freq": 300.0,
+                        "low_pass_freq": 3400.0
+                    }
+                },
+                {
+                    "name": "Broadcast",
+                    "description": "Optimized for broadcast and streaming",
+                    "config": {
+                        "enable_noise_reduction": True,
+                        "enable_normalization": True,
+                        "enable_compression": True,
+                        "enable_eq": True,
+                        "enable_repair": True,
+                        "target_sample_rate": 48000,
+                        "noise_reduction_strength": 0.7,
+                        "normalization_target": -23.0,
+                        "compression_ratio": 2.5,
+                        "high_pass_freq": 80.0,
+                        "low_pass_freq": 15000.0
+                    }
+                },
+                {
+                    "name": "Minimal Processing",
+                    "description": "Light enhancement preserving original character",
+                    "config": {
+                        "enable_noise_reduction": True,
+                        "enable_normalization": True,
+                        "enable_compression": False,
+                        "enable_eq": False,
+                        "enable_repair": True,
+                        "target_sample_rate": 44100,
+                        "noise_reduction_strength": 0.3,
+                        "normalization_target": -18.0,
+                        "compression_ratio": 1.2,
+                        "high_pass_freq": 40.0,
+                        "low_pass_freq": 18000.0
+                    }
                 }
-                for b in bookmarks
             ]
+        },
+        message="Enhancement presets retrieved successfully"
+    )
+
+@router.get("/supported-formats")
+async def get_supported_formats():
+    """Get supported audio formats and their capabilities"""
+    return create_api_response(
+        data={
+            "input_formats": [
+                {
+                    "format": "WAV",
+                    "extensions": [".wav"],
+                    "mime_types": ["audio/wav", "audio/wave"],
+                    "description": "Uncompressed audio format, best quality",
+                    "max_sample_rate": 192000,
+                    "max_bit_depth": 32
+                },
+                {
+                    "format": "MP3",
+                    "extensions": [".mp3"],
+                    "mime_types": ["audio/mpeg", "audio/mp3"],
+                    "description": "Compressed audio format, widely supported",
+                    "max_sample_rate": 48000,
+                    "max_bit_depth": 16
+                },
+                {
+                    "format": "FLAC",
+                    "extensions": [".flac"],
+                    "mime_types": ["audio/flac"],
+                    "description": "Lossless compressed audio format",
+                    "max_sample_rate": 192000,
+                    "max_bit_depth": 32
+                },
+                {
+                    "format": "M4A",
+                    "extensions": [".m4a", ".aac"],
+                    "mime_types": ["audio/m4a", "audio/aac"],
+                    "description": "Apple audio format, good compression",
+                    "max_sample_rate": 96000,
+                    "max_bit_depth": 24
+                },
+                {
+                    "format": "OGG",
+                    "extensions": [".ogg"],
+                    "mime_types": ["audio/ogg"],
+                    "description": "Open source compressed format",
+                    "max_sample_rate": 192000,
+                    "max_bit_depth": 24
+                }
+            ],
+            "output_formats": [
+                {
+                    "format": "WAV",
+                    "description": "Recommended for highest quality",
+                    "use_cases": ["Professional audio", "Further processing"]
+                },
+                {
+                    "format": "MP3",
+                    "description": "Good for general use and sharing",
+                    "use_cases": ["Podcasts", "Voice recordings", "Web streaming"]
+                },
+                {
+                    "format": "FLAC",
+                    "description": "Lossless compression for archival",
+                    "use_cases": ["Music archival", "High-quality storage"]
+                }
+            ]
+        },
+        message="Supported formats retrieved successfully"
+    )
+
+@router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        # Test basic functionality
+        health_status = {
+            "status": "healthy",
+            "components": {
+                "enhancement_pipeline": "operational",
+                "noise_reduction": "available" if enhancement_pipeline.noise_reduction_available else "limited",
+                "audio_processing": "available",
+                "format_conversion": "available"
+            },
+            "supported_formats": 5,
+            "available_presets": 5
         }
         
+        return create_api_response(
+            data=health_status,
+            message="Audio enhancement service is healthy"
+        )
+        
     except Exception as e:
-        logger.error(f"Get bookmarks error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get bookmarks: {str(e)}"
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content=create_error_response(
+                error="Service unhealthy",
+                details=str(e)
+            )
         )

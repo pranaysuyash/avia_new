@@ -1,162 +1,366 @@
-#!/usr/bin/env python3
 """
-Pytest configuration and shared fixtures
+Pytest configuration and shared fixtures for Whisper Advanced Integration tests
 """
 
-import os
-import tempfile
 import pytest
-from pathlib import Path
-from unittest.mock import patch
+import asyncio
+import tempfile
+import os
+import json
+import numpy as np
+from unittest.mock import Mock, patch, AsyncMock
+import logging
 
-# Set up test environment variables
-os.environ['OPENAI_API_KEY'] = 'test-key-for-testing'
-os.environ['ELEVENLABS_API_KEY'] = 'test-key-for-testing'
-os.environ['LOG_LEVEL'] = 'WARNING'
+# Configure logging for tests
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Test data directory
+TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data")
+os.makedirs(TEST_DATA_DIR, exist_ok=True)
 
 @pytest.fixture(scope="session")
-def test_data_dir():
-    """Create and provide test data directory"""
-    temp_dir = tempfile.mkdtemp(prefix="test_data_")
-    yield temp_dir
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+@pytest.fixture(scope="session")
+def test_audio_samples():
+    """Create various test audio samples for different test scenarios"""
+    samples = {}
+    
+    # Short audio sample (2 seconds)
+    samples['short'] = create_test_audio_file("short_test.wav", duration=2.0, frequency=440)
+    
+    # Medium audio sample (10 seconds)
+    samples['medium'] = create_test_audio_file("medium_test.wav", duration=10.0, frequency=880)
+    
+    # Long audio sample (30 seconds)
+    samples['long'] = create_test_audio_file("long_test.wav", duration=30.0, frequency=220)
+    
+    # Multi-tone audio (simulating speech-like patterns)
+    samples['multi_tone'] = create_multi_tone_audio_file("multi_tone_test.wav")
+    
+    # Noisy audio sample
+    samples['noisy'] = create_noisy_audio_file("noisy_test.wav")
+    
+    yield samples
     
     # Cleanup
-    import shutil
-    shutil.rmtree(temp_dir, ignore_errors=True)
+    for sample_path in samples.values():
+        if os.path.exists(sample_path):
+            os.unlink(sample_path)
 
-@pytest.fixture(scope="session")
-def generated_test_data(test_data_dir):
-    """Generate test data for the session"""
-    try:
-        from test_data_generator import TestDataGenerator
-        generator = TestDataGenerator(test_data_dir)
-        dataset = generator.generate_all_test_data()
-        return dataset
-    except Exception as e:
-        pytest.skip(f"Could not generate test data: {e}")
-
-@pytest.fixture
-def temp_audio_file():
-    """Create a temporary audio file for testing"""
-    import wave
-    import numpy as np
+def create_test_audio_file(filename, duration=2.0, frequency=440, sample_rate=16000):
+    """Create a test audio file with specified parameters"""
+    filepath = os.path.join(TEST_DATA_DIR, filename)
     
-    temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
-    temp_file.close()
-    
-    # Generate simple sine wave
-    duration = 1.0
-    sample_rate = 16000
+    # Generate sine wave
     t = np.linspace(0, duration, int(sample_rate * duration))
-    audio_data = (np.sin(2 * np.pi * 440 * t) * 32767).astype(np.int16)
+    audio_data = np.sin(2 * np.pi * frequency * t) * 0.5
     
-    with wave.open(temp_file.name, 'w') as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)
-        wav_file.setframerate(sample_rate)
-        wav_file.writeframes(audio_data.tobytes())
+    # Add some variation to make it more realistic
+    audio_data += np.sin(2 * np.pi * frequency * 1.5 * t) * 0.1
+    audio_data += np.random.normal(0, 0.01, len(audio_data))  # Add slight noise
     
-    yield temp_file.name
+    # Convert to 16-bit PCM
+    audio_data = np.clip(audio_data, -1, 1)
+    audio_data = (audio_data * 32767).astype(np.int16)
     
-    # Cleanup
-    if os.path.exists(temp_file.name):
-        os.remove(temp_file.name)
+    # Write WAV file
+    write_wav_file(filepath, audio_data, sample_rate)
+    
+    return filepath
+
+def create_multi_tone_audio_file(filename, duration=5.0, sample_rate=16000):
+    """Create audio with multiple tones to simulate speech patterns"""
+    filepath = os.path.join(TEST_DATA_DIR, filename)
+    
+    t = np.linspace(0, duration, int(sample_rate * duration))
+    audio_data = np.zeros_like(t)
+    
+    # Add multiple frequency components
+    frequencies = [200, 400, 800, 1200, 1600]  # Simulate formants
+    for i, freq in enumerate(frequencies):
+        amplitude = 0.2 / (i + 1)  # Decreasing amplitude
+        audio_data += np.sin(2 * np.pi * freq * t) * amplitude
+    
+    # Add envelope to simulate speech segments
+    envelope = np.ones_like(t)
+    segment_length = int(sample_rate * 0.5)  # 0.5 second segments
+    for i in range(0, len(envelope), segment_length * 2):
+        end_idx = min(i + segment_length, len(envelope))
+        envelope[i:end_idx] *= np.linspace(0, 1, end_idx - i)
+        
+        if end_idx < len(envelope):
+            silence_end = min(end_idx + segment_length, len(envelope))
+            envelope[end_idx:silence_end] *= np.linspace(1, 0, silence_end - end_idx)
+    
+    audio_data *= envelope
+    
+    # Convert to 16-bit PCM
+    audio_data = np.clip(audio_data, -1, 1)
+    audio_data = (audio_data * 32767).astype(np.int16)
+    
+    write_wav_file(filepath, audio_data, sample_rate)
+    
+    return filepath
+
+def create_noisy_audio_file(filename, duration=3.0, sample_rate=16000, snr_db=10):
+    """Create audio with added noise for testing noise reduction"""
+    filepath = os.path.join(TEST_DATA_DIR, filename)
+    
+    t = np.linspace(0, duration, int(sample_rate * duration))
+    
+    # Create signal (speech-like)
+    signal = np.sin(2 * np.pi * 440 * t) * 0.5
+    signal += np.sin(2 * np.pi * 880 * t) * 0.3
+    
+    # Add noise
+    noise = np.random.normal(0, 1, len(signal))
+    
+    # Calculate noise level for desired SNR
+    signal_power = np.mean(signal ** 2)
+    noise_power = signal_power / (10 ** (snr_db / 10))
+    noise = noise * np.sqrt(noise_power / np.mean(noise ** 2))
+    
+    # Combine signal and noise
+    audio_data = signal + noise
+    
+    # Convert to 16-bit PCM
+    audio_data = np.clip(audio_data, -1, 1)
+    audio_data = (audio_data * 32767).astype(np.int16)
+    
+    write_wav_file(filepath, audio_data, sample_rate)
+    
+    return filepath
+
+def write_wav_file(filepath, audio_data, sample_rate):
+    """Write audio data to WAV file"""
+    import struct
+    
+    with open(filepath, 'wb') as f:
+        # WAV header
+        f.write(b'RIFF')
+        f.write(struct.pack('<I', 36 + len(audio_data) * 2))
+        f.write(b'WAVE')
+        f.write(b'fmt ')
+        f.write(struct.pack('<I', 16))  # PCM format chunk size
+        f.write(struct.pack('<H', 1))   # PCM format
+        f.write(struct.pack('<H', 1))   # Mono
+        f.write(struct.pack('<I', sample_rate))
+        f.write(struct.pack('<I', sample_rate * 2))  # Byte rate
+        f.write(struct.pack('<H', 2))   # Block align
+        f.write(struct.pack('<H', 16))  # Bits per sample
+        f.write(b'data')
+        f.write(struct.pack('<I', len(audio_data) * 2))
+        
+        # Audio data
+        for sample in audio_data:
+            f.write(struct.pack('<h', sample))
 
 @pytest.fixture
-def mock_openai_client():
-    """Mock OpenAI client for testing"""
-    with patch('openai.OpenAI') as mock_client:
-        yield mock_client
-
-@pytest.fixture
-def mock_elevenlabs_client():
-    """Mock ElevenLabs client for testing"""
-    with patch('elevenlabs.client.ElevenLabs') as mock_client:
-        yield mock_client
-
-@pytest.fixture
-def sample_transcript():
-    """Provide sample transcript for testing"""
-    return """
-    Good morning everyone. This is John Smith, CEO of TechCorp Industries. 
-    Today is January 15th, 2024, and we're here in our Seattle headquarters 
-    for the quarterly board meeting. We'll be discussing our Q4 results 
-    with Sarah Johnson from the finance team.
+def mock_whisper_model():
+    """Create a mock Whisper model for testing"""
+    model = Mock()
     
-    Our revenue for this quarter reached $2.5 million, which represents 
-    a 25% increase from last year. We've successfully expanded to 
-    New York City, hiring 150 new employees.
-    """.strip()
+    # Mock transcribe method
+    model.transcribe.return_value = {
+        'text': 'This is a mock transcription result.',
+        'language': 'en',
+        'segments': [
+            {
+                'id': 0,
+                'start': 0.0,
+                'end': 3.0,
+                'text': 'This is a mock transcription result.',
+                'words': [
+                    {'word': 'This', 'start': 0.0, 'end': 0.3, 'probability': 0.98},
+                    {'word': 'is', 'start': 0.3, 'end': 0.5, 'probability': 0.97},
+                    {'word': 'a', 'start': 0.5, 'end': 0.6, 'probability': 0.96},
+                    {'word': 'mock', 'start': 0.6, 'end': 1.0, 'probability': 0.95},
+                    {'word': 'transcription', 'start': 1.0, 'end': 1.8, 'probability': 0.94},
+                    {'word': 'result', 'start': 1.8, 'end': 2.3, 'probability': 0.93},
+                ]
+            }
+        ]
+    }
+    
+    # Mock detect_language method
+    model.detect_language.return_value = ('en', 0.95)
+    
+    return model
 
 @pytest.fixture
-def sample_entities():
-    """Provide sample entities for testing"""
+def mock_audio_data():
+    """Create mock audio data for testing"""
+    sample_rate = 16000
+    duration = 2.0
+    t = np.linspace(0, duration, int(sample_rate * duration))
+    audio_data = np.sin(2 * np.pi * 440 * t) * 0.5
+    return audio_data, sample_rate
+
+@pytest.fixture
+def test_configurations():
+    """Provide various test configurations"""
     return {
-        "persons": ["John Smith", "Sarah Johnson"],
-        "organizations": ["TechCorp Industries"],
-        "locations": ["Seattle", "New York City"],
-        "dates": ["January 15th, 2024", "Q4"],
-        "money": ["$2.5 million"],
-        "numbers": ["25%", "150"]
+        'minimal': {
+            'model': 'whisper-1',
+            'temperature': 0.0
+        },
+        'standard': {
+            'model': 'whisper-1',
+            'language': 'en',
+            'temperature': 0.0,
+            'enable_language_detection': True,
+            'enable_confidence_analysis': True,
+            'enable_word_timestamps': True,
+            'confidence_threshold': 0.8,
+            'chunk_length_s': 30
+        },
+        'advanced': {
+            'model': 'whisper-1',
+            'language': 'en',
+            'temperature': 0.1,
+            'enable_language_detection': True,
+            'enable_confidence_analysis': True,
+            'enable_word_timestamps': True,
+            'enable_speaker_detection': True,
+            'enable_custom_vocabulary': True,
+            'confidence_threshold': 0.85,
+            'chunk_length_s': 25
+        }
     }
 
+@pytest.fixture
+def mock_preprocessing_result():
+    """Create a mock preprocessing result"""
+    from whisper_audio_preprocessor import PreprocessingResult, AudioMetrics
+    
+    metrics = AudioMetrics(
+        snr_db=15.5,
+        dynamic_range_db=45.2,
+        spectral_centroid=2500.0,
+        zero_crossing_rate=0.1,
+        quality_score=0.85
+    )
+    
+    return PreprocessingResult(
+        processed_audio_path="/tmp/processed_test.wav",
+        original_metrics=metrics,
+        processed_metrics=metrics,
+        processing_time=0.5,
+        quality_improvement=0.15,
+        applied_filters=['noise_reduction', 'normalization']
+    )
+
+@pytest.fixture(autouse=True)
+def cleanup_temp_files():
+    """Automatically cleanup temporary files after each test"""
+    temp_files = []
+    
+    def track_temp_file(filepath):
+        temp_files.append(filepath)
+        return filepath
+    
+    # Provide the tracking function to tests
+    yield track_temp_file
+    
+    # Cleanup
+    for filepath in temp_files:
+        if os.path.exists(filepath):
+            try:
+                os.unlink(filepath)
+            except OSError:
+                pass  # File might already be deleted
+
+# Performance testing utilities
+@pytest.fixture
+def performance_monitor():
+    """Monitor performance metrics during tests"""
+    import time
+    import psutil
+    import threading
+    
+    class PerformanceMonitor:
+        def __init__(self):
+            self.start_time = None
+            self.end_time = None
+            self.cpu_usage = []
+            self.memory_usage = []
+            self.monitoring = False
+            self.monitor_thread = None
+        
+        def start(self):
+            self.start_time = time.time()
+            self.monitoring = True
+            self.monitor_thread = threading.Thread(target=self._monitor)
+            self.monitor_thread.start()
+        
+        def stop(self):
+            self.end_time = time.time()
+            self.monitoring = False
+            if self.monitor_thread:
+                self.monitor_thread.join()
+        
+        def _monitor(self):
+            while self.monitoring:
+                self.cpu_usage.append(psutil.cpu_percent())
+                self.memory_usage.append(psutil.virtual_memory().percent)
+                time.sleep(0.1)
+        
+        @property
+        def duration(self):
+            if self.start_time and self.end_time:
+                return self.end_time - self.start_time
+            return None
+        
+        @property
+        def avg_cpu_usage(self):
+            return sum(self.cpu_usage) / len(self.cpu_usage) if self.cpu_usage else 0
+        
+        @property
+        def avg_memory_usage(self):
+            return sum(self.memory_usage) / len(self.memory_usage) if self.memory_usage else 0
+    
+    return PerformanceMonitor()
+
+# Custom pytest markers
 def pytest_configure(config):
-    """Configure pytest"""
-    # Add custom markers
+    """Configure custom pytest markers"""
     config.addinivalue_line("markers", "unit: Unit tests")
     config.addinivalue_line("markers", "integration: Integration tests")
+    config.addinivalue_line("markers", "api: API tests")
     config.addinivalue_line("markers", "performance: Performance tests")
-    config.addinivalue_line("markers", "error_handling: Error handling tests")
+    config.addinivalue_line("markers", "slow: Slow running tests")
+    config.addinivalue_line("markers", "requires_model: Tests requiring actual models")
 
 def pytest_collection_modifyitems(config, items):
-    """Modify test collection"""
-    # Add markers based on test file names
+    """Modify test collection to add markers based on test names"""
     for item in items:
-        if "performance" in item.nodeid:
-            item.add_marker(pytest.mark.performance)
-        elif "integration" in item.nodeid:
+        # Add markers based on test file names
+        if "test_api" in item.nodeid:
+            item.add_marker(pytest.mark.api)
+        elif "test_integration" in item.nodeid:
             item.add_marker(pytest.mark.integration)
-        elif "error" in item.nodeid:
-            item.add_marker(pytest.mark.error_handling)
-        else:
+        elif "test_performance" in item.nodeid or "benchmark" in item.nodeid:
+            item.add_marker(pytest.mark.performance)
+            item.add_marker(pytest.mark.slow)
+        elif "test_unit" in item.nodeid:
             item.add_marker(pytest.mark.unit)
+        
+        # Add slow marker for tests that might take longer
+        if any(keyword in item.nodeid.lower() for keyword in ['batch', 'concurrent', 'load']):
+            item.add_marker(pytest.mark.slow)
 
-def pytest_runtest_setup(item):
-    """Setup for each test"""
-    # Skip tests that require specific conditions
-    if "api" in item.keywords and not os.getenv("RUN_API_TESTS"):
-        pytest.skip("API tests disabled (set RUN_API_TESTS=1 to enable)")
-
-def pytest_sessionstart(session):
-    """Called after the Session object has been created"""
-    print("\n🧪 Starting comprehensive test session...")
-    print("Environment: Test mode with mocked external services")
-
+# Test data cleanup
 def pytest_sessionfinish(session, exitstatus):
-    """Called after whole test run finished"""
-    if exitstatus == 0:
-        print("\n🎉 All tests completed successfully!")
-    else:
-        print(f"\n❌ Tests completed with exit status: {exitstatus}")
-
-# Custom pytest hooks for better reporting
-def pytest_runtest_logreport(report):
-    """Called for each test report"""
-    if report.when == "call":
-        if report.outcome == "passed":
-            print(f"✅ {report.nodeid}")
-        elif report.outcome == "failed":
-            print(f"❌ {report.nodeid}")
-        elif report.outcome == "skipped":
-            print(f"⏭️ {report.nodeid}")
-
-# Performance test configuration
-@pytest.fixture
-def performance_config():
-    """Configuration for performance tests"""
-    return {
-        "max_processing_time": 30.0,  # seconds
-        "max_memory_usage": 500,      # MB
-        "min_throughput": 100,        # words per second
-        "timeout": 60                 # seconds
-    }
+    """Clean up test data after session"""
+    if os.path.exists(TEST_DATA_DIR):
+        import shutil
+        try:
+            shutil.rmtree(TEST_DATA_DIR)
+        except OSError:
+            pass  # Directory might not be empty or accessible

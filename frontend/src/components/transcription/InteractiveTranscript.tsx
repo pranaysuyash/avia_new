@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { EnhancedAudioPlayer, useAudioPlayer, AudioPlayerRef } from '../audio/EnhancedAudioPlayer';
 import { formatTime } from '../../utils/timeUtils';
-import { webTheme } from '../../../shared/theme';
+import { webTheme } from '../../shared/theme';
 import './InteractiveTranscript.css';
 
 interface TranscriptSegment {

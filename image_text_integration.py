@@ -24,7 +24,7 @@ from intelligent_content_search import SemanticVideoSearchEngine as SemanticSear
 # Import transcription components
 from stt import transcribe
 from ner_basic import extract_entities as extract_entities_basic
-from ner_advanced import extract_entities_gpt
+from ner_advanced import extract_entities_advanced as extract_entities_gpt
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

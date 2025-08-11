@@ -94,7 +94,7 @@ import {
   Description,
   Visibility,
   MonetizationOn,
-  Free,
+  MoneyOff,
   Payment,
   ShoppingCart,
   InstallDesktop,
@@ -103,7 +103,7 @@ import {
   CheckBox,
   IndeterminateCheckBox,
 } from '@mui/icons-material';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 
 interface MarketplaceItem {
@@ -211,7 +211,7 @@ const MarketplaceHub: React.FC = () => {
   const loadMarketplaceData = async () => {
     try {
       const [categoriesResponse] = await Promise.all([
-        apiClient.get('/api/v1/marketplace/categories/'),
+        apiService.get('/api/v1/marketplace/categories/'),
       ]);
       setCategories(categoriesResponse.data);
     } catch (error) {
@@ -234,7 +234,7 @@ const MarketplaceHub: React.FC = () => {
       params.append('page', page.toString());
       params.append('limit', '12');
 
-      const response = await apiClient.get(`/api/v1/marketplace/?${params}`);
+      const response = await apiService.get(`/api/v1/marketplace/?${params}`);
       setItems(response.data);
       
       // Calculate total pages (mock calculation)
@@ -249,7 +249,7 @@ const MarketplaceHub: React.FC = () => {
 
   const loadInstallations = async () => {
     try {
-      const response = await apiClient.get('/api/v1/marketplace/installations/');
+      const response = await apiService.get('/api/v1/marketplace/installations/');
       setInstallations(response.data);
     } catch (error) {
       console.error('Failed to load installations:', error);
@@ -269,7 +269,7 @@ const MarketplaceHub: React.FC = () => {
 
   const handleInstall = async (item: MarketplaceItem) => {
     try {
-      await apiClient.post(`/api/v1/marketplace/${item.id}/install`, {
+      await apiService.post(`/api/v1/marketplace/${item.id}/install`, {
         item_id: item.id,
         auto_update: true,
       });
@@ -288,7 +288,7 @@ const MarketplaceHub: React.FC = () => {
 
   const handleUninstall = async (installation: Installation) => {
     try {
-      await apiClient.delete(`/api/v1/marketplace/installations/${installation.id}`);
+      await apiService.delete(`/api/v1/marketplace/installations/${installation.id}`);
       
       setSnackbar({ open: true, message: 'Item uninstalled successfully', severity: 'success' });
       loadInstallations();
@@ -402,7 +402,7 @@ const MarketplaceHub: React.FC = () => {
                 />
               ) : (
                 <Chip
-                  icon={<Free />}
+                  icon={<MoneyOff />}
                   label="Free"
                   color="success"
                   size="small"

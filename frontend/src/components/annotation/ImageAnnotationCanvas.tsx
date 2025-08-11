@@ -3,10 +3,10 @@ import { Stage, Layer, Rect, Circle, Line, Text, Arrow, Group } from 'react-konv
 import { Button, Select, ColorPicker, Slider, Input, Card, List, Space, Tooltip, message } from 'antd';
 import {
   BorderOutlined,
-  RadiusOutlined,
+  RadarChartOutlined,
   EditOutlined,
   FontSizeOutlined,
-  DrawOutlined,
+  DragOutlined,
   ArrowRightOutlined,
   HighlightOutlined,
   CloudUploadOutlined,
@@ -345,9 +345,10 @@ const ImageAnnotationCanvas: React.FC = () => {
       onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
         const node = e.target;
         updateAnnotation(annotation.id, {
+          ...annotation,
           x: node.x(),
           y: node.y()
-        });
+        } as any);
       }
     };
 
@@ -468,7 +469,7 @@ const ImageAnnotationCanvas: React.FC = () => {
             </Tooltip>
             <Tooltip title="Circle">
               <Button
-                icon={<RadiusOutlined />}
+                icon={<RadarChartOutlined />}
                 type={currentTool === AnnotationType.CIRCLE ? 'primary' : 'default'}
                 onClick={() => setCurrentTool(AnnotationType.CIRCLE)}
               />
@@ -496,7 +497,7 @@ const ImageAnnotationCanvas: React.FC = () => {
             </Tooltip>
             <Tooltip title="Freehand">
               <Button
-                icon={<DrawOutlined />}
+                icon={<DragOutlined />}
                 type={currentTool === AnnotationType.FREEHAND ? 'primary' : 'default'}
                 onClick={() => setCurrentTool(AnnotationType.FREEHAND)}
               />

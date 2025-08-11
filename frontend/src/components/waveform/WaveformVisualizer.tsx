@@ -78,6 +78,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
   const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(null);
   const [showSegments, setShowSegments] = useState(true);
   const [showTranscript, setShowTranscript] = useState(true);
+  const [showSpeakersState, setShowSpeakersState] = useState(showSpeakers);
   const [error, setError] = useState<string | null>(null);
 
   // Generate waveform data from audio
@@ -199,7 +200,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
         ctx.stroke();
         
         // Draw speaker label if available
-        if (showSpeakers && segment.speaker) {
+        if (showSpeakersState && segment.speaker) {
           ctx.fillStyle = '#333';
           ctx.font = '12px Arial';
           ctx.fillText(segment.speaker, startX + 5, 15);
@@ -221,7 +222,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
         }
       });
     }
-  }, [waveformData, currentTime, duration, segments, transcriptSegments, showSegments, showTranscript, showSpeakers]);
+  }, [waveformData, currentTime, duration, segments, transcriptSegments, showSegments, showTranscript, showSpeakersState]);
 
   // Handle canvas click for seeking
   const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -546,8 +547,8 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
             <FormControlLabel
               control={
                 <Switch
-                  checked={showSpeakers}
-                  onChange={(e) => setShowSpeakers(e.target.checked)}
+                  checked={showSpeakersState}
+                  onChange={(e) => setShowSpeakersState(e.target.checked)}
                 />
               }
               label="Show Speakers"

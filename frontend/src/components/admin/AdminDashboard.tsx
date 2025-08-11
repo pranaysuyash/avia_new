@@ -700,16 +700,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => 
                       className="pl-10 w-64"
                     />
                   </div>
-                  <Select value={userStatusFilter} onValueChange={setUserStatusFilter}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
+                  <Select value={userStatusFilter} onChange={(e) => setUserStatusFilter(e.target.value)}>
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="pending">Pending</option>
                   </Select>
                 </div>
               </div>
