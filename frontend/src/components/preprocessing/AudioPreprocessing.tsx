@@ -44,7 +44,7 @@ import {
   Analytics,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 
 interface AudioPreprocessingConfig {
   target_sample_rate: number;
@@ -130,7 +130,7 @@ const AudioPreprocessing: React.FC = () => {
 
   const loadPresets = async () => {
     try {
-      const response = await apiClient.get('/api/v1/audio/presets');
+      const response = await apiService.get('/api/v1/audio/presets');
       setPresets(response.data.presets);
     } catch (err) {
       console.error('Failed to load presets:', err);
@@ -180,7 +180,7 @@ const AudioPreprocessing: React.FC = () => {
       setError(null);
 
       const base64Data = selectedAudio.split(',')[1];
-      const response = await apiClient.post('/api/v1/audio/analyze', {
+      const response = await apiService.post('/api/v1/audio/analyze', {
         audio_data: base64Data,
         analysis_type: 'quality',
       });
@@ -201,7 +201,7 @@ const AudioPreprocessing: React.FC = () => {
       setError(null);
 
       const base64Data = selectedAudio.split(',')[1];
-      const response = await apiClient.post('/api/v1/audio/preprocess', {
+      const response = await apiService.post('/api/v1/audio/preprocess', {
         audio_data: base64Data,
         config: config,
       });
@@ -217,7 +217,7 @@ const AudioPreprocessing: React.FC = () => {
   const pollForResult = (taskId: string) => {
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const response = await apiClient.get(`/api/v1/audio/status/${taskId}`);
+        const response = await apiService.get(`/api/v1/audio/status/${taskId}`);
         const result: ProcessingResult = response.data;
 
         if (result.status === 'completed') {

@@ -60,7 +60,7 @@ import {
   ErrorOutline as ErrorIcon
 } from '@mui/icons-material';
 import { useI18n } from './InternationalizationProvider';
-import { apiClient } from '../services/api';
+import apiService from '../../services/api';
 
 interface Translation {
   key: string;
@@ -137,7 +137,7 @@ const TranslationManager: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const response = await apiClient.get('/api/v1/i18n/stats');
+      const response = await apiService.get('/api/v1/i18n/stats');
       setStats(response.data);
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -146,7 +146,7 @@ const TranslationManager: React.FC = () => {
 
   const loadMissingTranslations = async () => {
     try {
-      const response = await apiClient.get('/api/v1/i18n/missing', {
+      const response = await apiService.get('/api/v1/i18n/missing', {
         params: {
           language_code: selectedLanguage,
           namespace: selectedNamespace
@@ -164,7 +164,7 @@ const TranslationManager: React.FC = () => {
 
   const handleSaveTranslation = async (translation: Translation) => {
     try {
-      await apiClient.post('/api/v1/i18n/translate/set', translation);
+      await apiService.post('/api/v1/i18n/translate/set', translation);
       showSnackbar('Translation saved successfully', 'success');
       setEditDialog({ open: false });
       await loadData();
@@ -176,7 +176,7 @@ const TranslationManager: React.FC = () => {
 
   const handleExport = async (format: 'json' | 'csv') => {
     try {
-      const response = await apiClient.get(`/api/v1/i18n/export/${selectedLanguage}`, {
+      const response = await apiService.get(`/api/v1/i18n/export/${selectedLanguage}`, {
         params: { format, namespace: selectedNamespace },
         responseType: 'blob'
       });
@@ -201,8 +201,7 @@ const TranslationManager: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      await apiClient.post(`/api/v1/i18n/import/${selectedLanguage}`, formData, {
-        params: { format },
+      await apiService.post(`/api/v1/i18n/import/${selectedLanguage}?format=${format}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -217,7 +216,7 @@ const TranslationManager: React.FC = () => {
 
   const handleBulkTranslate = async (texts: Record<string, string>, targetLanguage: string) => {
     try {
-      const response = await apiClient.post('/api/v1/i18n/translate/ai', {
+      const response = await apiService.post('/api/v1/i18n/translate/ai', {
         texts,
         target_language: targetLanguage,
         source_language: 'en'
@@ -225,7 +224,7 @@ const TranslationManager: React.FC = () => {
 
       // Save translated texts
       for (const [key, value] of Object.entries(response.data.translations)) {
-        await apiClient.post('/api/v1/i18n/translate/set', {
+        await apiService.post('/api/v1/i18n/translate/set', {
           key,
           language_code: targetLanguage,
           value,
@@ -256,7 +255,7 @@ const TranslationManager: React.FC = () => {
       case 'high': return <ErrorIcon fontSize="small" />;
       case 'medium': return <WarningIcon fontSize="small" />;
       case 'low': return <CheckCircleIcon fontSize="small" />;
-      default: return null;
+      default: return undefined;
     }
   };
 

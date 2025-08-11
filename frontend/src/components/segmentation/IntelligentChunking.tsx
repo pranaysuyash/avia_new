@@ -41,7 +41,7 @@ import {
   Refresh,
   ContentCut,
   MergeType,
-  SplitscreenVertical,
+  Splitscreen,
 } from '@mui/icons-material';
 import { Timeline as TimelineChart, TimelineItem, TimelineSeparator, TimelineConnector, TimelineContent, TimelineDot } from '@mui/lab';
 
@@ -262,7 +262,7 @@ const IntelligentChunking: React.FC<IntelligentChunkingProps> = ({
       case 'time': return <Timeline />;
       case 'silence': return <ContentCut />;
       case 'manual': return <Edit />;
-      default: return <SplitscreenVertical />;
+      default: return <Splitscreen />;
     }
   };
 
@@ -346,7 +346,7 @@ const IntelligentChunking: React.FC<IntelligentChunkingProps> = ({
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" display="flex" alignItems="center">
-          <SplitscreenVertical sx={{ mr: 1 }} />
+          <Splitscreen sx={{ mr: 1 }} />
           Intelligent Chunking
         </Typography>
         <Box>

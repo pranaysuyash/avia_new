@@ -1,0 +1,12 @@
+{
+  "test_results": {
+    "api_test": true,
+    "ui_test": true,
+    "integration_test": true
+  },
+  "summary": {
+    "passed": 3,
+    "total": 3,
+    "success_rate": 100.0
+  }
+}

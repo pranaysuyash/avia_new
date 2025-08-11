@@ -8,7 +8,6 @@ import {
   Box,
   Paper,
   Typography,
-  Grid,
   Card,
   CardContent,
   Button,
@@ -408,30 +407,26 @@ const AdvancedAnalytics: React.FC = () => {
     }
 
     return (
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Summary Cards */}
-        <Grid item xs={12}>
-          <Grid container spacing={2}>
-            {Object.entries(analyticsData.summary).slice(0, 4).map(([key, value]) => (
-              <Grid item xs={12} sm={6} md={3} key={key}>
-                <Card>
-                  <CardContent>
-                    <Typography color="text.secondary" gutterBottom>
-                      {key.replace(/_/g, ' ').toUpperCase()}
-                    </Typography>
-                    <Typography variant="h4">
-                      {typeof value === 'number' ? value.toLocaleString() : value}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+          {Object.entries(analyticsData.summary).slice(0, 4).map(([key, value]) => (
+            <Card key={key}>
+              <CardContent>
+                <Typography color="text.secondary" gutterBottom>
+                  {key.replace(/_/g, ' ').toUpperCase()}
+                </Typography>
+                <Typography variant="h4">
+                  {typeof value === 'number' ? value.toLocaleString() : value}
+                </Typography>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
 
         {/* Charts */}
         {analyticsData.data.length > 0 && (
-          <Grid item xs={12}>
+          <Box>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 Data Visualization
@@ -441,12 +436,12 @@ const AdvancedAnalytics: React.FC = () => {
                 lines: selectedMetrics.map(metric => ({ dataKey: metric }))
               })}
             </Paper>
-          </Grid>
+          </Box>
         )}
 
         {/* Insights */}
         {analyticsData.insights.length > 0 && (
-          <Grid item xs={12} md={6}>
+          <Box>
             <Paper sx={{ p: 3, height: '100%' }}>
               <Typography variant="h6" gutterBottom>
                 <InsightsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -460,11 +455,11 @@ const AdvancedAnalytics: React.FC = () => {
                 ))}
               </Stack>
             </Paper>
-          </Grid>
+          </Box>
         )}
 
         {/* Data Table Preview */}
-        <Grid item xs={12} md={6}>
+        <Box>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
               <TableChartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -501,17 +496,17 @@ const AdvancedAnalytics: React.FC = () => {
               )}
             </Box>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     );
   };
 
   // Render real-time metrics
   const renderRealtimeMetrics = () => {
     return (
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
         {Object.entries(realtimeMetrics).map(([metric, data]) => (
-          <Grid item xs={12} sm={6} md={3} key={metric}>
+          <Box key={metric}>
             <Card>
               <CardContent>
                 <Typography color="text.secondary" gutterBottom>
@@ -532,15 +527,15 @@ const AdvancedAnalytics: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
         
-        <Grid item xs={12}>
+        <Box sx={{ gridColumn: '1 / -1' }}>
           <Alert severity="info">
             Real-time metrics update every {REFRESH_INTERVAL / 1000} seconds
           </Alert>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     );
   };
 
@@ -582,8 +577,8 @@ const AdvancedAnalytics: React.FC = () => {
       {/* Configuration Tab */}
       {selectedTab === 1 && (
         <Paper sx={{ p: 3 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+            <Box>
               <FormControl fullWidth>
                 <InputLabel>Report Type</InputLabel>
                 <Select
@@ -601,31 +596,29 @@ const AdvancedAnalytics: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={4}>
+            <Box>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DateTimePicker
                   label="Start Date"
                   value={startDate}
                   onChange={(date) => date && setStartDate(date)}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
                 />
               </LocalizationProvider>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={4}>
+            <Box>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DateTimePicker
                   label="End Date"
                   value={endDate}
                   onChange={(date) => date && setEndDate(date)}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
                 />
               </LocalizationProvider>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={4}>
+            <Box>
               <FormControl fullWidth>
                 <InputLabel>Granularity</InputLabel>
                 <Select
@@ -641,9 +634,9 @@ const AdvancedAnalytics: React.FC = () => {
                   <MenuItem value="yearly">Yearly</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={8}>
+            <Box>
               <Autocomplete
                 multiple
                 options={reportTypes[selectedReportType]?.metrics || []}
@@ -662,16 +655,16 @@ const AdvancedAnalytics: React.FC = () => {
                   ))
                 }
               />
-            </Grid>
+            </Box>
             
-            <Grid item xs={12}>
+            <Box>
               <Stack direction="row" spacing={2}>
                 <FormControlLabel
                   control={
                     <Switch
                       checked={includePredictions}
                       onChange={(e) => setIncludePredictions(e.target.checked)}
-                      disabled={!['pro', 'enterprise'].includes(user?.subscription_tier || '')}
+                      disabled={!['pro', 'enterprise'].includes(user?.tier || '')}
                     />
                   }
                   label="Include Predictions"
@@ -681,15 +674,15 @@ const AdvancedAnalytics: React.FC = () => {
                     <Switch
                       checked={includeBenchmarks}
                       onChange={(e) => setIncludeBenchmarks(e.target.checked)}
-                      disabled={user?.subscription_tier !== 'enterprise'}
+                      disabled={user?.tier !== 'enterprise'}
                     />
                   }
                   label="Include Benchmarks"
                 />
               </Stack>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12}>
+            <Box>
               <Button
                 variant="contained"
                 size="large"
@@ -700,8 +693,8 @@ const AdvancedAnalytics: React.FC = () => {
               >
                 {loading ? 'Generating...' : 'Generate Analytics'}
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Paper>
       )}
 
@@ -721,9 +714,9 @@ const AdvancedAnalytics: React.FC = () => {
             </Button>
           </Box>
           
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
             {customReports.length === 0 ? (
-              <Grid item xs={12}>
+              <Box>
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
                   <Typography variant="h6" color="text.secondary">
                     No custom reports yet
@@ -732,10 +725,10 @@ const AdvancedAnalytics: React.FC = () => {
                     Create your first custom report to save your analytics configuration
                   </Typography>
                 </Paper>
-              </Grid>
+              </Box>
             ) : (
               customReports.map((report) => (
-                <Grid item xs={12} md={6} lg={4} key={report.id}>
+                <Box key={report.id}>
                   <Card>
                     <CardContent>
                       <Typography variant="h6">{report.name}</Typography>
@@ -758,10 +751,10 @@ const AdvancedAnalytics: React.FC = () => {
                       </Button>
                     </CardContent>
                   </Card>
-                </Grid>
+                </Box>
               ))
             )}
-          </Grid>
+          </Box>
         </Box>
       )}
 
@@ -804,10 +797,10 @@ const AdvancedAnalytics: React.FC = () => {
               variant="outlined"
               startIcon={<PictureAsPdfIcon />}
               onClick={() => exportAnalytics('pdf')}
-              disabled={user?.subscription_tier !== 'enterprise'}
+              disabled={user?.tier !== 'enterprise'}
               fullWidth
             >
-              PDF {user?.subscription_tier !== 'enterprise' && '(Enterprise only)'}
+              PDF {user?.tier !== 'enterprise' && '(Enterprise only)'}
             </Button>
           </Stack>
         </DialogContent>

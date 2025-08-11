@@ -4,9 +4,24 @@
  */
 
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
-import { Replay } from '@sentry/replay';
-import sentryConfig from '../../sentry.config';
+
+// Sentry config from environment variables
+const sentryConfig = {
+  dsn: process.env.REACT_APP_SENTRY_DSN,
+  environment: process.env.REACT_APP_ENVIRONMENT || 'development',
+  release: process.env.REACT_APP_VERSION,
+  tracesSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  tracingOptions: {},
+  ignoreErrors: [
+    'Network request failed',
+    'NetworkError',
+    'Failed to fetch'
+  ],
+  beforeSend: (event: any) => event,
+  initialScope: {}
+};
 
 /**
  * Initialize Sentry
@@ -29,28 +44,14 @@ export function initSentry() {
     
     // Integrations
     integrations: [
-      new BrowserTracing({
-        // Set up automatic route change tracking
-        routingInstrumentation: Sentry.reactRouterV6Instrumentation(
-          React.useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes
-        ),
-        
-        // Performance monitoring options
-        ...sentryConfig.tracingOptions,
-      }),
-      
-      new Replay({
+      Sentry.replayIntegration({
         // Replay configuration
         maskAllText: false,
         maskAllInputs: true,
         blockAllMedia: false,
         
         // Privacy settings
-        beforeAddRecordingEvent: (event) => {
+        beforeAddRecordingEvent: (event: any) => {
           // Remove sensitive data from recordings
           if (event.data && event.data.tag === 'input') {
             const element = event.data.attributes;
@@ -125,7 +126,7 @@ export function captureError(
     level?: Sentry.SeverityLevel;
   }
 ) {
-  Sentry.withScope((scope) => {
+  Sentry.withScope((scope: any) => {
     if (context?.tags) {
       Object.entries(context.tags).forEach(([key, value]) => {
         scope.setTag(key, value);
@@ -151,27 +152,29 @@ export function captureError(
  */
 export const performance = {
   /**
-   * Start a performance transaction
+   * Start a performance span
    */
-  startTransaction(name: string, op: string = 'navigation') {
-    return Sentry.startTransaction({ name, op });
+  startSpan(name: string, op: string = 'navigation') {
+    return Sentry.startSpan({ name, op }, () => {
+      // Span callback
+    });
   },
   
   /**
    * Measure component render performance
    */
   measureComponent(componentName: string) {
-    return Sentry.withProfiler(componentName);
+    return (Component: React.ComponentType<any>) => Sentry.withProfiler(Component, { name: componentName });
   },
   
   /**
    * Track custom performance metric
    */
   trackMetric(name: string, value: number, unit: string = 'ms') {
-    const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-    if (transaction) {
-      transaction.setMeasurement(name, value, unit);
-    }
+    // Store custom context for metrics
+    Sentry.setContext('metrics', {
+      [name]: { value, unit }
+    });
   },
 };
 

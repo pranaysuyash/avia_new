@@ -37,7 +37,7 @@ import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
   CheckCircle as CheckCircleIcon,
-  HourglassEmpty as PendingIcon,
+  HourglassEmpty,
   Error as ErrorIcon,
   Info as InfoIcon,
   Person as PersonIcon,
@@ -605,7 +605,7 @@ function getStatusIcon(status: string) {
     case 'open':
       return <ErrorIcon color="error" />;
     case 'in_progress':
-      return <PendingIcon color="warning" />;
+      return <HourglassEmpty color="warning" />;
     case 'waiting_customer':
       return <InfoIcon color="info" />;
     case 'resolved':

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Console Capture</title>
+    <script>
+        // Capture all console output
+        const logs = [];
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            logs.push({type: 'log', message: args.join(' ')});
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            logs.push({type: 'error', message: args.join(' ')});
+            originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            logs.push({type: 'warn', message: args.join(' ')});
+            originalWarn.apply(console, args);
+        };
+        
+        window.addEventListener('error', (e) => {
+            logs.push({type: 'error', message: `${e.message} at ${e.filename}:${e.lineno}:${e.colno}`});
+        });
+        
+        // Display logs every second
+        setInterval(() => {
+            document.getElementById('logs').innerHTML = logs.map(log => 
+                `<div class="${log.type}">[${log.type.toUpperCase()}] ${log.message}</div>`
+            ).join('');
+        }, 1000);
+    </script>
+    <style>
+        .error { color: red; }
+        .warn { color: orange; }
+        .log { color: green; }
+        #logs { 
+            background: #f0f0f0; 
+            padding: 10px; 
+            font-family: monospace; 
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Console Output</h1>
+    <div id="logs">Loading...</div>
+    <hr>
+    <iframe src="http://localhost:3000" width="100%" height="500"></iframe>
+</body>
+</html>

@@ -44,7 +44,7 @@ import {
   FilterList,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 
 interface Entity {
   id: string;
@@ -130,7 +130,7 @@ const EntityExtraction: React.FC = () => {
       formData.append('extraction_config', JSON.stringify(extractionConfig));
       formData.append('include_visualization', 'true');
 
-      const response = await apiClient.post('/api/v1/entity-extraction/extract/upload', formData, {
+      const response = await apiService.post('/api/v1/entity-extraction/extract/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -148,7 +148,7 @@ const EntityExtraction: React.FC = () => {
   const pollForResults = (taskId: string) => {
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const response = await apiClient.get(`/api/v1/entity-extraction/status/${taskId}`);
+        const response = await apiService.get(`/api/v1/entity-extraction/status/${taskId}`);
         const data = response.data;
 
         if (data.status === 'completed' && data.result) {
@@ -193,7 +193,7 @@ const EntityExtraction: React.FC = () => {
     if (!results?.task_id) return;
 
     try {
-      const response = await apiClient.get(
+      const response = await apiService.get(
         `/api/v1/entity-extraction/results/${results.task_id}?format=${format}`
       );
       
@@ -233,7 +233,7 @@ const EntityExtraction: React.FC = () => {
     filterType === 'all' || entity.type === filterType
   ) || [];
 
-  const entityTypes = [...new Set(results?.entities.map(e => e.type) || [])];
+  const entityTypes = Array.from(new Set(results?.entities?.map(e => e.type) || []));
 
   return (
     <Box sx={{ p: 3 }}>

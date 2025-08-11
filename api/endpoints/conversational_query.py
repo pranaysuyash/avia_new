@@ -9,7 +9,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 import uuid
 
-from ...conversational_query_bot import (
+from conversational_query_bot import (
     ConversationalQueryBot, MediaContent, QueryResult, 
     ConversationContext
 )

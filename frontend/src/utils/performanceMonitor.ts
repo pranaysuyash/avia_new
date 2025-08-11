@@ -223,7 +223,7 @@ class PerformanceMonitor {
   public getBudgetViolations(): Array<PerformanceMetric & { budget: number }> {
     const violations: Array<PerformanceMetric & { budget: number }> = [];
     
-    for (const [name, metric] of this.metrics) {
+    for (const [name, metric] of Array.from(this.metrics.entries())) {
       const budget = PERFORMANCE_BUDGETS.find(b => b.metric === name);
       if (budget && metric.value > budget.budget) {
         violations.push({ ...metric, budget: budget.budget });
@@ -237,7 +237,7 @@ class PerformanceMonitor {
    * Clear all observers
    */
   public disconnect() {
-    for (const observer of this.observers.values()) {
+    for (const observer of Array.from(this.observers.values())) {
       observer.disconnect();
     }
     this.observers.clear();

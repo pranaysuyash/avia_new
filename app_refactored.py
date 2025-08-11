@@ -887,8 +887,7 @@ def render_user_management():
 
 if __name__ == "__main__":
     main()
-# Missing 
-helper functions implementation
+# Missing helper functions implementation
 
 def render_multilingual_settings():
     """Render multi-language specific settings"""

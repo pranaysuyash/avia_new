@@ -295,9 +295,9 @@ export class CacheService {
     const filename = `cache-report-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
     
     // Use Electron's file system access
-    if (window.electronAPI?.saveFile) {
+    if (window.electronAPI?.transcription?.saveTranscription) {
       try {
-        await window.electronAPI.saveFile(filename, report);
+        await window.electronAPI.transcription.saveTranscription({ filename, content: report });
         console.log('Cache report saved:', filename);
       } catch (error) {
         console.error('Failed to save cache report:', error);
@@ -355,11 +355,5 @@ export const getCacheHealthStatus = (hitRate: number): string => {
   return 'Poor';
 };
 
-// Electron-specific types
-declare global {
-  interface Window {
-    electronAPI?: {
-      saveFile: (filename: string, content: string) => Promise<void>;
-    };
-  }
-}
+// Import the global Electron API declaration
+import type { ElectronAPI } from '../types/electron';

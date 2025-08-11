@@ -88,21 +88,6 @@ import {
 import { format } from 'date-fns';
 
 // Desktop-specific imports
-declare global {
-  interface Window {
-    electronAPI: {
-      saveDialog: (options: any) => Promise<{ filePath?: string; canceled: boolean }>;
-      showNotification: (title: string, body: string) => void;
-      openExternal: (url: string) => void;
-      getSystemInfo: () => Promise<any>;
-      executeCommand: (command: string) => Promise<{ stdout: string; stderr: string }>;
-      readSystemLogs: (logFile: string) => Promise<string>;
-      setAlwaysOnTop: (flag: boolean) => void;
-      toggleFullScreen: () => void;
-      exportData: (data: any, format: string) => Promise<boolean>;
-    };
-  }
-}
 
 // Import types from React version
 interface SystemMetrics {

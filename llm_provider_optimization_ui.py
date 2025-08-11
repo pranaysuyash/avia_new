@@ -102,9 +102,9 @@ class LLMProviderOptimizationUI:
         st.sidebar.metric("Providers Monitored", metrics_count)
         st.sidebar.metric("Active A/B Tests", active_tests)
         
-        return selected_page    
-  
-  def render_dashboard(self):
+        return selected_page
+    
+    def render_dashboard(self):
         """Render main dashboard"""
         st.header("📊 Provider Performance Dashboard")
         

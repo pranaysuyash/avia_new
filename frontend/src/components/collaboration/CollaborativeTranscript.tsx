@@ -6,7 +6,7 @@
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { useCollaboration } from '../../hooks/useCollaboration';
 import { InteractiveTranscript } from '../transcription/InteractiveTranscript';
-import { webTheme } from '../../../shared/theme';
+import { webTheme } from '../../shared/theme';
 
 interface CollaboratorCursor {
   userId: string;
@@ -125,7 +125,7 @@ export const CollaborativeTranscript: React.FC<CollaborativeTranscriptProps> = (
   }, [sendPresence]);
 
   // Handle segment edit
-  const handleSegmentEdit = useCallback((segmentId: string, newText: string) => {
+  const _handleSegmentEdit = useCallback((segmentId: string, newText: string) => {
     // Send edit to collaborators
     sendEdit({
       segmentId,
@@ -325,7 +325,6 @@ export const CollaborativeTranscript: React.FC<CollaborativeTranscriptProps> = (
         segments={mergedSegments}
         audioUrl={audioUrl}
         enableEdit={true}
-        onSegmentEdit={handleSegmentEdit}
       />
     </div>
   );

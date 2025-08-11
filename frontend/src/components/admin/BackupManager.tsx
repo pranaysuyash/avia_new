@@ -401,15 +401,10 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ className }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Backup Type</Label>
-              <Select value={selectedBackupType} onValueChange={setSelectedBackupType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="full">Full System</SelectItem>
-                  <SelectItem value="incremental">Incremental</SelectItem>
-                </SelectContent>
+              <Select value={selectedBackupType} onChange={(e) => setSelectedBackupType(e.target.value)}>
+                <option value="manual">Manual</option>
+                <option value="full">Full System</option>
+                <option value="incremental">Incremental</option>
               </Select>
             </div>
 

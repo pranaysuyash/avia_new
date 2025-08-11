@@ -36,7 +36,7 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 
 interface PreprocessingConfig {
   enable_denoising: boolean;
@@ -108,7 +108,7 @@ const ImagePreprocessing: React.FC = () => {
 
   const loadPresets = async () => {
     try {
-      const response = await apiClient.get('/api/v1/image/presets');
+      const response = await apiService.get('/api/v1/image/presets');
       setPresets(response.data.presets);
     } catch (err) {
       console.error('Failed to load presets:', err);
@@ -158,7 +158,7 @@ const ImagePreprocessing: React.FC = () => {
       // Extract base64 data
       const base64Data = selectedImage.split(',')[1];
 
-      const response = await apiClient.post('/api/v1/image/preprocess', {
+      const response = await apiService.post('/api/v1/image/preprocess', {
         image_data: base64Data,
         config: config,
       });
@@ -176,7 +176,7 @@ const ImagePreprocessing: React.FC = () => {
   const pollForResult = (taskId: string) => {
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const response = await apiClient.get(`/api/v1/image/status/${taskId}`);
+        const response = await apiService.get(`/api/v1/image/status/${taskId}`);
         const result: ProcessingResult = response.data;
 
         if (result.status === 'completed') {
@@ -421,7 +421,7 @@ const ImagePreprocessing: React.FC = () => {
                         objectFit: 'contain',
                         border: '1px solid #ccc',
                         borderRadius: 4,
-                        mb: 2,
+                        marginBottom: 16,
                       }}
                     />
 

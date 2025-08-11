@@ -4,8 +4,8 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { apiClient } from '../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import apiService from '../../services/api';
 
 // Types
 interface LanguageInfo {
@@ -84,13 +84,13 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
       setError(null);
 
       // Load supported languages
-      const languagesResponse = await apiClient.get('/api/v1/i18n/languages');
+      const languagesResponse = await apiService.get('/api/v1/i18n/languages');
       setLanguages(languagesResponse.data);
 
       // Get user's language preference if logged in
       if (user) {
         try {
-          const preferenceResponse = await apiClient.get('/api/v1/i18n/user/preference');
+          const preferenceResponse = await apiService.get('/api/v1/i18n/user/preference');
           setCurrentLanguage(preferenceResponse.data.language_code);
         } catch (err) {
           console.warn('Failed to load user language preference, using default');
@@ -115,7 +115,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
 
   const isCacheValid = (cacheKey: string): boolean => {
     const timestamp = cacheTimestamps[cacheKey];
-    return timestamp && (Date.now() - timestamp) < CACHE_DURATION;
+    return Boolean(timestamp && (Date.now() - timestamp) < CACHE_DURATION);
   };
 
   const t = useCallback((key: string, context?: TranslationContext): string => {
@@ -137,7 +137,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
 
   const loadTranslation = async (key: string, namespace: string = 'general') => {
     try {
-      const response = await apiClient.post('/api/v1/i18n/translate', {
+      const response = await apiService.post('/api/v1/i18n/translate', {
         key,
         language_code: currentLanguage,
         namespace
@@ -160,7 +160,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
 
   const loadBulkTranslations = async (keys: string[], namespace: string = 'general') => {
     try {
-      const response = await apiClient.post('/api/v1/i18n/translate/bulk', {
+      const response = await apiService.post('/api/v1/i18n/translate/bulk', {
         keys,
         language_code: currentLanguage,
         namespace
@@ -197,7 +197,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
 
       // Save user preference if logged in
       if (user) {
-        await apiClient.post('/api/v1/i18n/user/preference', {
+        await apiService.post('/api/v1/i18n/user/preference', {
           language_code: languageCode
         });
       } else {
@@ -265,7 +265,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
 
   const detectLanguage = async (text: string): Promise<string> => {
     try {
-      const response = await apiClient.get('/api/v1/i18n/detect-language', {
+      const response = await apiService.get('/api/v1/i18n/detect-language', {
         params: { text }
       });
       return response.data.detected_language;

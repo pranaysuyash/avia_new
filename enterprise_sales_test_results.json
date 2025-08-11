@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-08-07T20:59:05.014426",
+  "summary": {
+    "total_tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "detailed_results": [
+    {
+      "test": "system_import",
+      "status": "passed",
+      "missing_methods": [
+        "get_leads",
+        "update_lead",
+        "get_demos",
+        "create_trial",
+        "get_trials",
+        "get_contracts"
+      ]
+    }
+  ]
+}

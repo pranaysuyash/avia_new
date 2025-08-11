@@ -368,7 +368,7 @@ export const GraphQLSubscriptionManager: React.FC<GraphQLSubscriptionManagerProp
       ].filter(Boolean);
 
       return () => {
-        unsubscribers.forEach(unsub => unsub());
+        unsubscribers.forEach(unsub => unsub?.());
       };
     }
   }, [

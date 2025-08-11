@@ -37,19 +37,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-// Desktop-specific imports
-declare global {
-  interface Window {
-    electronAPI: {
-      saveDialog: (options: any) => Promise<{ filePath?: string; canceled: boolean }>;
-      showNotification: (title: string, body: string) => void;
-      openExternal: (url: string) => void;
-      getAppVersion: () => Promise<string>;
-      onAppUpdate: (callback: (info: any) => void) => void;
-      showContextMenu: (options: any) => Promise<string>;
-    };
-  }
-}
+// Import global Electron API type
+import type { ElectronAPI } from '../../types/electron';
 
 // Types and interfaces
 interface Operation {
@@ -150,7 +139,10 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   // Desktop-specific notification
   const showDesktopNotification = useCallback((title: string, message: string) => {
     if (notifications && window.electronAPI) {
-      window.electronAPI.showNotification(title, message);
+      // Using showNotification from the Electron API if available
+      if (window.electronAPI.showNotification) {
+        window.electronAPI.showNotification(title, message);
+      }
     }
   }, [notifications]);
 
@@ -159,7 +151,8 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     if (!window.electronAPI) return false;
 
     try {
-      const result = await window.electronAPI.saveDialog({
+      // Use showSaveDialog instead of saveDialog
+      const result = await window.electronAPI.showSaveDialog({
         title: 'Save Document',
         defaultPath: `document_${documentId}.txt`,
         filters: [
@@ -184,36 +177,35 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     return false;
   }, [content, documentId, onSave, showDesktopNotification]);
 
-  // Context menu for desktop
-  const showContextMenu = useCallback(async (event: React.MouseEvent) => {
+  // Desktop-specific context menu
+  const showDesktopContextMenu = useCallback(async (event: React.MouseEvent) => {
     if (!window.electronAPI) return;
 
-    event.preventDefault();
-    
     try {
+      // TODO: Implement context menu functionality
+      // The showContextMenu method is not currently available in preload.js
+      // Will need to add this to the preload.js if needed
+      console.log('Context menu requested at:', event.clientX, event.clientY);
+      
+      /*
       const result = await window.electronAPI.showContextMenu({
+        x: event.clientX,
+        y: event.clientY,
         items: [
-          { label: 'Copy', role: 'copy' },
-          { label: 'Cut', role: 'cut' },
-          { label: 'Paste', role: 'paste' },
+          { id: 'cut', label: 'Cut' },
+          { id: 'copy', label: 'Copy' },
+          { id: 'paste', label: 'Paste' },
           { type: 'separator' },
-          { label: 'Select All', accelerator: 'CmdOrCtrl+A' },
-          { type: 'separator' },
-          { label: 'Save Document', click: 'save' },
-          { label: 'Export as PDF', click: 'export-pdf' }
+          { id: 'save', label: 'Save Document' }
         ]
       });
-
-      if (result === 'save') {
-        await saveToDesktop();
-      } else if (result === 'export-pdf') {
-        // Handle PDF export
-        showDesktopNotification('Export', 'PDF export feature coming soon');
-      }
-    } catch (err) {
-      console.error('Context menu error:', err);
+      
+      console.log('Context menu result:', result);
+      */
+    } catch (error) {
+      console.error('Failed to show context menu:', error);
     }
-  }, [saveToDesktop, showDesktopNotification]);
+  }, []);
 
   // Initialize collaborative session
   const initializeSession = useCallback(async () => {

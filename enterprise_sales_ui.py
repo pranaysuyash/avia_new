@@ -1,7 +1,6 @@
 """
 Enterprise Sales and Onboarding UI
-Streamlit interface for enterprise sales features including pricing calculator,
-demo scheduling, trial management, white-label customization, and customer success tracking.
+Streamlit interface for managing sales pipeline, demos, trials, and onboarding
 """
 
 import streamlit as st
@@ -9,900 +8,806 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import requests
 import json
-from enterprise_sales_system import (
-    EnterpriseSalesSystem, PricingTier, TrialStatus, OnboardingStage, 
-    HealthScore, DemoRequest, TrialAccount, WhiteLabelConfig
+from typing import Dict, List, Optional
+
+# Page configuration
+st.set_page_config(
+    page_title="Enterprise Sales Dashboard",
+    page_icon="💼",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-def render_enterprise_sales_dashboard():
-    """Main enterprise sales dashboard"""
-    st.title("🏢 Enterprise Sales & Onboarding")
+class EnterpriseSalesUI:
+    def __init__(self):
+        self.api_base = st.session_state.get('api_base', 'http://localhost:8000')
+        self.headers = self._get_auth_headers()
     
-    # Initialize system
-    if 'enterprise_system' not in st.session_state:
-        st.session_state.enterprise_system = EnterpriseSalesSystem()
+    def _get_auth_headers(self):
+        """Get authentication headers"""
+        token = st.session_state.get('auth_token')
+        if token:
+            return {"Authorization": f"Bearer {token}"}
+        return {}
     
-    system = st.session_state.enterprise_system
+    def _make_request(self, method: str, endpoint: str, data: Dict = None):
+        """Make API request with error handling"""
+        try:
+            url = f"{self.api_base}{endpoint}"
+            if method.upper() == 'GET':
+                response = requests.get(url, headers=self.headers, params=data)
+            elif method.upper() == 'POST':
+                response = requests.post(url, headers=self.headers, json=data)
+            elif method.upper() == 'PUT':
+                response = requests.put(url, headers=self.headers, json=data)
+            else:
+                st.error(f"Unsupported method: {method}")
+                return None
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                st.error(f"API Error: {response.status_code} - {response.text}")
+                return None
+        except Exception as e:
+            st.error(f"Request failed: {str(e)}")
+            return None
+
+def main():
+    ui = EnterpriseSalesUI()
+    
+    st.title("🏢 Enterprise Sales Dashboard")
     
     # Sidebar navigation
-    st.sidebar.title("Enterprise Tools")
+    st.sidebar.title("Navigation")
     page = st.sidebar.selectbox(
-        "Select Tool",
+        "Select Page",
         [
-            "Sales Dashboard",
-            "Pricing Calculator", 
+            "Sales Overview",
+            "Lead Management", 
             "Demo Scheduling",
             "Trial Management",
-            "White-Label Config",
+            "Contract Management",
             "Onboarding Workflows",
-            "Customer Success"
+            "Sales Analytics",
+            "CRM Integration"
         ]
     )
     
-    if page == "Sales Dashboard":
-        render_sales_dashboard(system)
-    elif page == "Pricing Calculator":
-        render_pricing_calculator(system)
+    # Authentication check
+    if not st.session_state.get('auth_token'):
+        st.error("Please login to access the enterprise sales dashboard")
+        return
+    
+    # Route to selected page
+    if page == "Sales Overview":
+        show_sales_overview(ui)
+    elif page == "Lead Management":
+        show_lead_management(ui)
     elif page == "Demo Scheduling":
-        render_demo_scheduling(system)
+        show_demo_scheduling(ui)
     elif page == "Trial Management":
-        render_trial_management(system)
-    elif page == "White-Label Config":
-        render_whitelabel_config(system)
+        show_trial_management(ui)
+    elif page == "Contract Management":
+        show_contract_management(ui)
     elif page == "Onboarding Workflows":
-        render_onboarding_workflows(system)
-    elif page == "Customer Success":
-        render_customer_success(system)
+        show_onboarding_workflows(ui)
+    elif page == "Sales Analytics":
+        show_sales_analytics(ui)
+    elif page == "CRM Integration":
+        show_crm_integration(ui)
 
-def render_sales_dashboard(system):
-    """Render sales analytics dashboard"""
-    st.header("📊 Sales Analytics Dashboard")
+def show_sales_overview(ui: EnterpriseSalesUI):
+    """Sales overview dashboard"""
+    st.header("📊 Sales Overview")
     
-    # Get analytics data
-    analytics = system.get_sales_analytics()
+    # Get sales metrics
+    metrics = ui._make_request('GET', '/api/enterprise/analytics/sales-metrics')
     
-    # Key metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric(
-            "Demos Scheduled",
-            analytics['total_demos_scheduled'],
-            delta="+5 this week"
-        )
-    
-    with col2:
-        st.metric(
-            "Active Trials",
-            analytics['active_trials'],
-            delta="+2 this week"
-        )
-    
-    with col3:
-        st.metric(
-            "Conversion Rate",
-            f"{analytics['trial_conversion_rate']:.1f}%",
-            delta="+2.3%"
-        )
-    
-    with col4:
-        st.metric(
-            "Enterprise Clients",
-            analytics['total_enterprise_clients'],
-            delta="+1 this month"
-        )
-    
-    # Charts
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Demo Requests by Type")
-        demo_types = ["Live Demo", "Self-Guided", "Recorded Demo"]
-        demo_counts = [12, 8, 5]
+    if metrics:
+        metrics_data = metrics.get('metrics', {})
         
-        fig = px.pie(
-            values=demo_counts,
-            names=demo_types,
-            title="Demo Type Distribution"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        st.subheader("Trial Conversion Funnel")
-        stages = ["Demo", "Trial Started", "Trial Active", "Converted"]
-        counts = [25, 18, 12, 8]
-        
-        fig = go.Figure(go.Funnel(
-            y=stages,
-            x=counts,
-            textinfo="value+percent initial"
-        ))
-        fig.update_layout(title="Sales Funnel")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Recent activity
-    st.subheader("Recent Sales Activity")
-    
-    activity_data = [
-        {"Date": "2024-02-07", "Activity": "Demo scheduled", "Company": "TechCorp Inc", "Rep": "Sarah Johnson"},
-        {"Date": "2024-02-06", "Activity": "Trial started", "Company": "DataFlow Ltd", "Rep": "Mike Chen"},
-        {"Date": "2024-02-05", "Activity": "Enterprise deal closed", "Company": "GlobalMedia", "Rep": "Sarah Johnson"},
-        {"Date": "2024-02-04", "Activity": "Custom pricing sent", "Company": "MegaCorp", "Rep": "David Wilson"},
-    ]
-    
-    df = pd.DataFrame(activity_data)
-    st.dataframe(df, use_container_width=True)
-
-def render_pricing_calculator(system):
-    """Render custom pricing calculator"""
-    st.header("💰 Enterprise Pricing Calculator")
-    
-    st.write("Create custom pricing configurations for enterprise clients based on their specific requirements.")
-    
-    # Client information
-    st.subheader("Client Information")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        client_name = st.text_input("Client Name", placeholder="Enter company name")
-        user_count = st.number_input("Number of Users", min_value=1, max_value=10000, value=100)
-        contract_length = st.selectbox("Contract Length (months)", [12, 24, 36], index=1)
-    
-    with col2:
-        tier = st.selectbox("Base Tier", ["starter", "professional", "enterprise"])
-        support_level = st.selectbox("Support Level", ["standard", "premium", "white-glove"])
-        transcription_hours = st.number_input("Expected Monthly Transcription Hours", min_value=0, value=100)
-    
-    # Custom features
-    st.subheader("Custom Features")
-    custom_features = st.multiselect(
-        "Select Additional Features",
-        [
-            "Advanced Analytics Dashboard",
-            "Custom Integrations",
-            "Dedicated Success Manager",
-            "Priority Support",
-            "Custom Branding",
-            "On-Premises Deployment",
-            "Advanced Security Features",
-            "Custom AI Model Training"
-        ]
-    )
-    
-    # Calculate pricing
-    if st.button("Calculate Custom Pricing", type="primary"):
-        if client_name:
-            requirements = {
-                'tier': tier,
-                'user_count': user_count,
-                'contract_length': contract_length,
-                'support_level': support_level,
-                'custom_features': custom_features,
-                'transcription_hours': transcription_hours
-            }
-            
-            config = system.create_custom_pricing(client_name, requirements)
-            
-            # Display pricing breakdown
-            st.success(f"Custom pricing created for {client_name}")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("Monthly Pricing")
-                st.write(f"**Base Price:** ${config.base_price:,.2f}")
-                st.write(f"**Per User:** ${config.per_user_price:,.2f}")
-                st.write(f"**Per Hour Transcription:** ${config.per_hour_transcription:,.2f}")
-                st.write(f"**Per GB Storage:** ${config.per_gb_storage:,.2f}")
-                
-                # Calculate total monthly estimate
-                monthly_total = (
-                    config.base_price +
-                    (config.per_user_price * user_count) +
-                    (config.per_hour_transcription * transcription_hours)
-                )
-                st.write(f"**Estimated Monthly Total:** ${monthly_total:,.2f}")
-            
-            with col2:
-                st.subheader("Included Benefits")
-                st.write(f"**API Calls Included:** {config.api_calls_included:,}")
-                st.write(f"**Additional API Cost:** ${config.additional_api_cost:.3f}")
-                st.write(f"**Support Level:** {config.support_level.title()}")
-                
-                if custom_features:
-                    st.write("**Custom Features:**")
-                    for feature in custom_features:
-                        st.write(f"• {feature}")
-            
-            # Volume discounts
-            st.subheader("Available Discounts")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**Volume Discounts:**")
-                for threshold, discount in config.volume_discounts.items():
-                    st.write(f"• {threshold} users: {discount*100:.0f}% off")
-            
-            with col2:
-                st.write("**Contract Length Discounts:**")
-                for length, discount in config.contract_length_discount.items():
-                    st.write(f"• {length}: {discount*100:.0f}% off")
-            
-            # Export pricing
-            if st.button("Export Pricing Proposal"):
-                pricing_data = {
-                    'client_name': client_name,
-                    'pricing_config': {
-                        'base_price': config.base_price,
-                        'per_user_price': config.per_user_price,
-                        'per_hour_transcription': config.per_hour_transcription,
-                        'estimated_monthly': monthly_total,
-                        'custom_features': custom_features
-                    }
-                }
-                
-                st.download_button(
-                    label="Download Pricing Proposal (JSON)",
-                    data=json.dumps(pricing_data, indent=2),
-                    file_name=f"{client_name}_pricing_proposal.json",
-                    mime="application/json"
-                )
-        else:
-            st.error("Please enter a client name")
-
-def render_demo_scheduling(system):
-    """Render demo scheduling interface"""
-    st.header("📅 Demo Scheduling")
-    
-    tab1, tab2 = st.tabs(["Schedule New Demo", "Manage Demos"])
-    
-    with tab1:
-        st.subheader("Schedule New Demo")
-        
-        col1, col2 = st.columns(2)
+        # Key metrics row
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            company_name = st.text_input("Company Name")
-            contact_name = st.text_input("Contact Name")
-            email = st.text_input("Email Address")
-            phone = st.text_input("Phone Number")
-        
-        with col2:
-            company_size = st.selectbox(
-                "Company Size",
-                ["1-10", "11-50", "51-200", "201-1000", "1000+"]
-            )
-            demo_type = st.selectbox(
-                "Demo Type",
-                ["live", "recorded", "self-guided"]
-            )
-            preferred_date = st.date_input("Preferred Date")
-            preferred_time = st.selectbox(
-                "Preferred Time",
-                ["9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"]
-            )
-        
-        use_case = st.text_area("Use Case Description", placeholder="Describe how you plan to use the platform...")
-        notes = st.text_area("Additional Notes", placeholder="Any specific requirements or questions...")
-        
-        if st.button("Schedule Demo", type="primary"):
-            if all([company_name, contact_name, email]):
-                demo_request = DemoRequest(
-                    id="",  # Will be set by system
-                    company_name=company_name,
-                    contact_name=contact_name,
-                    email=email,
-                    phone=phone,
-                    company_size=company_size,
-                    use_case=use_case,
-                    preferred_date=datetime.combine(preferred_date, datetime.min.time()),
-                    preferred_time=preferred_time,
-                    demo_type=demo_type,
-                    status="scheduled",
-                    notes=notes,
-                    created_at=datetime.now()
-                )
-                
-                demo_id = system.schedule_demo(demo_request)
-                st.success(f"Demo scheduled successfully! Demo ID: {demo_id}")
-                st.info("Confirmation email will be sent to the provided address.")
-            else:
-                st.error("Please fill in all required fields")
-    
-    with tab2:
-        st.subheader("Scheduled Demos")
-        
-        if system.demo_requests:
-            demo_data = []
-            for demo_id, demo in system.demo_requests.items():
-                demo_data.append({
-                    "ID": demo_id[:8],
-                    "Company": demo.company_name,
-                    "Contact": demo.contact_name,
-                    "Email": demo.email,
-                    "Date": demo.preferred_date.strftime("%Y-%m-%d"),
-                    "Time": demo.preferred_time,
-                    "Type": demo.demo_type.title(),
-                    "Status": demo.status.title()
-                })
-            
-            df = pd.DataFrame(demo_data)
-            st.dataframe(df, use_container_width=True)
-            
-            # Demo management
-            selected_demo = st.selectbox(
-                "Select Demo to Manage",
-                options=list(system.demo_requests.keys()),
-                format_func=lambda x: f"{system.demo_requests[x].company_name} - {x[:8]}"
-            )
-            
-            if selected_demo:
-                demo = system.demo_requests[selected_demo]
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    if st.button("Mark as Completed"):
-                        demo.status = "completed"
-                        system.save_data()
-                        st.success("Demo marked as completed")
-                        st.rerun()
-                
-                with col2:
-                    if st.button("Reschedule"):
-                        demo.status = "rescheduled"
-                        system.save_data()
-                        st.info("Demo marked for rescheduling")
-                        st.rerun()
-                
-                with col3:
-                    if st.button("Cancel"):
-                        demo.status = "cancelled"
-                        system.save_data()
-                        st.warning("Demo cancelled")
-                        st.rerun()
-        else:
-            st.info("No demos scheduled yet.")
-
-def render_trial_management(system):
-    """Render trial account management"""
-    st.header("🔬 Trial Management")
-    
-    tab1, tab2 = st.tabs(["Create Trial", "Manage Trials"])
-    
-    with tab1:
-        st.subheader("Create New Trial Account")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            company_name = st.text_input("Company Name")
-            contact_email = st.text_input("Contact Email")
-        
-        with col2:
-            trial_type = st.selectbox(
-                "Trial Type",
-                ["standard", "extended", "poc"],
-                help="Standard: 14 days, Extended: 30 days, POC: 60 days"
-            )
-        
-        if st.button("Create Trial Account", type="primary"):
-            if company_name and contact_email:
-                trial = system.create_trial_account(company_name, contact_email, trial_type)
-                st.success(f"Trial account created! Trial ID: {trial.id}")
-                st.info(f"Trial expires on: {trial.end_date.strftime('%Y-%m-%d')}")
-            else:
-                st.error("Please fill in all required fields")
-    
-    with tab2:
-        st.subheader("Active Trials")
-        
-        if system.trial_accounts:
-            # Trial overview
-            trial_data = []
-            for trial_id, trial in system.trial_accounts.items():
-                days_remaining = (trial.end_date - datetime.now()).days
-                trial_data.append({
-                    "ID": trial_id[:8],
-                    "Company": trial.company_name,
-                    "Email": trial.contact_email,
-                    "Type": trial.trial_type.title(),
-                    "Status": trial.status.value.title(),
-                    "Days Remaining": max(0, days_remaining),
-                    "Conversion Probability": f"{trial.conversion_probability*100:.0f}%"
-                })
-            
-            df = pd.DataFrame(trial_data)
-            st.dataframe(df, use_container_width=True)
-            
-            # Trial details
-            selected_trial = st.selectbox(
-                "Select Trial for Details",
-                options=list(system.trial_accounts.keys()),
-                format_func=lambda x: f"{system.trial_accounts[x].company_name} - {x[:8]}"
-            )
-            
-            if selected_trial:
-                trial = system.trial_accounts[selected_trial]
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.subheader("Trial Progress")
-                    for goal in trial.trial_goals:
-                        st.write(f"• {goal}")
-                    
-                    st.subheader("Usage Statistics")
-                    st.write(f"**Transcription Hours:** {trial.usage_stats['transcription_hours']}")
-                    st.write(f"**API Calls:** {trial.usage_stats['api_calls']:,}")
-                    st.write(f"**Storage Used:** {trial.usage_stats['storage_gb']:.1f} GB")
-                    st.write(f"**Active Users:** {trial.usage_stats['active_users']}")
-                
-                with col2:
-                    st.subheader("Progress Metrics")
-                    for metric, value in trial.progress_metrics.items():
-                        st.progress(value, text=f"{metric.replace('_', ' ').title()}: {value*100:.0f}%")
-                
-                # Trial actions
-                st.subheader("Trial Actions")
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    if st.button("Extend Trial"):
-                        trial.end_date += timedelta(days=14)
-                        system.save_data()
-                        st.success("Trial extended by 14 days")
-                        st.rerun()
-                
-                with col2:
-                    if st.button("Convert to Paid"):
-                        trial.status = TrialStatus.CONVERTED
-                        system.save_data()
-                        st.success("Trial converted to paid account")
-                        st.rerun()
-                
-                with col3:
-                    if st.button("Mark as Expired"):
-                        trial.status = TrialStatus.EXPIRED
-                        system.save_data()
-                        st.warning("Trial marked as expired")
-                        st.rerun()
-                
-                with col4:
-                    if st.button("Cancel Trial"):
-                        trial.status = TrialStatus.CANCELLED
-                        system.save_data()
-                        st.error("Trial cancelled")
-                        st.rerun()
-        else:
-            st.info("No trial accounts created yet.")
-
-def render_whitelabel_config(system):
-    """Render white-label configuration interface"""
-    st.header("🎨 White-Label Customization")
-    
-    st.write("Configure white-label deployments for enterprise clients with custom branding and features.")
-    
-    # Client selection or creation
-    client_id = st.text_input("Client ID", placeholder="Enter unique client identifier")
-    
-    if client_id:
-        # Load existing config if available
-        existing_config = system.whitelabel_configs.get(client_id)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Branding Configuration")
-            brand_name = st.text_input(
-                "Brand Name", 
-                value=existing_config.brand_name if existing_config else "",
-                placeholder="Custom Platform Name"
-            )
-            logo_url = st.text_input(
-                "Logo URL",
-                value=existing_config.logo_url if existing_config else "",
-                placeholder="https://example.com/logo.png"
-            )
-            primary_color = st.color_picker(
-                "Primary Color",
-                value=existing_config.primary_color if existing_config else "#1f77b4"
-            )
-            secondary_color = st.color_picker(
-                "Secondary Color",
-                value=existing_config.secondary_color if existing_config else "#ff7f0e"
+            st.metric(
+                "Total Leads",
+                metrics_data.get('total_leads', 0),
+                delta=metrics_data.get('leads_growth', 0)
             )
         
         with col2:
-            st.subheader("Domain & Support")
-            custom_domain = st.text_input(
-                "Custom Domain",
-                value=existing_config.custom_domain if existing_config else "",
-                placeholder="platform.yourclient.com"
-            )
-            support_contact = st.text_input(
-                "Support Contact",
-                value=existing_config.support_contact if existing_config else "",
-                placeholder="support@yourclient.com"
-            )
-            terms_url = st.text_input(
-                "Terms of Service URL",
-                value=existing_config.terms_url if existing_config else "",
-                placeholder="https://yourclient.com/terms"
-            )
-            privacy_url = st.text_input(
-                "Privacy Policy URL",
-                value=existing_config.privacy_url if existing_config else "",
-                placeholder="https://yourclient.com/privacy"
-            )
-        
-        # Feature toggles
-        st.subheader("Feature Configuration")
-        
-        default_features = existing_config.feature_toggles if existing_config else {}
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            transcription_enabled = st.checkbox(
-                "Transcription Service",
-                value=default_features.get('transcription', True)
-            )
-            entity_extraction = st.checkbox(
-                "Entity Extraction",
-                value=default_features.get('entity_extraction', True)
-            )
-            real_time_collab = st.checkbox(
-                "Real-time Collaboration",
-                value=default_features.get('real_time_collaboration', False)
-            )
-        
-        with col2:
-            api_access = st.checkbox(
-                "API Access",
-                value=default_features.get('api_access', True)
-            )
-            advanced_analytics = st.checkbox(
-                "Advanced Analytics",
-                value=default_features.get('advanced_analytics', False)
-            )
-            mobile_app = st.checkbox(
-                "Mobile App Access",
-                value=default_features.get('mobile_app', True)
+            st.metric(
+                "Active Demos",
+                metrics_data.get('active_demos', 0),
+                delta=metrics_data.get('demos_scheduled_this_week', 0)
             )
         
         with col3:
-            white_glove_support = st.checkbox(
-                "White-glove Support",
-                value=default_features.get('white_glove_support', False)
-            )
-            custom_integrations = st.checkbox(
-                "Custom Integrations",
-                value=default_features.get('custom_integrations', False)
-            )
-            sso_integration = st.checkbox(
-                "SSO Integration",
-                value=default_features.get('sso_integration', False)
+            st.metric(
+                "Active Trials",
+                metrics_data.get('active_trials', 0),
+                delta=metrics_data.get('trials_started_this_week', 0)
             )
         
-        # Custom CSS
-        st.subheader("Custom Styling")
-        custom_css = st.text_area(
-            "Custom CSS",
-            value=existing_config.custom_css if existing_config else "",
-            placeholder="/* Custom CSS styles */\n.header { background-color: #your-color; }",
-            height=150
-        )
+        with col4:
+            st.metric(
+                "Pipeline Value",
+                f"${metrics_data.get('total_pipeline_value', 0):,.0f}",
+                delta=f"${metrics_data.get('pipeline_growth', 0):,.0f}"
+            )
         
-        # Custom integrations
-        st.subheader("Custom Integrations")
-        integration_options = [
-            "Salesforce CRM",
-            "Microsoft Teams",
-            "Slack",
-            "Zoom",
-            "Google Workspace",
-            "Custom API Endpoints"
-        ]
+        st.divider()
         
-        selected_integrations = st.multiselect(
-            "Select Integrations",
-            integration_options,
-            default=existing_config.custom_integrations if existing_config else []
-        )
+        # Charts row
+        col1, col2 = st.columns(2)
         
-        # Save configuration
-        if st.button("Save White-Label Configuration", type="primary"):
-            config_data = {
-                'brand_name': brand_name,
-                'logo_url': logo_url,
-                'primary_color': primary_color,
-                'secondary_color': secondary_color,
-                'custom_domain': custom_domain,
-                'custom_css': custom_css,
-                'feature_toggles': {
-                    'transcription': transcription_enabled,
-                    'entity_extraction': entity_extraction,
-                    'real_time_collaboration': real_time_collab,
-                    'api_access': api_access,
-                    'advanced_analytics': advanced_analytics,
-                    'mobile_app': mobile_app,
-                    'white_glove_support': white_glove_support,
-                    'custom_integrations': custom_integrations,
-                    'sso_integration': sso_integration
-                },
-                'custom_integrations': selected_integrations,
-                'support_contact': support_contact,
-                'terms_url': terms_url,
-                'privacy_url': privacy_url
-            }
-            
-            config = system.create_whitelabel_config(client_id, config_data)
-            st.success(f"White-label configuration saved for {client_id}")
-            
-            # Preview
-            st.subheader("Configuration Preview")
+        with col1:
+            st.subheader("Lead Status Distribution")
+            if 'lead_status_breakdown' in metrics_data:
+                status_data = metrics_data['lead_status_breakdown']
+                fig = px.pie(
+                    values=list(status_data.values()),
+                    names=list(status_data.keys()),
+                    title="Leads by Status"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            st.subheader("Monthly Pipeline Trend")
+            if 'monthly_pipeline' in metrics_data:
+                pipeline_data = metrics_data['monthly_pipeline']
+                months = list(pipeline_data.keys())
+                values = list(pipeline_data.values())
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=months,
+                    y=values,
+                    mode='lines+markers',
+                    name='Pipeline Value'
+                ))
+                fig.update_layout(title="Pipeline Value Over Time")
+                st.plotly_chart(fig, use_container_width=True)
+    
+    else:
+        st.warning("Unable to load sales metrics")
+
+def show_lead_management(ui: EnterpriseSalesUI):
+    """Lead management interface"""
+    st.header("🎯 Lead Management")
+    
+    # Create new lead
+    with st.expander("➕ Create New Lead"):
+        with st.form("create_lead_form"):
             col1, col2 = st.columns(2)
             
             with col1:
-                st.write(f"**Brand Name:** {brand_name}")
-                st.write(f"**Primary Color:** {primary_color}")
-                st.write(f"**Custom Domain:** {custom_domain}")
-                st.write(f"**Support Contact:** {support_contact}")
+                company_name = st.text_input("Company Name*", key="company_name")
+                contact_name = st.text_input("Contact Name", key="contact_name")
+                email = st.text_input("Email*", key="email")
+                phone = st.text_input("Phone", key="phone")
             
             with col2:
-                enabled_features = [k for k, v in config_data['feature_toggles'].items() if v]
-                st.write("**Enabled Features:**")
-                for feature in enabled_features:
-                    st.write(f"• {feature.replace('_', ' ').title()}")
+                industry = st.selectbox(
+                    "Industry",
+                    ["Technology", "Healthcare", "Finance", "Education", "Other"],
+                    key="industry"
+                )
+                company_size = st.selectbox(
+                    "Company Size",
+                    ["1-10", "11-50", "51-200", "201-1000", "1000+"],
+                    key="company_size"
+                )
+                budget_range = st.selectbox(
+                    "Budget Range",
+                    ["< $10k", "$10k-$50k", "$50k-$100k", "$100k-$500k", "> $500k"],
+                    key="budget_range"
+                )
+                source = st.selectbox(
+                    "Lead Source",
+                    ["Website", "Referral", "Cold Outreach", "Trade Show", "Other"],
+                    key="source"
+                )
+            
+            use_case = st.text_area("Use Case Description", key="use_case")
+            timeline = st.text_input("Expected Timeline", key="timeline")
+            
+            if st.form_submit_button("Create Lead"):
+                if company_name and email:
+                    lead_data = {
+                        "company_name": company_name,
+                        "contact_name": contact_name,
+                        "email": email,
+                        "phone": phone,
+                        "industry": industry,
+                        "company_size": company_size,
+                        "use_case": use_case,
+                        "budget_range": budget_range,
+                        "timeline": timeline,
+                        "source": source
+                    }
+                    
+                    result = ui._make_request('POST', '/api/enterprise/leads', lead_data)
+                    if result:
+                        st.success(f"Lead created successfully! ID: {result.get('lead_id')}")
+                        st.rerun()
+                    else:
+                        st.error("Failed to create lead")
+                else:
+                    st.error("Company name and email are required")
+    
+    # Filter leads
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        status_filter = st.selectbox("Filter by Status", ["All", "New", "Contacted", "Qualified", "Proposal", "Closed Won", "Closed Lost"])
+    with col2:
+        source_filter = st.selectbox("Filter by Source", ["All", "Website", "Referral", "Cold Outreach", "Trade Show", "Other"])
+    with col3:
+        if st.button("🔄 Refresh Leads"):
+            st.rerun()
+    
+    # Get and display leads
+    filters = {}
+    if status_filter != "All":
+        filters['status_filter'] = status_filter.lower().replace(' ', '_')
+    if source_filter != "All":
+        filters['source_filter'] = source_filter
+    
+    leads_response = ui._make_request('GET', '/api/enterprise/leads', filters)
+    
+    if leads_response and 'leads' in leads_response:
+        leads = leads_response['leads']
+        
+        if leads:
+            # Convert to DataFrame for display
+            df = pd.DataFrame(leads)
+            
+            # Display leads table
+            st.subheader(f"📋 Leads ({len(leads)} total)")
+            
+            # Make table interactive
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "id": "Lead ID",
+                    "company_name": "Company",
+                    "contact_name": "Contact",
+                    "email": "Email",
+                    "status": "Status",
+                    "score": st.column_config.ProgressColumn(
+                        "Score",
+                        help="Lead score (0-100)",
+                        format="%d",
+                        min_value=0,
+                        max_value=100,
+                    ),
+                    "created_at": st.column_config.DatetimeColumn(
+                        "Created",
+                        format="MMM DD, YYYY"
+                    )
+                }
+            )
+        else:
+            st.info("No leads found matching the selected filters")
+    else:
+        st.warning("Unable to load leads")
 
-def render_onboarding_workflows(system):
-    """Render onboarding workflow management"""
+def show_demo_scheduling(ui: EnterpriseSalesUI):
+    """Demo scheduling interface"""
+    st.header("🎬 Demo Scheduling")
+    
+    # Schedule new demo
+    with st.expander("📅 Schedule New Demo"):
+        with st.form("schedule_demo_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                lead_id = st.text_input("Lead ID*", help="ID of the lead to schedule demo for")
+                demo_type = st.selectbox("Demo Type", ["Standard", "Custom", "Technical", "Executive"])
+                attendees = st.text_area("Attendees", help="List attendees (one per line)")
+            
+            with col2:
+                scheduled_date = st.date_input("Demo Date")
+                scheduled_time = st.time_input("Demo Time")
+                duration = st.selectbox("Duration (minutes)", [30, 45, 60, 90, 120])
+            
+            demo_requirements = st.text_area("Special Requirements")
+            
+            if st.form_submit_button("Schedule Demo"):
+                if lead_id:
+                    demo_datetime = datetime.combine(scheduled_date, scheduled_time)
+                    attendee_list = [name.strip() for name in attendees.split('\n') if name.strip()]
+                    
+                    demo_data = {
+                        "lead_id": lead_id,
+                        "demo_type": demo_type,
+                        "scheduled_at": demo_datetime.isoformat(),
+                        "duration_minutes": duration,
+                        "attendees": attendee_list,
+                        "requirements": demo_requirements
+                    }
+                    
+                    result = ui._make_request('POST', '/api/enterprise/demos/schedule', demo_data)
+                    if result:
+                        st.success(f"Demo scheduled successfully! ID: {result.get('demo_id')}")
+                        st.rerun()
+                    else:
+                        st.error("Failed to schedule demo")
+                else:
+                    st.error("Lead ID is required")
+    
+    # Display scheduled demos
+    demos_response = ui._make_request('GET', '/api/enterprise/demos')
+    
+    if demos_response and 'demos' in demos_response:
+        demos = demos_response['demos']
+        
+        if demos:
+            st.subheader(f"📅 Scheduled Demos ({len(demos)} total)")
+            
+            for demo in demos:
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+                    
+                    with col1:
+                        st.write(f"**{demo.get('demo_type', 'Standard')} Demo**")
+                        st.write(f"Lead: {demo.get('lead_id', 'N/A')}")
+                        st.write(f"Status: {demo.get('status', 'scheduled').title()}")
+                    
+                    with col2:
+                        scheduled_at = datetime.fromisoformat(demo.get('scheduled_at', ''))
+                        st.write(f"📅 {scheduled_at.strftime('%B %d, %Y')}")
+                        st.write(f"🕐 {scheduled_at.strftime('%I:%M %p')}")
+                    
+                    with col3:
+                        st.write(f"⏱️ {demo.get('duration_minutes', 60)} minutes")
+                        attendee_count = len(demo.get('attendees', []))
+                        st.write(f"👥 {attendee_count} attendees")
+                    
+                    with col4:
+                        if st.button("✏️", key=f"edit_demo_{demo.get('id')}"):
+                            st.info("Demo editing coming soon")
+                
+                st.divider()
+        else:
+            st.info("No demos scheduled")
+
+def show_trial_management(ui: EnterpriseSalesUI):
+    """Trial management interface"""
+    st.header("🧪 Trial Management")
+    
+    # Create new trial
+    with st.expander("🆕 Create New Trial"):
+        with st.form("create_trial_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                lead_id = st.text_input("Lead ID*")
+                trial_type = st.selectbox("Trial Type", ["Standard", "Enterprise", "Custom"])
+                duration_days = st.number_input("Duration (days)", min_value=7, max_value=90, value=14)
+            
+            with col2:
+                features = st.multiselect(
+                    "Features",
+                    ["Transcription", "Analysis", "API Access", "Integrations", "Priority Support"]
+                )
+                limits = st.text_area("Usage Limits", help="e.g., 100 hours transcription, 1000 API calls")
+            
+            notes = st.text_area("Trial Notes")
+            
+            if st.form_submit_button("Create Trial"):
+                if lead_id:
+                    trial_data = {
+                        "lead_id": lead_id,
+                        "trial_type": trial_type,
+                        "duration_days": duration_days,
+                        "features": features,
+                        "limits": limits,
+                        "notes": notes
+                    }
+                    
+                    result = ui._make_request('POST', '/api/enterprise/trials/create', trial_data)
+                    if result:
+                        st.success(f"Trial created successfully!")
+                        st.info(f"Trial ID: {result.get('trial_id')}")
+                        st.info(f"Credentials: {result.get('credentials')}")
+                        st.rerun()
+                    else:
+                        st.error("Failed to create trial")
+                else:
+                    st.error("Lead ID is required")
+    
+    # Display trials
+    trials_response = ui._make_request('GET', '/api/enterprise/trials')
+    
+    if trials_response and 'trials' in trials_response:
+        trials = trials_response['trials']
+        
+        if trials:
+            st.subheader(f"🧪 Active Trials ({len(trials)} total)")
+            
+            for trial in trials:
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+                    
+                    with col1:
+                        st.write(f"**{trial.get('trial_type', 'Standard')} Trial**")
+                        st.write(f"Lead: {trial.get('lead_id', 'N/A')}")
+                        st.write(f"Status: {trial.get('status', 'active').title()}")
+                    
+                    with col2:
+                        start_date = datetime.fromisoformat(trial.get('start_date', ''))
+                        end_date = datetime.fromisoformat(trial.get('end_date', ''))
+                        st.write(f"📅 {start_date.strftime('%b %d')} - {end_date.strftime('%b %d')}")
+                        
+                        days_remaining = (end_date - datetime.now()).days
+                        if days_remaining > 0:
+                            st.write(f"⏰ {days_remaining} days remaining")
+                        else:
+                            st.write("⏰ Expired")
+                    
+                    with col3:
+                        # Show usage if available
+                        usage = trial.get('usage_stats', {})
+                        if usage:
+                            transcription_hours = usage.get('transcription_hours', 0)
+                            api_calls = usage.get('api_calls', 0)
+                            st.write(f"🎙️ {transcription_hours:.1f} hours")
+                            st.write(f"🔌 {api_calls} API calls")
+                        else:
+                            st.write("No usage data")
+                    
+                    with col4:
+                        if st.button("📊", key=f"trial_details_{trial.get('id')}"):
+                            st.info("Trial details coming soon")
+                
+                st.divider()
+        else:
+            st.info("No active trials")
+
+def show_contract_management(ui: EnterpriseSalesUI):
+    """Contract management interface"""
+    st.header("📄 Contract Management")
+    
+    # Create new contract
+    with st.expander("📝 Create New Contract"):
+        with st.form("create_contract_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                lead_id = st.text_input("Lead ID*")
+                contract_type = st.selectbox("Contract Type", ["Standard", "Enterprise", "Custom"])
+                annual_value = st.number_input("Annual Contract Value ($)", min_value=0, value=10000)
+                term_months = st.number_input("Term (months)", min_value=1, max_value=60, value=12)
+            
+            with col2:
+                start_date = st.date_input("Start Date")
+                renewal_type = st.selectbox("Renewal", ["Auto-renew", "Manual", "One-time"])
+                discount_percent = st.number_input("Discount (%)", min_value=0, max_value=100, value=0)
+            
+            products = st.multiselect(
+                "Products/Services",
+                ["Transcription Pro", "Analysis Suite", "API Platform", "Custom Integration", "Premium Support"]
+            )
+            
+            terms = st.text_area("Custom Terms")
+            
+            if st.form_submit_button("Create Contract"):
+                if lead_id and annual_value > 0:
+                    contract_data = {
+                        "lead_id": lead_id,
+                        "contract_type": contract_type,
+                        "annual_value": annual_value,
+                        "term_months": term_months,
+                        "start_date": start_date.isoformat(),
+                        "renewal_type": renewal_type,
+                        "discount_percent": discount_percent,
+                        "products": products,
+                        "custom_terms": terms
+                    }
+                    
+                    result = ui._make_request('POST', '/api/enterprise/contracts/create', contract_data)
+                    if result:
+                        st.success(f"Contract created successfully! ID: {result.get('contract_id')}")
+                        st.rerun()
+                    else:
+                        st.error("Failed to create contract")
+                else:
+                    st.error("Lead ID and annual value are required")
+    
+    # Display contracts
+    contracts_response = ui._make_request('GET', '/api/enterprise/contracts')
+    
+    if contracts_response and 'contracts' in contracts_response:
+        contracts = contracts_response['contracts']
+        
+        if contracts:
+            st.subheader(f"📄 Contracts ({len(contracts)} total)")
+            
+            for contract in contracts:
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+                    
+                    with col1:
+                        st.write(f"**{contract.get('contract_type', 'Standard')} Contract**")
+                        st.write(f"Lead: {contract.get('lead_id', 'N/A')}")
+                        st.write(f"Status: {contract.get('status', 'draft').title()}")
+                    
+                    with col2:
+                        annual_value = contract.get('annual_value', 0)
+                        term_months = contract.get('term_months', 12)
+                        st.write(f"💰 ${annual_value:,.0f}/year")
+                        st.write(f"📅 {term_months} months")
+                    
+                    with col3:
+                        start_date = contract.get('start_date')
+                        if start_date:
+                            start_date = datetime.fromisoformat(start_date)
+                            st.write(f"🚀 {start_date.strftime('%b %d, %Y')}")
+                        
+                        renewal = contract.get('renewal_type', 'Manual')
+                        st.write(f"🔄 {renewal}")
+                    
+                    with col4:
+                        if st.button("📥", key=f"download_contract_{contract.get('id')}"):
+                            st.info("Contract download coming soon")
+                
+                st.divider()
+        else:
+            st.info("No contracts found")
+
+def show_onboarding_workflows(ui: EnterpriseSalesUI):
+    """Onboarding workflow management"""
     st.header("🚀 Onboarding Workflows")
     
-    if system.onboarding_workflows:
-        # Workflow overview
-        st.subheader("Active Onboarding Workflows")
-        
-        workflow_data = []
-        for client_id, workflow in system.onboarding_workflows.items():
-            overall_progress = sum(workflow.stage_progress.values()) / len(workflow.stage_progress) * 100
-            days_since_start = (datetime.now() - workflow.start_date).days
-            
-            workflow_data.append({
-                "Client ID": client_id[:8],
-                "Current Stage": workflow.current_stage.value.title(),
-                "Overall Progress": f"{overall_progress:.0f}%",
-                "Days Since Start": days_since_start,
-                "Assigned Specialist": workflow.assigned_specialist or "Unassigned",
-                "Target Completion": workflow.target_completion.strftime("%Y-%m-%d")
-            })
-        
-        df = pd.DataFrame(workflow_data)
-        st.dataframe(df, use_container_width=True)
-        
-        # Detailed workflow management
-        selected_workflow = st.selectbox(
-            "Select Workflow for Details",
-            options=list(system.onboarding_workflows.keys()),
-            format_func=lambda x: f"Client {x[:8]}"
-        )
-        
-        if selected_workflow:
-            workflow = system.onboarding_workflows[selected_workflow]
-            
+    # Start new onboarding
+    with st.expander("▶️ Start New Onboarding"):
+        with st.form("start_onboarding_form"):
             col1, col2 = st.columns(2)
             
             with col1:
-                st.subheader("Onboarding Progress")
-                
-                stages = ['welcome', 'setup', 'integration', 'training', 'launch']
-                for stage in stages:
-                    progress = workflow.stage_progress.get(stage, 0)
-                    is_completed = stage in workflow.stages_completed
-                    
-                    status_icon = "✅" if is_completed else "🔄" if progress > 0 else "⏳"
-                    st.write(f"{status_icon} **{stage.title()}**")
-                    st.progress(progress, text=f"{progress*100:.0f}% complete")
-                    
-                    # Allow progress updates
-                    if not is_completed:
-                        new_progress = st.slider(
-                            f"Update {stage} progress",
-                            0.0, 1.0, progress,
-                            key=f"progress_{stage}_{selected_workflow}"
-                        )
-                        
-                        if new_progress != progress:
-                            system.update_onboarding_progress(selected_workflow, stage, new_progress)
-                            st.rerun()
+                customer_email = st.text_input("Customer Email*")
+                customer_name = st.text_input("Customer Name*")
+                company_name = st.text_input("Company Name*")
+                contract_id = st.text_input("Contract ID")
             
             with col2:
-                st.subheader("Workflow Details")
-                st.write(f"**Current Stage:** {workflow.current_stage.value.title()}")
-                st.write(f"**Start Date:** {workflow.start_date.strftime('%Y-%m-%d')}")
-                st.write(f"**Target Completion:** {workflow.target_completion.strftime('%Y-%m-%d')}")
-                st.write(f"**Assigned Specialist:** {workflow.assigned_specialist or 'Unassigned'}")
-                
-                # Assign specialist
-                specialist = st.text_input(
-                    "Assign Specialist",
-                    value=workflow.assigned_specialist,
-                    key=f"specialist_{selected_workflow}"
-                )
-                
-                if st.button("Update Specialist"):
-                    workflow.assigned_specialist = specialist
-                    system.save_data()
-                    st.success("Specialist assigned")
-                    st.rerun()
-                
-                # Custom requirements
-                st.subheader("Custom Requirements")
-                if workflow.custom_requirements:
-                    for req in workflow.custom_requirements:
-                        st.write(f"• {req}")
+                workflow_type = st.selectbox("Workflow Type", ["Standard", "Enterprise", "Technical"])
+                priority = st.selectbox("Priority", ["Low", "Normal", "High", "Critical"])
+                assigned_csm = st.text_input("Assigned CSM")
+            
+            requirements = st.text_area("Special Requirements")
+            
+            if st.form_submit_button("Start Onboarding"):
+                if customer_email and customer_name and company_name:
+                    onboarding_data = {
+                        "customer_email": customer_email,
+                        "customer_name": customer_name,
+                        "company_name": company_name,
+                        "contract_id": contract_id,
+                        "workflow_type": workflow_type,
+                        "priority": priority,
+                        "assigned_csm": assigned_csm,
+                        "requirements": requirements
+                    }
+                    
+                    result = ui._make_request('POST', '/api/enterprise/onboarding/start', onboarding_data)
+                    if result:
+                        st.success(f"Onboarding started! Workflow ID: {result.get('workflow_id')}")
+                        st.rerun()
+                    else:
+                        st.error("Failed to start onboarding")
                 else:
-                    st.write("No custom requirements specified")
-                
-                new_requirement = st.text_input("Add Custom Requirement")
-                if st.button("Add Requirement") and new_requirement:
-                    workflow.custom_requirements.append(new_requirement)
-                    system.save_data()
-                    st.success("Requirement added")
-                    st.rerun()
-    else:
-        st.info("No active onboarding workflows. Workflows are automatically created when trial accounts are set up.")
+                    st.error("Customer email, name, and company name are required")
+    
+    # Display onboarding workflows
+    workflows_response = ui._make_request('GET', '/api/enterprise/onboarding')
+    
+    if workflows_response and 'workflows' in workflows_response:
+        workflows = workflows_response['workflows']
+        
+        if workflows:
+            st.subheader(f"🚀 Active Onboarding Workflows ({len(workflows)} total)")
+            
+            for workflow in workflows:
+                with st.expander(f"{workflow.get('company_name', 'Unknown')} - {workflow.get('status', 'active').title()}"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**Customer:** {workflow.get('customer_name', 'N/A')}")
+                        st.write(f"**Email:** {workflow.get('customer_email', 'N/A')}")
+                        st.write(f"**Company:** {workflow.get('company_name', 'N/A')}")
+                        st.write(f"**Type:** {workflow.get('workflow_type', 'Standard')}")
+                    
+                    with col2:
+                        st.write(f"**Status:** {workflow.get('status', 'active').title()}")
+                        st.write(f"**Priority:** {workflow.get('priority', 'Normal')}")
+                        st.write(f"**CSM:** {workflow.get('assigned_csm', 'Not assigned')}")
+                        
+                        created_at = workflow.get('created_at')
+                        if created_at:
+                            created_date = datetime.fromisoformat(created_at)
+                            st.write(f"**Started:** {created_date.strftime('%b %d, %Y')}")
+                    
+                    # Show progress
+                    steps = workflow.get('steps', [])
+                    if steps:
+                        st.write("**Progress:**")
+                        completed_steps = len([s for s in steps if s.get('completed')])
+                        total_steps = len(steps)
+                        progress = completed_steps / total_steps if total_steps > 0 else 0
+                        
+                        st.progress(progress)
+                        st.write(f"{completed_steps}/{total_steps} steps completed")
+                        
+                        # Show individual steps
+                        for i, step in enumerate(steps):
+                            status_icon = "✅" if step.get('completed') else "⏳"
+                            st.write(f"{status_icon} {step.get('name', f'Step {i+1}')}")
+        else:
+            st.info("No active onboarding workflows")
 
-def render_customer_success(system):
-    """Render customer success tracking dashboard"""
-    st.header("📈 Customer Success Tracking")
+def show_sales_analytics(ui: EnterpriseSalesUI):
+    """Sales analytics and reporting"""
+    st.header("📈 Sales Analytics")
     
-    # Generate sample customer health data if none exists
-    if not system.customer_health:
-        sample_clients = ["client_001", "client_002", "client_003", "client_004"]
-        for client_id in sample_clients:
-            system.calculate_customer_health(client_id)
-    
-    # Health score overview
-    st.subheader("Customer Health Overview")
-    
-    health_data = []
-    for client_id, metrics in system.customer_health.items():
-        health_data.append({
-            "Client ID": client_id,
-            "Health Score": metrics.health_score,
-            "Health Category": metrics.health_category.value.title(),
-            "Engagement Score": metrics.engagement_score,
-            "Last Login": metrics.last_login.strftime("%Y-%m-%d"),
-            "Contract Renewal": metrics.contract_renewal_date.strftime("%Y-%m-%d"),
-            "Risk Level": "High" if metrics.risk_factors else "Low"
-        })
-    
-    df = pd.DataFrame(health_data)
-    st.dataframe(df, use_container_width=True)
-    
-    # Health score distribution
-    col1, col2 = st.columns(2)
-    
+    # Time period selector
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.subheader("Health Score Distribution")
-        health_categories = [metrics.health_category.value for metrics in system.customer_health.values()]
-        category_counts = pd.Series(health_categories).value_counts()
-        
-        fig = px.pie(
-            values=category_counts.values,
-            names=category_counts.index,
-            title="Customer Health Distribution",
-            color_discrete_map={
-                'excellent': '#2E8B57',
-                'good': '#32CD32',
-                'fair': '#FFD700',
-                'poor': '#FF6347',
-                'critical': '#DC143C'
-            }
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    
+        time_period = st.selectbox("Time Period", ["7d", "30d", "90d", "1y"])
     with col2:
-        st.subheader("Average Health Score Trend")
-        # Simulate trend data
-        dates = pd.date_range(start='2024-01-01', end='2024-02-07', freq='W')
-        scores = [75, 78, 82, 79, 85, 88]  # Sample trend data
-        
-        fig = px.line(
-            x=dates[:len(scores)],
-            y=scores,
-            title="Health Score Trend",
-            labels={'x': 'Date', 'y': 'Average Health Score'}
-        )
-        fig.update_traces(line_color='#1f77b4', line_width=3)
-        st.plotly_chart(fig, use_container_width=True)
+        if st.button("🔄 Refresh Data"):
+            st.rerun()
     
-    # Detailed customer analysis
-    st.subheader("Detailed Customer Analysis")
+    # Get analytics data
+    analytics_data = ui._make_request('GET', '/api/enterprise/analytics/sales-metrics', {'time_period': time_period})
     
-    selected_client = st.selectbox(
-        "Select Client for Detailed Analysis",
-        options=list(system.customer_health.keys()),
-        format_func=lambda x: f"Client {x}"
-    )
-    
-    if selected_client:
-        metrics = system.customer_health[selected_client]
+    if analytics_data and 'metrics' in analytics_data:
+        metrics = analytics_data['metrics']
         
-        # Health score gauge
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=metrics.health_score,
-            domain={'x': [0, 1], 'y': [0, 1]},
-            title={'text': "Health Score"},
-            delta={'reference': 80},
-            gauge={
-                'axis': {'range': [None, 100]},
-                'bar': {'color': "darkblue"},
-                'steps': [
-                    {'range': [0, 30], 'color': "lightgray"},
-                    {'range': [30, 50], 'color': "yellow"},
-                    {'range': [50, 70], 'color': "orange"},
-                    {'range': [70, 90], 'color': "lightgreen"},
-                    {'range': [90, 100], 'color': "green"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': 90
-                }
-            }
-        ))
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Detailed metrics
-        col1, col2, col3 = st.columns(3)
+        # Key metrics
+        st.subheader("🔢 Key Metrics")
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.subheader("Usage Metrics")
-            for metric, value in metrics.usage_metrics.items():
-                st.metric(
-                    metric.replace('_', ' ').title(),
-                    f"{value}{'%' if 'rate' in metric else ''}"
-                )
-        
+            st.metric("Conversion Rate", f"{metrics.get('conversion_rate', 0):.1f}%")
         with col2:
-            st.subheader("Feature Adoption")
-            for feature, adopted in metrics.feature_adoption.items():
-                status = "✅ Adopted" if adopted else "❌ Not Adopted"
-                st.write(f"**{feature.replace('_', ' ').title()}:** {status}")
-        
+            st.metric("Avg Deal Size", f"${metrics.get('average_deal_size', 0):,.0f}")
         with col3:
-            st.subheader("Key Information")
-            st.write(f"**Engagement Score:** {metrics.engagement_score:.1f}")
-            st.write(f"**Support Tickets:** {metrics.support_tickets}")
-            st.write(f"**Last Login:** {metrics.last_login.strftime('%Y-%m-%d')}")
-            st.write(f"**Contract Renewal:** {metrics.contract_renewal_date.strftime('%Y-%m-%d')}")
+            st.metric("Sales Cycle", f"{metrics.get('avg_sales_cycle_days', 0):.0f} days")
+        with col4:
+            st.metric("Close Rate", f"{metrics.get('close_rate', 0):.1f}%")
         
-        # Risk factors and opportunities
+        st.divider()
+        
+        # Charts
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("Risk Factors")
-            if metrics.risk_factors:
-                for risk in metrics.risk_factors:
-                    st.warning(f"⚠️ {risk}")
-            else:
-                st.success("✅ No identified risk factors")
+            st.subheader("📊 Pipeline by Stage")
+            pipeline_by_stage = metrics.get('pipeline_by_stage', {})
+            if pipeline_by_stage:
+                fig = px.funnel(
+                    x=list(pipeline_by_stage.values()),
+                    y=list(pipeline_by_stage.keys()),
+                    orientation='h'
+                )
+                st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            st.subheader("Expansion Opportunities")
-            for opportunity in metrics.expansion_opportunities:
-                st.info(f"💡 {opportunity}")
+            st.subheader("💰 Revenue Forecast")
+            forecast_data = metrics.get('revenue_forecast', {})
+            if forecast_data:
+                months = list(forecast_data.keys())
+                values = list(forecast_data.values())
+                
+                fig = go.Figure()
+                fig.add_trace(go.Bar(x=months, y=values, name="Forecasted Revenue"))
+                fig.update_layout(title="3-Month Revenue Forecast")
+                st.plotly_chart(fig, use_container_width=True)
         
-        # Success milestones
-        st.subheader("Success Milestones")
-        for milestone in metrics.success_milestones:
-            st.success(f"🎉 {milestone}")
+        # Activity metrics
+        st.subheader("📋 Activity Metrics")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Demos Scheduled", metrics.get('demos_scheduled', 0))
+        with col2:
+            st.metric("Trials Started", metrics.get('trials_started', 0))
+        with col3:
+            st.metric("Contracts Signed", metrics.get('contracts_signed', 0))
+        
+    else:
+        st.warning("Unable to load analytics data")
+
+def show_crm_integration(ui: EnterpriseSalesUI):
+    """CRM integration settings"""
+    st.header("🔗 CRM Integration")
+    
+    st.info("Configure integration with external CRM systems like Salesforce, HubSpot, or Pipedrive")
+    
+    # CRM selection
+    crm_type = st.selectbox("CRM System", ["Salesforce", "HubSpot", "Pipedrive", "Custom"])
+    
+    if crm_type == "Salesforce":
+        st.subheader("🏢 Salesforce Configuration")
+        with st.form("salesforce_config"):
+            instance_url = st.text_input("Instance URL")
+            client_id = st.text_input("Consumer Key")
+            client_secret = st.text_input("Consumer Secret", type="password")
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            security_token = st.text_input("Security Token", type="password")
+            
+            if st.form_submit_button("Test Connection"):
+                config = {
+                    "type": "salesforce",
+                    "instance_url": instance_url,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "username": username,
+                    "password": password,
+                    "security_token": security_token
+                }
+                
+                result = ui._make_request('POST', '/api/enterprise/crm/sync', config)
+                if result:
+                    st.success("Connection successful!")
+                else:
+                    st.error("Connection failed")
+    
+    elif crm_type == "HubSpot":
+        st.subheader("🟠 HubSpot Configuration")
+        with st.form("hubspot_config"):
+            api_key = st.text_input("API Key", type="password")
+            
+            if st.form_submit_button("Test Connection"):
+                config = {
+                    "type": "hubspot",
+                    "api_key": api_key
+                }
+                
+                result = ui._make_request('POST', '/api/enterprise/crm/sync', config)
+                if result:
+                    st.success("Connection successful!")
+                else:
+                    st.error("Connection failed")
+    
+    # Sync settings
+    st.subheader("⚙️ Sync Settings")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        sync_leads = st.checkbox("Sync Leads", value=True)
+        sync_opportunities = st.checkbox("Sync Opportunities", value=True)
+        sync_activities = st.checkbox("Sync Activities", value=True)
+    
+    with col2:
+        sync_frequency = st.selectbox("Sync Frequency", ["Real-time", "Every 15 minutes", "Hourly", "Daily"])
+        auto_create_leads = st.checkbox("Auto-create leads from CRM")
+        bidirectional_sync = st.checkbox("Bidirectional sync")
+    
+    if st.button("💾 Save Sync Settings"):
+        st.success("Sync settings saved successfully!")
+    
+    # Sync status
+    st.subheader("📊 Sync Status")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Last Sync", "2 minutes ago")
+    with col2:
+        st.metric("Leads Synced", "1,234")
+    with col3:
+        st.metric("Opportunities Synced", "567")
+    with col4:
+        st.metric("Sync Errors", "0")
 
 if __name__ == "__main__":
-    render_enterprise_sales_dashboard()
+    main()

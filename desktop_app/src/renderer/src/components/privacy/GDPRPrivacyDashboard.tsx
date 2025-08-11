@@ -138,11 +138,7 @@ export const GDPRPrivacyDashboard: React.FC<GDPRPrivacyDashboardProps> = ({ clas
   // Desktop-specific functionality
   const showDesktopNotification = (title: string, message: string) => {
     if (window.electronAPI) {
-      window.electronAPI.showNotification({
-        title,
-        body: message,
-        icon: 'privacy'
-      });
+      window.electronAPI.showNotification(title, message);
     }
   };
 

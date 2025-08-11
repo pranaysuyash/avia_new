@@ -45,7 +45,7 @@ import {
   Email,
   ExpandMore,
   Palette,
-  Branding,
+  Storefront,
 } from '@mui/icons-material';
 
 interface ExportConfig {
@@ -687,7 +687,10 @@ const ExportManager: React.FC<ExportManagerProps> = ({
                   ...exportConfig,
                   branding: {
                     ...exportConfig.branding,
-                    colors: { ...exportConfig.branding.colors, primary: e.target.value }
+                    colors: { 
+                      primary: e.target.value,
+                      secondary: exportConfig.branding.colors?.secondary || '#f50057'
+                    }
                   }
                 })}
               />
@@ -702,7 +705,10 @@ const ExportManager: React.FC<ExportManagerProps> = ({
                   ...exportConfig,
                   branding: {
                     ...exportConfig.branding,
-                    colors: { ...exportConfig.branding.colors, secondary: e.target.value }
+                    colors: { 
+                      primary: exportConfig.branding.colors?.primary || '#3f51b5',
+                      secondary: e.target.value
+                    }
                   }
                 })}
               />

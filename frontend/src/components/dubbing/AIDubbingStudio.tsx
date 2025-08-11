@@ -66,7 +66,7 @@ import {
   VideoFile,
   Speed,
   Tune,
-  Waveform,
+  GraphicEq,
   Save,
   Share,
   History,
@@ -90,14 +90,13 @@ import {
   Error as ErrorIcon,
   Info,
   Headset,
-  GraphicEq,
   MusicNote,
   Campaign,
   Transform,
   AutoAwesome,
   Preview,
 } from '@mui/icons-material';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 import { Line, Bar } from 'react-chartjs-2';
 
 interface VoiceProfile {
@@ -186,9 +185,9 @@ const AIDubbingStudio: React.FC = () => {
     try {
       setLoading(true);
       const [voicesResponse, languagesResponse, jobsResponse] = await Promise.all([
-        apiClient.get('/api/v1/ai_dubbing/voices'),
-        apiClient.get('/api/v1/ai_dubbing/languages'),
-        apiClient.get('/api/v1/ai_dubbing/jobs?limit=20'),
+        apiService.get('/api/v1/ai_dubbing/voices'),
+        apiService.get('/api/v1/ai_dubbing/languages'),
+        apiService.get('/api/v1/ai_dubbing/jobs?limit=20'),
       ]);
       
       setVoices(voicesResponse.data);
@@ -204,7 +203,7 @@ const AIDubbingStudio: React.FC = () => {
 
   const loadJobs = async () => {
     try {
-      const response = await apiClient.get('/api/v1/ai_dubbing/jobs?limit=20');
+      const response = await apiService.get('/api/v1/ai_dubbing/jobs?limit=20');
       setJobs(response.data);
     } catch (error) {
       console.error('Failed to load jobs:', error);
@@ -219,7 +218,7 @@ const AIDubbingStudio: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await apiClient.post('/api/v1/ai_dubbing/synthesize', {
+      const response = await apiService.post('/api/v1/ai_dubbing/synthesize', {
         text: text.trim(),
         language: selectedLanguage,
         voice_id: selectedVoice,
@@ -253,10 +252,10 @@ const AIDubbingStudio: React.FC = () => {
       const formData = new FormData();
       formData.append('file', videoFile);
       
-      const uploadResponse = await apiClient.post('/api/v1/files/upload', formData);
+      const uploadResponse = await apiService.post('/api/v1/files/upload', formData);
       const videoFileId = uploadResponse.data.file_id;
 
-      const response = await apiClient.post('/api/v1/ai_dubbing/video/dub', {
+      const response = await apiService.post('/api/v1/ai_dubbing/video/dub', {
         video_file_id: videoFileId,
         target_language: selectedLanguage,
         voice_mapping: voiceMapping,
@@ -288,7 +287,7 @@ const AIDubbingStudio: React.FC = () => {
       setLoading(true);
       
       // Start cloning process
-      const cloneResponse = await apiClient.post('/api/v1/ai_dubbing/voice/clone/start', {
+      const cloneResponse = await apiService.post('/api/v1/ai_dubbing/voice/clone/start', {
         name: cloneName,
         description: cloneDescription,
         language: selectedLanguage,
@@ -301,7 +300,7 @@ const AIDubbingStudio: React.FC = () => {
       const formData = new FormData();
       formData.append('audio_file', cloneAudioFile);
       
-      await apiClient.post(`/api/v1/ai_dubbing/voice/clone/${cloneId}/upload`, formData);
+      await apiService.post(`/api/v1/ai_dubbing/voice/clone/${cloneId}/upload`, formData);
 
       setSnackbar({ open: true, message: 'Voice cloning started successfully', severity: 'success' });
       setVoiceCloneDialogOpen(false);

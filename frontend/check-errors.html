@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Check React App</title>
+</head>
+<body>
+  <iframe src="http://localhost:3000" width="100%" height="600" id="app-frame"></iframe>
+  <div id="logs" style="background: #f0f0f0; padding: 20px; margin-top: 20px;">
+    <h3>Console Logs:</h3>
+    <pre id="console-output"></pre>
+  </div>
+  <script>
+    const iframe = document.getElementById('app-frame');
+    const output = document.getElementById('console-output');
+    
+    iframe.onload = function() {
+      try {
+        // Try to access iframe console
+        const iframeWindow = iframe.contentWindow;
+        const originalLog = iframeWindow.console.log;
+        const originalError = iframeWindow.console.error;
+        const originalWarn = iframeWindow.console.warn;
+        
+        iframeWindow.console.log = function(...args) {
+          output.textContent += '[LOG] ' + args.join(' ') + '\n';
+          originalLog.apply(iframeWindow.console, args);
+        };
+        
+        iframeWindow.console.error = function(...args) {
+          output.textContent += '[ERROR] ' + args.join(' ') + '\n';
+          originalError.apply(iframeWindow.console, args);
+        };
+        
+        iframeWindow.console.warn = function(...args) {
+          output.textContent += '[WARN] ' + args.join(' ') + '\n';
+          originalWarn.apply(iframeWindow.console, args);
+        };
+        
+        output.textContent += 'Monitoring iframe console...\n';
+      } catch(e) {
+        output.textContent = 'Cannot access iframe console (CORS): ' + e.message;
+      }
+    };
+  </script>
+</body>
+</html>

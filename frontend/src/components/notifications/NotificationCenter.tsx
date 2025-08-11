@@ -42,16 +42,15 @@ import {
   Assignment,
   Security,
   Group,
-  System,
+  Settings,
   MarkEmailRead,
   Delete,
-  Settings,
   Close,
   Refresh,
   DoneAll,
   NotificationImportant,
 } from '@mui/icons-material';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Notification {
@@ -196,7 +195,7 @@ const NotificationCenter: React.FC = () => {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/v1/notifications/', {
+      const response = await apiService.get('/api/v1/notifications/', {
         params: { limit: 50 },
       });
       setNotifications(response.data);
@@ -209,7 +208,7 @@ const NotificationCenter: React.FC = () => {
 
   const loadUnreadCount = async () => {
     try {
-      const response = await apiClient.get('/api/v1/notifications/unread-count');
+      const response = await apiService.get('/api/v1/notifications/unread-count');
       setUnreadCount(response.data.unread_count);
     } catch (err) {
       console.error('Failed to load unread count:', err);
@@ -218,7 +217,7 @@ const NotificationCenter: React.FC = () => {
 
   const loadPreferences = async () => {
     try {
-      const response = await apiClient.get('/api/v1/notifications/preferences');
+      const response = await apiService.get('/api/v1/notifications/preferences');
       setPreferences(response.data);
     } catch (err) {
       console.error('Failed to load preferences:', err);
@@ -227,7 +226,7 @@ const NotificationCenter: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const response = await apiClient.get('/api/v1/notifications/stats');
+      const response = await apiService.get('/api/v1/notifications/stats');
       setStats(response.data);
     } catch (err) {
       console.error('Failed to load stats:', err);
@@ -236,7 +235,7 @@ const NotificationCenter: React.FC = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await apiClient.put(`/api/v1/notifications/${notificationId}/read`);
+      await apiService.put(`/api/v1/notifications/${notificationId}/read`, {});
       setNotifications(prev =>
         prev.map(n => (n.id === notificationId ? { ...n, read: true } : n))
       );
@@ -248,7 +247,7 @@ const NotificationCenter: React.FC = () => {
 
   const markAllAsRead = async () => {
     try {
-      await apiClient.put('/api/v1/notifications/mark-all-read');
+      await apiService.put('/api/v1/notifications/mark-all-read', {});
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
       setSnackbar({ open: true, message: 'All notifications marked as read', severity: 'success' });
@@ -259,7 +258,7 @@ const NotificationCenter: React.FC = () => {
 
   const deleteNotification = async (notificationId: string) => {
     try {
-      await apiClient.delete(`/api/v1/notifications/${notificationId}`);
+      await apiService.delete(`/api/v1/notifications/${notificationId}`);
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       loadUnreadCount();
     } catch (err) {
@@ -269,7 +268,7 @@ const NotificationCenter: React.FC = () => {
 
   const clearAll = async () => {
     try {
-      await apiClient.delete('/api/v1/notifications/clear-all');
+      await apiService.delete('/api/v1/notifications/clear-all');
       setNotifications([]);
       setUnreadCount(0);
       setSnackbar({ open: true, message: 'All notifications cleared', severity: 'success' });
@@ -280,7 +279,7 @@ const NotificationCenter: React.FC = () => {
 
   const updatePreferences = async () => {
     try {
-      await apiClient.put('/api/v1/notifications/preferences', preferences);
+      await apiService.put('/api/v1/notifications/preferences', preferences);
       setSnackbar({ open: true, message: 'Preferences updated', severity: 'success' });
       setShowSettings(false);
     } catch (err) {
@@ -290,7 +289,7 @@ const NotificationCenter: React.FC = () => {
 
   const sendTestNotification = async () => {
     try {
-      await apiClient.post('/api/v1/notifications/test');
+      await apiService.post('/api/v1/notifications/test', {});
       setSnackbar({ open: true, message: 'Test notification sent', severity: 'success' });
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to send test notification', severity: 'error' });
@@ -323,7 +322,7 @@ const NotificationCenter: React.FC = () => {
       case 'task_update':
         return <Assignment color="primary" />;
       case 'system':
-        return <System color="action" />;
+        return <Settings color="action" />;
       case 'collaboration':
         return <Group color="primary" />;
       case 'security':

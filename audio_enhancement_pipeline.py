@@ -1,1177 +1,964 @@
 """
 Comprehensive Audio Enhancement Pipeline
+Task 117: Build comprehensive audio enhancement pipeline
 
-This module provides advanced audio enhancement capabilities including noise reduction,
-audio normalization, gain control, automatic quality assessment, audio repair for
-corrupted segments, and format optimization recommendations.
-
-Features:
-- Noise reduction using advanced algorithms
+This module implements advanced audio enhancement capabilities including:
+- Noise reduction using noisereduce library
 - Audio normalization and gain control
 - Automatic audio quality assessment
 - Audio repair for corrupted segments
-- Format optimization recommendations
-- Real-time audio enhancement
-- Batch processing capabilities
-- Quality metrics and reporting
+- Audio format optimization recommendations
+
+Requirements: 1.1, 2.1
+Tools: noisereduce, pydub, librosa, scipy
 """
 
 import os
-import json
-import numpy as np
-import pandas as pd
-from typing import Dict, List, Tuple, Optional, Any, Union
-from dataclasses import dataclass, asdict
-from datetime import datetime
 import logging
-from pathlib import Path
-import warnings
-warnings.filterwarnings("ignore")
-
-# Audio processing
+import numpy as np
 import librosa
 import soundfile as sf
-from scipy import signal, stats
-from scipy.ndimage import median_filter
-from scipy.signal import butter, filtfilt, hilbert
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass
+from pathlib import Path
+import tempfile
+import warnings
 
-# Audio enhancement libraries
+# Suppress warnings for cleaner output
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 try:
     import noisereduce as nr
+    NOISEREDUCE_AVAILABLE = True
 except ImportError:
-    nr = None
-    
+    NOISEREDUCE_AVAILABLE = False
+    logging.warning("noisereduce library not available. Noise reduction will be limited.")
+
 try:
     from pydub import AudioSegment
     from pydub.effects import normalize, compress_dynamic_range
+    PYDUB_AVAILABLE = True
 except ImportError:
-    AudioSegment = None
+    PYDUB_AVAILABLE = False
+    logging.warning("pydub library not available. Some audio processing features will be limited.")
 
-# Machine learning
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import IsolationForest
-from sklearn.metrics import mean_squared_error
+from scipy import signal
+from scipy.stats import entropy
+import json
 
-# Visualization
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-
-# Setup logging
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @dataclass
 class AudioQualityMetrics:
     """Comprehensive audio quality assessment metrics"""
-    # Signal quality metrics
-    snr_db: float  # Signal-to-noise ratio
+    snr_db: float  # Signal-to-noise ratio in dB
     thd_percent: float  # Total harmonic distortion
     dynamic_range_db: float  # Dynamic range
-    peak_level_db: float  # Peak level
-    rms_level_db: float  # RMS level
-    
-    # Spectral quality metrics
-    spectral_flatness: float  # Spectral flatness measure
-    spectral_centroid_hz: float  # Spectral centroid
-    spectral_bandwidth_hz: float  # Spectral bandwidth
-    spectral_rolloff_hz: float  # Spectral rolloff
-    
-    # Temporal quality metrics
+    spectral_centroid: float  # Spectral centroid (brightness)
+    spectral_rolloff: float  # Spectral rolloff frequency
     zero_crossing_rate: float  # Zero crossing rate
-    silence_ratio: float  # Ratio of silence to total duration
-    clipping_ratio: float  # Ratio of clipped samples
-    
-    # Perceptual quality metrics
+    rms_energy: float  # RMS energy level
+    peak_level_db: float  # Peak level in dB
     loudness_lufs: float  # Loudness in LUFS
-    perceived_quality_score: float  # Overall perceived quality (0-100)
-    
-    # Enhancement recommendations
-    needs_noise_reduction: bool
-    needs_normalization: bool
-    needs_gain_adjustment: bool
-    needs_repair: bool
-    
-    # Overall quality rating
-    quality_rating: str  # excellent, good, fair, poor
+    quality_score: float  # Overall quality score (0-100)
+    recommendations: List[str]  # Enhancement recommendations
 
 @dataclass
 class EnhancementResult:
     """Result of audio enhancement processing"""
-    original_path: str
-    enhanced_path: str
-    enhancement_applied: List[str]
-    quality_before: AudioQualityMetrics
-    quality_after: AudioQualityMetrics
-    improvement_score: float
+    enhanced_audio_path: str
+    original_metrics: AudioQualityMetrics
+    enhanced_metrics: AudioQualityMetrics
     processing_time: float
-    recommendations: List[str]
+    enhancement_applied: List[str]
+    improvement_score: float
+    metadata: Dict[str, Any]
 
-@dataclass
-class AudioRepairResult:
-    """Result of audio repair processing"""
-    corrupted_segments: List[Tuple[float, float]]  # Start and end times
-    repair_methods_used: List[str]
-    repair_success_rate: float
-    repaired_duration: float
-    total_duration: floatc
-lass NoiseReducer:
-    """Advanced noise reduction system"""
+class AudioEnhancementPipeline:
+    """Comprehensive audio enhancement pipeline with advanced processing capabilities"""
     
-    def __init__(self, sample_rate: int = 22050):
-        self.sample_rate = sample_rate
-        self.noise_gate_threshold = -40  # dB
-        self.reduction_strength = 0.8
+    def __init__(self, temp_dir: Optional[str] = None):
+        """
+        Initialize the audio enhancement pipeline
         
-    def reduce_noise(self, audio_path: str, output_path: str = None, 
-                    method: str = 'spectral_gating') -> str:
-        """Apply noise reduction to audio file"""
-        try:
-            # Load audio
-            y, sr = librosa.load(audio_path, sr=self.sample_rate)
+        Args:
+            temp_dir: Directory for temporary files (optional)
+        """
+        self.temp_dir = temp_dir or tempfile.gettempdir()
+        self.supported_formats = ['.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac']
+        
+        # Enhancement parameters
+        self.noise_reduction_params = {
+            'stationary': True,
+            'prop_decrease': 1.0,
+            'n_grad_freq': 2,
+            'n_grad_time': 4,
+            'n_fft': 2048,
+            'win_length': 2048,
+            'hop_length': 512
+        }
+        
+        self.normalization_params = {
+            'target_lufs': -23.0,  # EBU R128 standard
+            'max_peak_db': -1.0,
+            'dynamic_range_target': 20.0
+        }
+        
+        logger.info("Audio Enhancement Pipeline initialized")
+    
+    def enhance_audio(self, input_path: str, output_path: Optional[str] = None, 
+                     enhancement_options: Optional[Dict[str, Any]] = None) -> EnhancementResult:
+        """
+        Apply comprehensive audio enhancement to input file
+        
+        Args:
+            input_path: Path to input audio file
+            output_path: Path for enhanced output (optional)
+            enhancement_options: Custom enhancement parameters
             
-            # Apply noise reduction based on method
-            if method == 'spectral_gating' and nr is not None:
-                # Use noisereduce library for spectral gating
-                reduced_noise = nr.reduce_noise(y=y, sr=sr)
-            elif method == 'wiener_filter':
-                reduced_noise = self._wiener_filter(y)
-            elif method == 'spectral_subtraction':
-                reduced_noise = self._spectral_subtraction(y, sr)
-            elif method == 'adaptive_filter':
-                reduced_noise = self._adaptive_filter(y)
+        Returns:
+            EnhancementResult with processing details and metrics
+        """
+        import time
+        start_time = time.time()
+        
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(f"Input audio file not found: {input_path}")
+        
+        # Generate output path if not provided
+        if output_path is None:
+            input_path_obj = Path(input_path)
+            output_path = str(input_path_obj.parent / f"{input_path_obj.stem}_enhanced{input_path_obj.suffix}")
+        
+        logger.info(f"Starting audio enhancement: {input_path}")
+        
+        # Load audio file
+        try:
+            audio_data, sample_rate = librosa.load(input_path, sr=None, mono=False)
+            if audio_data.ndim == 1:
+                audio_data = audio_data.reshape(1, -1)
+        except Exception as e:
+            raise ValueError(f"Failed to load audio file: {str(e)}")
+        
+        # Assess original audio quality
+        original_metrics = self._assess_audio_quality(audio_data, sample_rate)
+        logger.info(f"Original audio quality score: {original_metrics.quality_score:.1f}/100")
+        
+        # Apply enhancement pipeline
+        enhanced_audio = audio_data.copy()
+        enhancement_applied = []
+        
+        # Merge enhancement options
+        options = enhancement_options or {}
+        
+        # 1. Noise Reduction
+        if options.get('noise_reduction', True) and NOISEREDUCE_AVAILABLE:
+            enhanced_audio = self._apply_noise_reduction(enhanced_audio, sample_rate)
+            enhancement_applied.append("noise_reduction")
+            logger.info("Applied noise reduction")
+        
+        # 2. Audio Repair (detect and fix corrupted segments)
+        if options.get('audio_repair', True):
+            enhanced_audio = self._repair_audio_segments(enhanced_audio, sample_rate)
+            enhancement_applied.append("audio_repair")
+            logger.info("Applied audio repair")
+        
+        # 3. Spectral Enhancement
+        if options.get('spectral_enhancement', True):
+            enhanced_audio = self._apply_spectral_enhancement(enhanced_audio, sample_rate)
+            enhancement_applied.append("spectral_enhancement")
+            logger.info("Applied spectral enhancement")
+        
+        # 4. Dynamic Range Processing
+        if options.get('dynamic_processing', True):
+            enhanced_audio = self._apply_dynamic_processing(enhanced_audio, sample_rate)
+            enhancement_applied.append("dynamic_processing")
+            logger.info("Applied dynamic range processing")
+        
+        # 5. Audio Normalization
+        if options.get('normalization', True):
+            enhanced_audio = self._apply_normalization(enhanced_audio, sample_rate)
+            enhancement_applied.append("normalization")
+            logger.info("Applied audio normalization")
+        
+        # Save enhanced audio
+        try:
+            if enhanced_audio.shape[0] == 1:
+                sf.write(output_path, enhanced_audio[0], sample_rate)
             else:
-                # Fallback to basic noise gate
-                reduced_noise = self._noise_gate(y)
+                sf.write(output_path, enhanced_audio.T, sample_rate)
+        except Exception as e:
+            raise ValueError(f"Failed to save enhanced audio: {str(e)}")
+        
+        # Assess enhanced audio quality
+        enhanced_metrics = self._assess_audio_quality(enhanced_audio, sample_rate)
+        
+        # Calculate improvement score
+        improvement_score = enhanced_metrics.quality_score - original_metrics.quality_score
+        
+        processing_time = time.time() - start_time
+        
+        logger.info(f"Enhancement completed in {processing_time:.2f}s")
+        logger.info(f"Enhanced audio quality score: {enhanced_metrics.quality_score:.1f}/100")
+        logger.info(f"Improvement: {improvement_score:+.1f} points")
+        
+        return EnhancementResult(
+            enhanced_audio_path=output_path,
+            original_metrics=original_metrics,
+            enhanced_metrics=enhanced_metrics,
+            processing_time=processing_time,
+            enhancement_applied=enhancement_applied,
+            improvement_score=improvement_score,
+            metadata={
+                'sample_rate': sample_rate,
+                'channels': enhanced_audio.shape[0],
+                'duration': enhanced_audio.shape[1] / sample_rate,
+                'enhancement_options': options
+            }
+        )
+    
+    def _apply_noise_reduction(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Apply advanced noise reduction using multiple techniques"""
+        enhanced_channels = []
+        
+        for channel_idx in range(audio_data.shape[0]):
+            channel_data = audio_data[channel_idx]
             
-            # Generate output path if not provided
-            if output_path is None:
-                base_path = Path(audio_path)
-                output_path = str(base_path.parent / f"{base_path.stem}_denoised{base_path.suffix}")
+            try:
+                # Apply noisereduce if available
+                if NOISEREDUCE_AVAILABLE:
+                    # Stationary noise reduction
+                    reduced_stationary = nr.reduce_noise(
+                        y=channel_data,
+                        sr=sample_rate,
+                        **self.noise_reduction_params
+                    )
+                    
+                    # Non-stationary noise reduction for more complex noise
+                    reduced_nonstationary = nr.reduce_noise(
+                        y=reduced_stationary,
+                        sr=sample_rate,
+                        stationary=False,
+                        prop_decrease=0.8
+                    )
+                    
+                    enhanced_channel = reduced_nonstationary
+                else:
+                    # Fallback: Simple spectral subtraction
+                    enhanced_channel = self._spectral_subtraction(channel_data, sample_rate)
+                
+                enhanced_channels.append(enhanced_channel)
+                
+            except Exception as e:
+                logger.warning(f"Noise reduction failed for channel {channel_idx}: {str(e)}")
+                enhanced_channels.append(channel_data)
+        
+        return np.array(enhanced_channels)
+    
+    def _spectral_subtraction(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Fallback noise reduction using spectral subtraction"""
+        # Compute STFT
+        stft = librosa.stft(audio_data, n_fft=2048, hop_length=512)
+        magnitude = np.abs(stft)
+        phase = np.angle(stft)
+        
+        # Estimate noise from first 0.5 seconds
+        noise_frames = int(0.5 * sample_rate / 512)
+        noise_spectrum = np.mean(magnitude[:, :noise_frames], axis=1, keepdims=True)
+        
+        # Apply spectral subtraction
+        alpha = 2.0  # Over-subtraction factor
+        enhanced_magnitude = magnitude - alpha * noise_spectrum
+        
+        # Ensure non-negative values
+        enhanced_magnitude = np.maximum(enhanced_magnitude, 0.1 * magnitude)
+        
+        # Reconstruct audio
+        enhanced_stft = enhanced_magnitude * np.exp(1j * phase)
+        enhanced_audio = librosa.istft(enhanced_stft, hop_length=512)
+        
+        return enhanced_audio
+    
+    def _repair_audio_segments(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Detect and repair corrupted or problematic audio segments"""
+        enhanced_channels = []
+        
+        for channel_idx in range(audio_data.shape[0]):
+            channel_data = audio_data[channel_idx]
             
-            # Save enhanced audio
-            sf.write(output_path, reduced_noise, sr)
+            # Detect problematic segments
+            problematic_segments = self._detect_problematic_segments(channel_data, sample_rate)
             
-            logger.info(f"Noise reduction applied: {audio_path} -> {output_path}")
-            return output_path
+            if problematic_segments:
+                logger.info(f"Found {len(problematic_segments)} problematic segments in channel {channel_idx}")
+                channel_data = self._fix_problematic_segments(channel_data, problematic_segments, sample_rate)
+            
+            enhanced_channels.append(channel_data)
+        
+        return np.array(enhanced_channels)
+    
+    def _detect_problematic_segments(self, audio_data: np.ndarray, sample_rate: int) -> List[Tuple[int, int]]:
+        """Detect segments with clipping, dropouts, or other issues"""
+        problematic_segments = []
+        
+        # Parameters
+        frame_size = int(0.1 * sample_rate)  # 100ms frames
+        hop_size = frame_size // 2
+        
+        # Detect clipping (values at or near maximum)
+        clipping_threshold = 0.95
+        clipped_samples = np.abs(audio_data) >= clipping_threshold
+        
+        # Detect dropouts (sudden amplitude drops)
+        rms_frames = []
+        for i in range(0, len(audio_data) - frame_size, hop_size):
+            frame = audio_data[i:i + frame_size]
+            rms_frames.append(np.sqrt(np.mean(frame**2)))
+        
+        rms_frames = np.array(rms_frames)
+        median_rms = np.median(rms_frames)
+        dropout_threshold = median_rms * 0.1
+        
+        # Find problematic regions
+        for i in range(len(rms_frames)):
+            start_sample = i * hop_size
+            end_sample = min(start_sample + frame_size, len(audio_data))
+            
+            frame_clipped = np.any(clipped_samples[start_sample:end_sample])
+            frame_dropout = rms_frames[i] < dropout_threshold
+            
+            if frame_clipped or frame_dropout:
+                problematic_segments.append((start_sample, end_sample))
+        
+        # Merge overlapping segments
+        if problematic_segments:
+            merged_segments = [problematic_segments[0]]
+            for start, end in problematic_segments[1:]:
+                if start <= merged_segments[-1][1]:
+                    merged_segments[-1] = (merged_segments[-1][0], max(merged_segments[-1][1], end))
+                else:
+                    merged_segments.append((start, end))
+            problematic_segments = merged_segments
+        
+        return problematic_segments
+    
+    def _fix_problematic_segments(self, audio_data: np.ndarray, segments: List[Tuple[int, int]], 
+                                sample_rate: int) -> np.ndarray:
+        """Fix problematic audio segments using interpolation and filtering"""
+        fixed_audio = audio_data.copy()
+        
+        for start, end in segments:
+            segment_length = end - start
+            
+            if segment_length < sample_rate * 0.01:  # Very short segments (< 10ms)
+                # Linear interpolation
+                if start > 0 and end < len(fixed_audio):
+                    start_val = fixed_audio[start - 1]
+                    end_val = fixed_audio[end]
+                    fixed_audio[start:end] = np.linspace(start_val, end_val, segment_length)
+            
+            else:  # Longer segments
+                # Use surrounding context for reconstruction
+                context_size = min(segment_length, sample_rate // 10)  # Max 100ms context
+                
+                if start >= context_size and end + context_size < len(fixed_audio):
+                    # Extract context before and after
+                    before_context = fixed_audio[start - context_size:start]
+                    after_context = fixed_audio[end:end + context_size]
+                    
+                    # Create smooth transition
+                    transition = self._create_smooth_transition(before_context, after_context, segment_length)
+                    fixed_audio[start:end] = transition
+                
+                else:
+                    # Fallback: Apply gentle low-pass filter to reduce artifacts
+                    nyquist = sample_rate / 2
+                    cutoff = min(4000, nyquist * 0.8)  # 4kHz or 80% of Nyquist
+                    b, a = signal.butter(4, cutoff / nyquist, btype='low')
+                    fixed_audio[start:end] = signal.filtfilt(b, a, fixed_audio[start:end])
+        
+        return fixed_audio
+    
+    def _create_smooth_transition(self, before_context: np.ndarray, after_context: np.ndarray, 
+                                length: int) -> np.ndarray:
+        """Create smooth transition between audio segments"""
+        # Use autoregressive prediction for natural-sounding interpolation
+        try:
+            # Simple approach: weighted combination with fade
+            fade_length = min(length // 4, len(before_context), len(after_context))
+            
+            transition = np.zeros(length)
+            
+            # Fade out from before context
+            if fade_length > 0:
+                fade_out = before_context[-fade_length:] * np.linspace(1, 0, fade_length)
+                transition[:fade_length] += fade_out
+            
+            # Fade in to after context
+            if fade_length > 0:
+                fade_in = after_context[:fade_length] * np.linspace(0, 1, fade_length)
+                transition[-fade_length:] += fade_in
+            
+            # Fill middle with interpolated values
+            if length > 2 * fade_length:
+                middle_start = fade_length
+                middle_end = length - fade_length
+                start_val = before_context[-1] if len(before_context) > 0 else 0
+                end_val = after_context[0] if len(after_context) > 0 else 0
+                transition[middle_start:middle_end] = np.linspace(start_val, end_val, middle_end - middle_start)
+            
+            return transition
             
         except Exception as e:
-            logger.error(f"Error in noise reduction: {e}")
-            return audio_path
+            logger.warning(f"Transition creation failed: {str(e)}")
+            # Fallback: simple linear interpolation
+            start_val = before_context[-1] if len(before_context) > 0 else 0
+            end_val = after_context[0] if len(after_context) > 0 else 0
+            return np.linspace(start_val, end_val, length)
     
-    def _wiener_filter(self, y: np.ndarray, noise_factor: float = 0.1) -> np.ndarray:
-        """Apply Wiener filter for noise reduction"""
-        try:
-            # Estimate noise from first 0.5 seconds
-            noise_sample_length = min(int(0.5 * self.sample_rate), len(y) // 4)
-            noise_estimate = np.var(y[:noise_sample_length])
+    def _apply_spectral_enhancement(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Apply spectral enhancement to improve clarity and presence"""
+        enhanced_channels = []
+        
+        for channel_idx in range(audio_data.shape[0]):
+            channel_data = audio_data[channel_idx]
             
-            # Apply Wiener filter
-            signal_power = np.var(y)
-            wiener_gain = signal_power / (signal_power + noise_estimate * noise_factor)
-            
-            return y * wiener_gain
-            
-        except Exception as e:
-            logger.error(f"Error in Wiener filter: {e}")
-            return y
+            # Apply multi-band enhancement
+            enhanced_channel = self._multiband_enhancement(channel_data, sample_rate)
+            enhanced_channels.append(enhanced_channel)
+        
+        return np.array(enhanced_channels)
     
-    def _spectral_subtraction(self, y: np.ndarray, sr: int) -> np.ndarray:
-        """Apply spectral subtraction for noise reduction"""
-        try:
-            # Compute STFT
-            stft = librosa.stft(y, hop_length=512, n_fft=2048)
-            magnitude = np.abs(stft)
-            phase = np.angle(stft)
+    def _multiband_enhancement(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Apply frequency-specific enhancements"""
+        # Define frequency bands for enhancement
+        nyquist = sample_rate / 2
+        
+        # Band definitions: (low_freq, high_freq, gain_db)
+        enhancement_bands = [
+            (80, 250, -2.0),      # Reduce low-frequency rumble
+            (250, 1000, 1.0),     # Slight boost for warmth
+            (1000, 4000, 2.0),    # Boost presence/clarity
+            (4000, 8000, 1.5),    # Enhance brilliance
+            (8000, nyquist, 0.5)  # Gentle high-frequency enhancement
+        ]
+        
+        enhanced_audio = audio_data.copy()
+        
+        for low_freq, high_freq, gain_db in enhancement_bands:
+            if high_freq > nyquist:
+                high_freq = nyquist * 0.95
             
-            # Estimate noise spectrum from first 0.5 seconds
-            noise_frames = int(0.5 * sr / 512)
-            noise_spectrum = np.mean(magnitude[:, :noise_frames], axis=1, keepdims=True)
+            if low_freq >= high_freq:
+                continue
             
-            # Apply spectral subtraction
-            alpha = 2.0  # Over-subtraction factor
-            enhanced_magnitude = magnitude - alpha * noise_spectrum
-            
-            # Ensure non-negative values
-            enhanced_magnitude = np.maximum(enhanced_magnitude, 0.1 * magnitude)
-            
-            # Reconstruct signal
-            enhanced_stft = enhanced_magnitude * np.exp(1j * phase)
-            enhanced_audio = librosa.istft(enhanced_stft, hop_length=512)
-            
-            return enhanced_audio
-            
-        except Exception as e:
-            logger.error(f"Error in spectral subtraction: {e}")
-            return y
-    
-    def _adaptive_filter(self, y: np.ndarray, filter_length: int = 64) -> np.ndarray:
-        """Apply adaptive filter for noise reduction"""
-        try:
-            # Simple LMS adaptive filter
-            filtered = np.zeros_like(y)
-            w = np.zeros(filter_length)
-            mu = 0.01  # Step size
-            
-            for i in range(filter_length, len(y)):
-                x = y[i-filter_length:i]
-                y_pred = np.dot(w, x)
-                error = y[i] - y_pred
-                w += mu * error * x
-                filtered[i] = y_pred
-            
-            return filtered
-            
-        except Exception as e:
-            logger.error(f"Error in adaptive filter: {e}")
-            return y
-    
-    def _noise_gate(self, y: np.ndarray) -> np.ndarray:
-        """Apply noise gate to reduce low-level noise"""
-        try:
-            # Convert to dB
-            y_db = 20 * np.log10(np.abs(y) + 1e-10)
-            
-            # Apply gate
-            gate_mask = y_db > self.noise_gate_threshold
-            gated_audio = y * gate_mask
-            
-            return gated_audio
-            
-        except Exception as e:
-            logger.error(f"Error in noise gate: {e}")
-            return y
-
-class AudioNormalizer:
-    """Advanced audio normalization and gain control"""
-    
-    def __init__(self):
-        self.target_lufs = -23.0  # EBU R128 standard
-        self.peak_limit_db = -1.0
-        self.dynamic_range_target = 20.0  # dB
-    
-    def normalize_audio(self, audio_path: str, output_path: str = None,
-                       method: str = 'peak_normalization') -> str:
-        """Normalize audio using specified method"""
-        try:
-            # Load audio
-            y, sr = librosa.load(audio_path, sr=None)
-            
-            # Apply normalization based on method
-            if method == 'peak_normalization':
-                normalized = self._peak_normalization(y)
-            elif method == 'rms_normalization':
-                normalized = self._rms_normalization(y)
-            elif method == 'lufs_normalization':
-                normalized = self._lufs_normalization(y, sr)
-            elif method == 'dynamic_range_compression':
-                normalized = self._dynamic_range_compression(y)
-            else:
-                normalized = self._peak_normalization(y)  # Default
-            
-            # Generate output path if not provided
-            if output_path is None:
-                base_path = Path(audio_path)
-                output_path = str(base_path.parent / f"{base_path.stem}_normalized{base_path.suffix}")
-            
-            # Save normalized audio
-            sf.write(output_path, normalized, sr)
-            
-            logger.info(f"Audio normalized: {audio_path} -> {output_path}")
-            return output_path
-            
-        except Exception as e:
-            logger.error(f"Error in audio normalization: {e}")
-            return audio_path
-    
-    def _peak_normalization(self, y: np.ndarray, target_db: float = -1.0) -> np.ndarray:
-        """Normalize audio to target peak level"""
-        try:
-            # Find peak level
-            peak_level = np.max(np.abs(y))
-            
-            if peak_level > 0:
-                # Calculate gain needed
-                target_linear = 10 ** (target_db / 20)
-                gain = target_linear / peak_level
+            try:
+                # Design bandpass filter
+                low_norm = low_freq / nyquist
+                high_norm = high_freq / nyquist
+                
+                if low_norm <= 0:
+                    # High-pass filter
+                    b, a = signal.butter(4, high_norm, btype='high')
+                elif high_norm >= 1:
+                    # Low-pass filter
+                    b, a = signal.butter(4, low_norm, btype='low')
+                else:
+                    # Band-pass filter
+                    b, a = signal.butter(4, [low_norm, high_norm], btype='band')
+                
+                # Extract band
+                band_signal = signal.filtfilt(b, a, audio_data)
                 
                 # Apply gain
-                normalized = y * gain
+                gain_linear = 10**(gain_db / 20)
+                band_signal *= gain_linear
                 
-                return normalized
-            
-            return y
-            
-        except Exception as e:
-            logger.error(f"Error in peak normalization: {e}")
-            return y
+                # Add back to enhanced audio
+                enhanced_audio += band_signal * 0.2  # Gentle blending
+                
+            except Exception as e:
+                logger.warning(f"Band enhancement failed for {low_freq}-{high_freq}Hz: {str(e)}")
+        
+        return enhanced_audio
     
-    def _rms_normalization(self, y: np.ndarray, target_db: float = -20.0) -> np.ndarray:
-        """Normalize audio to target RMS level"""
-        try:
-            # Calculate RMS
-            rms_level = np.sqrt(np.mean(y**2))
+    def _apply_dynamic_processing(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Apply dynamic range processing (compression/expansion)"""
+        enhanced_channels = []
+        
+        for channel_idx in range(audio_data.shape[0]):
+            channel_data = audio_data[channel_idx]
             
-            if rms_level > 0:
-                # Calculate gain needed
-                target_linear = 10 ** (target_db / 20)
-                gain = target_linear / rms_level
-                
-                # Apply gain with peak limiting
-                normalized = y * gain
-                peak_level = np.max(np.abs(normalized))
-                
-                if peak_level > 0.95:  # Prevent clipping
-                    normalized = normalized * (0.95 / peak_level)
-                
-                return normalized
-            
-            return y
-            
-        except Exception as e:
-            logger.error(f"Error in RMS normalization: {e}")
-            return y
+            # Apply gentle compression to control dynamics
+            compressed_channel = self._apply_compression(channel_data, sample_rate)
+            enhanced_channels.append(compressed_channel)
+        
+        return np.array(enhanced_channels)
     
-    def _lufs_normalization(self, y: np.ndarray, sr: int) -> np.ndarray:
-        """Normalize audio to target LUFS level"""
-        try:
-            # Simplified LUFS calculation (basic implementation)
-            # Real LUFS requires more complex filtering and gating
-            
-            # Apply K-weighting filter (simplified)
-            # High-frequency pre-filter
-            b, a = butter(2, 1500 / (sr / 2), btype='high')
-            filtered = filtfilt(b, a, y)
-            
-            # Calculate mean square with gating
-            mean_square = np.mean(filtered**2)
-            
-            if mean_square > 0:
-                current_lufs = -0.691 + 10 * np.log10(mean_square)
-                gain_db = self.target_lufs - current_lufs
-                gain_linear = 10 ** (gain_db / 20)
-                
-                normalized = y * gain_linear
-                
-                # Peak limiting
-                peak_level = np.max(np.abs(normalized))
-                if peak_level > 0.95:
-                    normalized = normalized * (0.95 / peak_level)
-                
-                return normalized
-            
-            return y
-            
-        except Exception as e:
-            logger.error(f"Error in LUFS normalization: {e}")
-            return y
-    
-    def _dynamic_range_compression(self, y: np.ndarray, 
-                                  threshold_db: float = -20.0,
-                                  ratio: float = 4.0) -> np.ndarray:
+    def _apply_compression(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
         """Apply dynamic range compression"""
-        try:
-            # Convert to dB
-            y_abs = np.abs(y)
-            y_db = 20 * np.log10(y_abs + 1e-10)
-            
-            # Apply compression
-            compressed_db = np.where(
-                y_db > threshold_db,
-                threshold_db + (y_db - threshold_db) / ratio,
-                y_db
-            )
-            
-            # Convert back to linear
-            compressed_linear = 10 ** (compressed_db / 20)
-            
-            # Preserve sign
-            compressed = compressed_linear * np.sign(y)
-            
-            return compressed
-            
-        except Exception as e:
-            logger.error(f"Error in dynamic range compression: {e}")
-            return y
-
-class AudioQualityAssessor:
-    """Automatic audio quality assessment system"""
+        # Parameters for gentle compression
+        threshold_db = -20.0  # Compression threshold
+        ratio = 3.0          # Compression ratio
+        attack_time = 0.003  # 3ms attack
+        release_time = 0.1   # 100ms release
+        
+        # Convert to dB
+        audio_db = 20 * np.log10(np.abs(audio_data) + 1e-10)
+        
+        # Calculate gain reduction
+        gain_reduction_db = np.zeros_like(audio_db)
+        mask = audio_db > threshold_db
+        gain_reduction_db[mask] = (audio_db[mask] - threshold_db) * (1 - 1/ratio)
+        
+        # Apply smoothing (attack/release)
+        smoothed_gain_reduction = self._apply_attack_release(
+            gain_reduction_db, sample_rate, attack_time, release_time
+        )
+        
+        # Apply gain reduction
+        gain_linear = 10**(-smoothed_gain_reduction / 20)
+        compressed_audio = audio_data * gain_linear
+        
+        return compressed_audio
     
-    def __init__(self, sample_rate: int = 22050):
-        self.sample_rate = sample_rate
+    def _apply_attack_release(self, gain_reduction_db: np.ndarray, sample_rate: int, 
+                            attack_time: float, release_time: float) -> np.ndarray:
+        """Apply attack and release smoothing to gain reduction"""
+        attack_coeff = np.exp(-1 / (attack_time * sample_rate))
+        release_coeff = np.exp(-1 / (release_time * sample_rate))
+        
+        smoothed = np.zeros_like(gain_reduction_db)
+        smoothed[0] = gain_reduction_db[0]
+        
+        for i in range(1, len(gain_reduction_db)):
+            if gain_reduction_db[i] > smoothed[i-1]:
+                # Attack (faster)
+                smoothed[i] = attack_coeff * smoothed[i-1] + (1 - attack_coeff) * gain_reduction_db[i]
+            else:
+                # Release (slower)
+                smoothed[i] = release_coeff * smoothed[i-1] + (1 - release_coeff) * gain_reduction_db[i]
+        
+        return smoothed
     
-    def assess_quality(self, audio_path: str) -> AudioQualityMetrics:
-        """Perform comprehensive audio quality assessment"""
-        try:
-            # Load audio
-            y, sr = librosa.load(audio_path, sr=self.sample_rate)
+    def _apply_normalization(self, audio_data: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Apply intelligent audio normalization"""
+        enhanced_channels = []
+        
+        for channel_idx in range(audio_data.shape[0]):
+            channel_data = audio_data[channel_idx]
             
-            # Calculate all quality metrics
-            metrics = AudioQualityMetrics(
-                snr_db=self._calculate_snr(y),
-                thd_percent=self._calculate_thd(y, sr),
-                dynamic_range_db=self._calculate_dynamic_range(y),
-                peak_level_db=self._calculate_peak_level(y),
-                rms_level_db=self._calculate_rms_level(y),
-                spectral_flatness=self._calculate_spectral_flatness(y),
-                spectral_centroid_hz=self._calculate_spectral_centroid(y, sr),
-                spectral_bandwidth_hz=self._calculate_spectral_bandwidth(y, sr),
-                spectral_rolloff_hz=self._calculate_spectral_rolloff(y, sr),
-                zero_crossing_rate=self._calculate_zcr(y),
-                silence_ratio=self._calculate_silence_ratio(y),
-                clipping_ratio=self._calculate_clipping_ratio(y),
-                loudness_lufs=self._calculate_loudness(y, sr),
-                perceived_quality_score=0.0,  # Will be calculated
-                needs_noise_reduction=False,  # Will be determined
-                needs_normalization=False,  # Will be determined
-                needs_gain_adjustment=False,  # Will be determined
-                needs_repair=False,  # Will be determined
-                quality_rating="good"  # Will be determined
-            )
+            # Calculate current levels
+            rms_level = np.sqrt(np.mean(channel_data**2))
+            peak_level = np.max(np.abs(channel_data))
             
-            # Calculate perceived quality score
-            metrics.perceived_quality_score = self._calculate_perceived_quality(metrics)
+            # Target levels
+            target_rms_db = -20.0  # Target RMS level
+            max_peak_db = self.normalization_params['max_peak_db']
             
-            # Determine enhancement needs
-            self._determine_enhancement_needs(metrics)
+            # Calculate required gain
+            current_rms_db = 20 * np.log10(rms_level + 1e-10)
+            rms_gain_db = target_rms_db - current_rms_db
             
-            # Determine overall quality rating
-            metrics.quality_rating = self._determine_quality_rating(metrics)
+            current_peak_db = 20 * np.log10(peak_level + 1e-10)
+            peak_gain_db = max_peak_db - current_peak_db
             
-            return metrics
+            # Use the more conservative gain
+            final_gain_db = min(rms_gain_db, peak_gain_db)
+            final_gain_linear = 10**(final_gain_db / 20)
             
-        except Exception as e:
-            logger.error(f"Error in quality assessment: {e}")
-            return self._default_quality_metrics()
+            # Apply normalization
+            normalized_channel = channel_data * final_gain_linear
+            
+            # Ensure no clipping
+            if np.max(np.abs(normalized_channel)) > 0.99:
+                normalized_channel *= 0.99 / np.max(np.abs(normalized_channel))
+            
+            enhanced_channels.append(normalized_channel)
+        
+        return np.array(enhanced_channels)
     
-    def _calculate_snr(self, y: np.ndarray) -> float:
-        """Calculate signal-to-noise ratio"""
+    def _assess_audio_quality(self, audio_data: np.ndarray, sample_rate: int) -> AudioQualityMetrics:
+        """Comprehensive audio quality assessment"""
+        # Use first channel for analysis if stereo
+        if audio_data.ndim > 1:
+            analysis_channel = audio_data[0]
+        else:
+            analysis_channel = audio_data
+        
+        # Calculate various quality metrics
+        metrics = {}
+        
+        # 1. Signal-to-Noise Ratio (SNR)
+        metrics['snr_db'] = self._calculate_snr(analysis_channel, sample_rate)
+        
+        # 2. Total Harmonic Distortion (THD)
+        metrics['thd_percent'] = self._calculate_thd(analysis_channel, sample_rate)
+        
+        # 3. Dynamic Range
+        metrics['dynamic_range_db'] = self._calculate_dynamic_range(analysis_channel)
+        
+        # 4. Spectral features
+        spectral_features = self._calculate_spectral_features(analysis_channel, sample_rate)
+        metrics.update(spectral_features)
+        
+        # 5. Energy and level metrics
+        energy_metrics = self._calculate_energy_metrics(analysis_channel)
+        metrics.update(energy_metrics)
+        
+        # 6. Loudness estimation (simplified LUFS)
+        metrics['loudness_lufs'] = self._estimate_loudness(analysis_channel, sample_rate)
+        
+        # 7. Overall quality score
+        quality_score = self._calculate_quality_score(metrics)
+        metrics['quality_score'] = quality_score
+        
+        # 8. Generate recommendations
+        recommendations = self._generate_recommendations(metrics)
+        
+        return AudioQualityMetrics(
+            snr_db=metrics['snr_db'],
+            thd_percent=metrics['thd_percent'],
+            dynamic_range_db=metrics['dynamic_range_db'],
+            spectral_centroid=metrics['spectral_centroid'],
+            spectral_rolloff=metrics['spectral_rolloff'],
+            zero_crossing_rate=metrics['zero_crossing_rate'],
+            rms_energy=metrics['rms_energy'],
+            peak_level_db=metrics['peak_level_db'],
+            loudness_lufs=metrics['loudness_lufs'],
+            quality_score=quality_score,
+            recommendations=recommendations
+        )
+    
+    def _calculate_snr(self, audio_data: np.ndarray, sample_rate: int) -> float:
+        """Calculate Signal-to-Noise Ratio"""
         try:
-            # Estimate noise from quietest 10% of signal
-            sorted_abs = np.sort(np.abs(y))
-            noise_threshold_idx = int(0.1 * len(sorted_abs))
-            noise_level = np.mean(sorted_abs[:noise_threshold_idx])
+            # Estimate noise from quieter segments
+            frame_size = int(0.1 * sample_rate)
+            hop_size = frame_size // 2
             
-            # Calculate signal level (RMS of entire signal)
-            signal_level = np.sqrt(np.mean(y**2))
+            frame_energies = []
+            for i in range(0, len(audio_data) - frame_size, hop_size):
+                frame = audio_data[i:i + frame_size]
+                energy = np.mean(frame**2)
+                frame_energies.append(energy)
             
-            if noise_level > 0:
-                snr = 20 * np.log10(signal_level / noise_level)
-                return float(snr)
+            frame_energies = np.array(frame_energies)
             
-            return 60.0  # High SNR if no noise detected
+            # Assume bottom 20% of frames represent noise
+            noise_threshold = np.percentile(frame_energies, 20)
+            signal_energy = np.mean(frame_energies)
+            
+            if noise_threshold > 0:
+                snr_linear = signal_energy / noise_threshold
+                snr_db = 10 * np.log10(snr_linear)
+            else:
+                snr_db = 60.0  # Very high SNR
+            
+            return max(0, min(60, snr_db))  # Clamp between 0 and 60 dB
             
         except Exception:
             return 30.0  # Default moderate SNR
     
-    def _calculate_thd(self, y: np.ndarray, sr: int) -> float:
-        """Calculate total harmonic distortion"""
+    def _calculate_thd(self, audio_data: np.ndarray, sample_rate: int) -> float:
+        """Calculate Total Harmonic Distortion (simplified)"""
         try:
-            # Simplified THD calculation
-            # Find fundamental frequency
-            fft = np.fft.fft(y)
-            freqs = np.fft.fftfreq(len(y), 1/sr)
+            # Use FFT to analyze harmonic content
+            fft = np.fft.fft(audio_data)
+            magnitude = np.abs(fft[:len(fft)//2])
             
-            # Find peak frequency (fundamental)
-            positive_freqs = freqs[:len(freqs)//2]
-            positive_fft = np.abs(fft[:len(fft)//2])
+            # Find fundamental frequency (simplified)
+            fundamental_idx = np.argmax(magnitude[10:1000]) + 10  # Avoid DC
             
-            if len(positive_fft) > 0:
-                fundamental_idx = np.argmax(positive_fft)
-                fundamental_freq = positive_freqs[fundamental_idx]
+            if fundamental_idx > 0:
+                # Calculate harmonic energy
+                harmonic_energy = 0
+                fundamental_energy = magnitude[fundamental_idx]**2
                 
-                if fundamental_freq > 0:
-                    # Calculate harmonic content
-                    fundamental_power = positive_fft[fundamental_idx]**2
-                    total_power = np.sum(positive_fft**2)
-                    
-                    if total_power > 0:
-                        thd = np.sqrt((total_power - fundamental_power) / fundamental_power) * 100
-                        return min(float(thd), 50.0)  # Cap at 50%
+                for harmonic in range(2, 6):  # 2nd to 5th harmonics
+                    harmonic_idx = fundamental_idx * harmonic
+                    if harmonic_idx < len(magnitude):
+                        harmonic_energy += magnitude[harmonic_idx]**2
+                
+                if fundamental_energy > 0:
+                    thd = np.sqrt(harmonic_energy / fundamental_energy) * 100
+                    return min(thd, 10.0)  # Cap at 10%
             
-            return 1.0  # Low distortion default
+            return 1.0  # Default low THD
             
         except Exception:
             return 1.0
     
-    def _calculate_dynamic_range(self, y: np.ndarray) -> float:
-        """Calculate dynamic range"""
+    def _calculate_dynamic_range(self, audio_data: np.ndarray) -> float:
+        """Calculate dynamic range in dB"""
         try:
-            if len(y) > 0:
-                peak_level = np.max(np.abs(y))
-                # Use 10th percentile as noise floor
-                noise_floor = np.percentile(np.abs(y), 10)
-                
-                if noise_floor > 0:
-                    dynamic_range = 20 * np.log10(peak_level / noise_floor)
-                    return float(dynamic_range)
+            peak_level = np.max(np.abs(audio_data))
+            rms_level = np.sqrt(np.mean(audio_data**2))
             
-            return 40.0  # Default dynamic range
+            if rms_level > 0:
+                dynamic_range = 20 * np.log10(peak_level / rms_level)
+                return max(0, min(60, dynamic_range))
+            
+            return 20.0  # Default moderate dynamic range
             
         except Exception:
-            return 40.0
+            return 20.0
     
-    def _calculate_peak_level(self, y: np.ndarray) -> float:
-        """Calculate peak level in dB"""
+    def _calculate_spectral_features(self, audio_data: np.ndarray, sample_rate: int) -> Dict[str, float]:
+        """Calculate spectral features"""
         try:
-            peak = np.max(np.abs(y))
-            if peak > 0:
-                return float(20 * np.log10(peak))
-            return -60.0
+            # Spectral centroid (brightness)
+            spectral_centroids = librosa.feature.spectral_centroid(y=audio_data, sr=sample_rate)
+            spectral_centroid = np.mean(spectral_centroids)
+            
+            # Spectral rolloff
+            spectral_rolloffs = librosa.feature.spectral_rolloff(y=audio_data, sr=sample_rate)
+            spectral_rolloff = np.mean(spectral_rolloffs)
+            
+            # Zero crossing rate
+            zcr = librosa.feature.zero_crossing_rate(audio_data)
+            zero_crossing_rate = np.mean(zcr)
+            
+            return {
+                'spectral_centroid': float(spectral_centroid),
+                'spectral_rolloff': float(spectral_rolloff),
+                'zero_crossing_rate': float(zero_crossing_rate)
+            }
             
         except Exception:
-            return -20.0
+            return {
+                'spectral_centroid': 2000.0,
+                'spectral_rolloff': 4000.0,
+                'zero_crossing_rate': 0.1
+            }
     
-    def _calculate_rms_level(self, y: np.ndarray) -> float:
-        """Calculate RMS level in dB"""
+    def _calculate_energy_metrics(self, audio_data: np.ndarray) -> Dict[str, float]:
+        """Calculate energy and level metrics"""
         try:
-            rms = np.sqrt(np.mean(y**2))
-            if rms > 0:
-                return float(20 * np.log10(rms))
-            return -60.0
+            # RMS energy
+            rms_energy = np.sqrt(np.mean(audio_data**2))
+            
+            # Peak level in dB
+            peak_level = np.max(np.abs(audio_data))
+            peak_level_db = 20 * np.log10(peak_level + 1e-10)
+            
+            return {
+                'rms_energy': float(rms_energy),
+                'peak_level_db': float(peak_level_db)
+            }
+            
+        except Exception:
+            return {
+                'rms_energy': 0.1,
+                'peak_level_db': -20.0
+            }
+    
+    def _estimate_loudness(self, audio_data: np.ndarray, sample_rate: int) -> float:
+        """Estimate loudness in LUFS (simplified)"""
+        try:
+            # Simplified loudness estimation
+            # Apply K-weighting filter (simplified)
+            nyquist = sample_rate / 2
+            
+            # High-pass filter at 38 Hz
+            if nyquist > 38:
+                b_hp, a_hp = signal.butter(4, 38 / nyquist, btype='high')
+                filtered_audio = signal.filtfilt(b_hp, a_hp, audio_data)
+            else:
+                filtered_audio = audio_data
+            
+            # Calculate mean square
+            mean_square = np.mean(filtered_audio**2)
+            
+            if mean_square > 0:
+                loudness_lufs = -0.691 + 10 * np.log10(mean_square)
+                return max(-70, min(0, loudness_lufs))  # Clamp to reasonable range
+            
+            return -30.0  # Default moderate loudness
             
         except Exception:
             return -30.0
     
-    def _calculate_spectral_flatness(self, y: np.ndarray) -> float:
-        """Calculate spectral flatness"""
+    def _calculate_quality_score(self, metrics: Dict[str, float]) -> float:
+        """Calculate overall quality score (0-100)"""
         try:
-            spectral_flatness = librosa.feature.spectral_flatness(y=y)[0]
-            return float(np.mean(spectral_flatness))
+            score = 50.0  # Base score
+            
+            # SNR contribution (0-25 points)
+            snr_score = min(25, metrics['snr_db'] * 25 / 40)
+            score += snr_score
+            
+            # THD contribution (0-15 points, lower THD is better)
+            thd_score = max(0, 15 - metrics['thd_percent'] * 3)
+            score += thd_score
+            
+            # Dynamic range contribution (0-10 points)
+            dr_score = min(10, metrics['dynamic_range_db'] * 10 / 30)
+            score += dr_score
+            
+            # Clamp to 0-100 range
+            return max(0, min(100, score))
             
         except Exception:
-            return 0.5
+            return 50.0  # Default moderate quality
     
-    def _calculate_spectral_centroid(self, y: np.ndarray, sr: int) -> float:
-        """Calculate spectral centroid"""
+    def _generate_recommendations(self, metrics: Dict[str, float]) -> List[str]:
+        """Generate enhancement recommendations based on quality metrics"""
+        recommendations = []
+        
         try:
-            centroid = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
-            return float(np.mean(centroid))
+            if metrics['snr_db'] < 20:
+                recommendations.append("Apply noise reduction to improve signal-to-noise ratio")
+            
+            if metrics['thd_percent'] > 3:
+                recommendations.append("Consider audio repair to reduce harmonic distortion")
+            
+            if metrics['dynamic_range_db'] < 10:
+                recommendations.append("Apply dynamic range expansion to improve dynamics")
+            
+            if metrics['peak_level_db'] > -3:
+                recommendations.append("Apply peak limiting to prevent clipping")
+            
+            if metrics['loudness_lufs'] < -40:
+                recommendations.append("Apply normalization to increase overall loudness")
+            
+            if metrics['spectral_centroid'] < 1000:
+                recommendations.append("Apply spectral enhancement to improve brightness")
+            
+            if not recommendations:
+                recommendations.append("Audio quality is good - minimal enhancement needed")
             
         except Exception:
-            return 2000.0
+            recommendations.append("Unable to generate specific recommendations")
+        
+        return recommendations
     
-    def _calculate_spectral_bandwidth(self, y: np.ndarray, sr: int) -> float:
-        """Calculate spectral bandwidth"""
+    def get_format_recommendations(self, input_path: str) -> Dict[str, Any]:
+        """Analyze audio file and provide format optimization recommendations"""
         try:
-            bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr)[0]
-            return float(np.mean(bandwidth))
+            # Load audio metadata
+            audio_data, sample_rate = librosa.load(input_path, sr=None)
+            duration = len(audio_data) / sample_rate
             
-        except Exception:
-            return 1000.0
-    
-    def _calculate_spectral_rolloff(self, y: np.ndarray, sr: int) -> float:
-        """Calculate spectral rolloff"""
-        try:
-            rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)[0]
-            return float(np.mean(rolloff))
+            # Get file size
+            file_size = os.path.getsize(input_path)
             
-        except Exception:
-            return 4000.0
-    
-    def _calculate_zcr(self, y: np.ndarray) -> float:
-        """Calculate zero crossing rate"""
-        try:
-            zcr = librosa.feature.zero_crossing_rate(y)[0]
-            return float(np.mean(zcr))
+            # Analyze content
+            quality_metrics = self._assess_audio_quality(audio_data, sample_rate)
             
-        except Exception:
-            return 0.1
-    
-    def _calculate_silence_ratio(self, y: np.ndarray, threshold_db: float = -40.0) -> float:
-        """Calculate ratio of silence to total duration"""
-        try:
-            # Convert to dB
-            y_db = 20 * np.log10(np.abs(y) + 1e-10)
-            
-            # Count silent samples
-            silent_samples = np.sum(y_db < threshold_db)
-            silence_ratio = silent_samples / len(y)
-            
-            return float(silence_ratio)
-            
-        except Exception:
-            return 0.1
-    
-    def _calculate_clipping_ratio(self, y: np.ndarray, threshold: float = 0.95) -> float:
-        """Calculate ratio of clipped samples"""
-        try:
-            clipped_samples = np.sum(np.abs(y) >= threshold)
-            clipping_ratio = clipped_samples / len(y)
-            
-            return float(clipping_ratio)
-            
-        except Exception:
-            return 0.0
-    
-    def _calculate_loudness(self, y: np.ndarray, sr: int) -> float:
-        """Calculate loudness in LUFS (simplified)"""
-        try:
-            # Simplified loudness calculation
-            rms = np.sqrt(np.mean(y**2))
-            if rms > 0:
-                # Approximate LUFS conversion
-                lufs = -0.691 + 10 * np.log10(rms**2)
-                return float(lufs)
-            
-            return -50.0
-            
-        except Exception:
-            return -23.0
-    
-    def _calculate_perceived_quality(self, metrics: AudioQualityMetrics) -> float:
-        """Calculate overall perceived quality score (0-100)"""
-        try:
-            # Weighted combination of metrics
-            snr_score = min(100, max(0, (metrics.snr_db + 10) * 2))  # SNR contribution
-            dynamic_range_score = min(100, max(0, metrics.dynamic_range_db * 2))  # Dynamic range
-            distortion_score = max(0, 100 - metrics.thd_percent * 10)  # THD penalty
-            clipping_score = max(0, 100 - metrics.clipping_ratio * 1000)  # Clipping penalty
-            
-            # Combine scores
-            quality_score = (
-                snr_score * 0.3 +
-                dynamic_range_score * 0.25 +
-                distortion_score * 0.25 +
-                clipping_score * 0.2
-            )
-            
-            return float(min(100, max(0, quality_score)))
-            
-        except Exception:
-            return 70.0
-    
-    def _determine_enhancement_needs(self, metrics: AudioQualityMetrics):
-        """Determine what enhancements are needed"""
-        try:
-            # Noise reduction needed if SNR is low
-            metrics.needs_noise_reduction = metrics.snr_db < 20.0
-            
-            # Normalization needed if levels are too low or too high
-            metrics.needs_normalization = (
-                metrics.peak_level_db < -10.0 or 
-                metrics.peak_level_db > -1.0 or
-                metrics.rms_level_db < -30.0
-            )
-            
-            # Gain adjustment needed if loudness is off target
-            metrics.needs_gain_adjustment = abs(metrics.loudness_lufs - (-23.0)) > 3.0
-            
-            # Repair needed if significant clipping or distortion
-            metrics.needs_repair = (
-                metrics.clipping_ratio > 0.01 or 
-                metrics.thd_percent > 5.0
-            )
-            
-        except Exception as e:
-            logger.error(f"Error determining enhancement needs: {e}")
-    
-    def _determine_quality_rating(self, metrics: AudioQualityMetrics) -> str:
-        """Determine overall quality rating"""
-        try:
-            score = metrics.perceived_quality_score
-            
-            if score >= 85:
-                return "excellent"
-            elif score >= 70:
-                return "good"
-            elif score >= 50:
-                return "fair"
-            else:
-                return "poor"
-                
-        except Exception:
-            return "fair"
-    
-    def _default_quality_metrics(self) -> AudioQualityMetrics:
-        """Return default quality metrics in case of error"""
-        return AudioQualityMetrics(
-            snr_db=30.0, thd_percent=1.0, dynamic_range_db=40.0,
-            peak_level_db=-6.0, rms_level_db=-20.0, spectral_flatness=0.5,
-            spectral_centroid_hz=2000.0, spectral_bandwidth_hz=1000.0,
-            spectral_rolloff_hz=4000.0, zero_crossing_rate=0.1,
-            silence_ratio=0.1, clipping_ratio=0.0, loudness_lufs=-23.0,
-            perceived_quality_score=70.0, needs_noise_reduction=False,
-            needs_normalization=False, needs_gain_adjustment=False,
-            needs_repair=False, quality_rating="good"
-        )class A
-udioRepairer:
-    """Audio repair system for corrupted segments"""
-    
-    def __init__(self, sample_rate: int = 22050):
-        self.sample_rate = sample_rate
-        self.anomaly_detector = IsolationForest(contamination=0.1, random_state=42)
-    
-    def repair_audio(self, audio_path: str, output_path: str = None) -> AudioRepairResult:
-        """Detect and repair corrupted audio segments"""
-        try:
-            # Load audio
-            y, sr = librosa.load(audio_path, sr=self.sample_rate)
-            duration = len(y) / sr
-            
-            # Detect corrupted segments
-            corrupted_segments = self._detect_corrupted_segments(y, sr)
-            
-            # Repair corrupted segments
-            repaired_audio, repair_methods = self._repair_segments(y, corrupted_segments)
-            
-            # Calculate repair statistics
-            repaired_duration = sum(end - start for start, end in corrupted_segments)
-            success_rate = min(1.0, len(repair_methods) / max(1, len(corrupted_segments)))
-            
-            # Save repaired audio if output path provided
-            if output_path:
-                sf.write(output_path, repaired_audio, sr)
-            
-            return AudioRepairResult(
-                corrupted_segments=corrupted_segments,
-                repair_methods_used=repair_methods,
-                repair_success_rate=success_rate,
-                repaired_duration=repaired_duration,
-                total_duration=duration
-            )
-            
-        except Exception as e:
-            logger.error(f"Error in audio repair: {e}")
-            return AudioRepairResult([], [], 0.0, 0.0, 0.0)
-    
-    def _detect_corrupted_segments(self, y: np.ndarray, sr: int) -> List[Tuple[float, float]]:
-        """Detect corrupted audio segments"""
-        try:
-            corrupted_segments = []
-            
-            # Detect clipping
-            clipping_segments = self._detect_clipping(y, sr)
-            corrupted_segments.extend(clipping_segments)
-            
-            # Detect dropouts (silence in unexpected places)
-            dropout_segments = self._detect_dropouts(y, sr)
-            corrupted_segments.extend(dropout_segments)
-            
-            # Detect artifacts using anomaly detection
-            artifact_segments = self._detect_artifacts(y, sr)
-            corrupted_segments.extend(artifact_segments)
-            
-            # Merge overlapping segments
-            merged_segments = self._merge_segments(corrupted_segments)
-            
-            return merged_segments
-            
-        except Exception as e:
-            logger.error(f"Error detecting corrupted segments: {e}")
-            return []
-    
-    def _detect_clipping(self, y: np.ndarray, sr: int, threshold: float = 0.95) -> List[Tuple[float, float]]:
-        """Detect clipped audio segments"""
-        try:
-            clipped_mask = np.abs(y) >= threshold
-            
-            # Find continuous clipped regions
-            clipped_segments = []
-            in_clipped_region = False
-            start_idx = 0
-            
-            for i, is_clipped in enumerate(clipped_mask):
-                if is_clipped and not in_clipped_region:
-                    start_idx = i
-                    in_clipped_region = True
-                elif not is_clipped and in_clipped_region:
-                    # End of clipped region
-                    start_time = start_idx / sr
-                    end_time = i / sr
-                    if end_time - start_time > 0.01:  # Minimum 10ms
-                        clipped_segments.append((start_time, end_time))
-                    in_clipped_region = False
-            
-            return clipped_segments
-            
-        except Exception:
-            return []
-    
-    def _detect_dropouts(self, y: np.ndarray, sr: int, silence_threshold: float = -50.0) -> List[Tuple[float, float]]:
-        """Detect audio dropouts (unexpected silence)"""
-        try:
-            # Convert to dB
-            y_db = 20 * np.log10(np.abs(y) + 1e-10)
-            
-            # Find silent regions
-            silent_mask = y_db < silence_threshold
-            
-            # Find continuous silent regions
-            dropout_segments = []
-            in_silent_region = False
-            start_idx = 0
-            
-            for i, is_silent in enumerate(silent_mask):
-                if is_silent and not in_silent_region:
-                    start_idx = i
-                    in_silent_region = True
-                elif not is_silent and in_silent_region:
-                    # End of silent region
-                    start_time = start_idx / sr
-                    end_time = i / sr
-                    # Only consider dropouts longer than 50ms but shorter than 2s
-                    if 0.05 < (end_time - start_time) < 2.0:
-                        dropout_segments.append((start_time, end_time))
-                    in_silent_region = False
-            
-            return dropout_segments
-            
-        except Exception:
-            return []
-    
-    def _detect_artifacts(self, y: np.ndarray, sr: int) -> List[Tuple[float, float]]:
-        """Detect audio artifacts using anomaly detection"""
-        try:
-            # Extract features for anomaly detection
-            frame_length = int(0.1 * sr)  # 100ms frames
-            hop_length = frame_length // 2
-            
-            features = []
-            for i in range(0, len(y) - frame_length, hop_length):
-                frame = y[i:i + frame_length]
-                
-                # Extract features
-                rms = np.sqrt(np.mean(frame**2))
-                zcr = np.mean(np.abs(np.diff(np.sign(frame))))
-                spectral_centroid = np.mean(np.abs(np.fft.fft(frame)))
-                
-                features.append([rms, zcr, spectral_centroid])
-            
-            if len(features) < 10:  # Need minimum samples for anomaly detection
-                return []
-            
-            features = np.array(features)
-            
-            # Detect anomalies
-            anomalies = self.anomaly_detector.fit_predict(features)
-            
-            # Convert anomaly indices to time segments
-            artifact_segments = []
-            for i, is_anomaly in enumerate(anomalies):
-                if is_anomaly == -1:  # Anomaly detected
-                    start_time = i * hop_length / sr
-                    end_time = (i * hop_length + frame_length) / sr
-                    artifact_segments.append((start_time, end_time))
-            
-            return artifact_segments
-            
-        except Exception:
-            return []
-    
-    def _merge_segments(self, segments: List[Tuple[float, float]], 
-                       merge_threshold: float = 0.1) -> List[Tuple[float, float]]:
-        """Merge overlapping or nearby segments"""
-        try:
-            if not segments:
-                return []
-            
-            # Sort segments by start time
-            sorted_segments = sorted(segments)
-            merged = [sorted_segments[0]]
-            
-            for current in sorted_segments[1:]:
-                last = merged[-1]
-                
-                # Check if segments overlap or are close
-                if current[0] <= last[1] + merge_threshold:
-                    # Merge segments
-                    merged[-1] = (last[0], max(last[1], current[1]))
-                else:
-                    merged.append(current)
-            
-            return merged
-            
-        except Exception:
-            return segments
-    
-    def _repair_segments(self, y: np.ndarray, corrupted_segments: List[Tuple[float, float]]) -> Tuple[np.ndarray, List[str]]:
-        """Repair corrupted audio segments"""
-        try:
-            repaired_audio = y.copy()
-            repair_methods = []
-            sr = self.sample_rate
-            
-            for start_time, end_time in corrupted_segments:
-                start_idx = int(start_time * sr)
-                end_idx = int(end_time * sr)
-                
-                if start_idx >= len(y) or end_idx >= len(y):
-                    continue
-                
-                # Choose repair method based on segment characteristics
-                segment_length = end_idx - start_idx
-                
-                if segment_length < sr * 0.05:  # Short segments (< 50ms)
-                    # Use interpolation
-                    repaired_audio[start_idx:end_idx] = self._interpolate_segment(
-                        repaired_audio, start_idx, end_idx
-                    )
-                    repair_methods.append("interpolation")
-                    
-                elif segment_length < sr * 0.5:  # Medium segments (< 500ms)
-                    # Use autoregressive prediction
-                    repaired_audio[start_idx:end_idx] = self._predict_segment(
-                        repaired_audio, start_idx, end_idx
-                    )
-                    repair_methods.append("prediction")
-                    
-                else:  # Long segments
-                    # Use noise substitution
-                    repaired_audio[start_idx:end_idx] = self._substitute_noise(
-                        repaired_audio, start_idx, end_idx
-                    )
-                    repair_methods.append("noise_substitution")
-            
-            return repaired_audio, repair_methods
-            
-        except Exception as e:
-            logger.error(f"Error repairing segments: {e}")
-            return y, []
-    
-    def _interpolate_segment(self, y: np.ndarray, start_idx: int, end_idx: int) -> np.ndarray:
-        """Repair segment using linear interpolation"""
-        try:
-            if start_idx > 0 and end_idx < len(y):
-                # Linear interpolation between boundaries
-                start_val = y[start_idx - 1]
-                end_val = y[end_idx]
-                
-                interpolated = np.linspace(start_val, end_val, end_idx - start_idx)
-                return interpolated
-            else:
-                # Fill with zeros if at boundaries
-                return np.zeros(end_idx - start_idx)
-                
-        except Exception:
-            return np.zeros(end_idx - start_idx)
-    
-    def _predict_segment(self, y: np.ndarray, start_idx: int, end_idx: int) -> np.ndarray:
-        """Repair segment using autoregressive prediction"""
-        try:
-            # Use previous samples for prediction
-            context_length = min(1024, start_idx)
-            
-            if context_length > 10:
-                context = y[start_idx - context_length:start_idx]
-                
-                # Simple AR prediction using linear prediction
-                predicted = np.zeros(end_idx - start_idx)
-                
-                # Use last few samples to predict next samples
-                for i in range(len(predicted)):
-                    if i < 10:
-                        # Use context for first few samples
-                        predicted[i] = context[-(10-i)] if (10-i) <= len(context) else 0
-                    else:
-                        # Use predicted samples for continuation
-                        predicted[i] = np.mean(predicted[max(0, i-5):i])
-                
-                return predicted
-            else:
-                return np.zeros(end_idx - start_idx)
-                
-        except Exception:
-            return np.zeros(end_idx - start_idx)
-    
-    def _substitute_noise(self, y: np.ndarray, start_idx: int, end_idx: int) -> np.ndarray:
-        """Repair segment by substituting with appropriate noise"""
-        try:
-            # Estimate noise characteristics from surrounding audio
-            context_length = min(2048, start_idx, len(y) - end_idx)
-            
-            if context_length > 100:
-                # Get noise samples from before and after
-                before_context = y[max(0, start_idx - context_length):start_idx]
-                after_context = y[end_idx:min(len(y), end_idx + context_length)]
-                
-                # Estimate noise level
-                noise_level = np.std(np.concatenate([before_context, after_context]))
-                
-                # Generate noise with similar characteristics
-                noise = np.random.normal(0, noise_level, end_idx - start_idx)
-                
-                # Apply envelope to make transition smooth
-                envelope_length = min(100, len(noise) // 4)
-                if envelope_length > 0:
-                    fade_in = np.linspace(0, 1, envelope_length)
-                    fade_out = np.linspace(1, 0, envelope_length)
-                    
-                    noise[:envelope_length] *= fade_in
-                    noise[-envelope_length:] *= fade_out
-                
-                return noise
-            else:
-                return np.zeros(end_idx - start_idx)
-                
-        except Exception:
-            return np.zeros(end_idx - start_idx)
-
-class FormatOptimizer:
-    """Audio format optimization recommendations"""
-    
-    def __init__(self):
-        self.format_specs = {
-            'speech': {
-                'sample_rate': 16000,
-                'bit_depth': 16,
-                'channels': 1,
-                'codec': 'opus',
-                'bitrate': 32000
-            },
-            'music': {
-                'sample_rate': 44100,
-                'bit_depth': 24,
-                'channels': 2,
-                'codec': 'flac',
-                'bitrate': None  # Lossless
-            },
-            'podcast': {
-                'sample_rate': 22050,
-                'bit_depth': 16,
-                'channels': 1,
-                'codec': 'mp3',
-                'bitrate': 128000
-            },
-            'broadcast': {
-                'sample_rate': 48000,
-                'bit_depth': 24,
-                'channels': 2,
-                'codec': 'wav',
-                'bitrate': None  # Uncompressed
+            recommendations = {
+                'current_format': Path(input_path).suffix.lower(),
+                'file_size_mb': file_size / (1024 * 1024),
+                'duration_seconds': duration,
+                'sample_rate': sample_rate,
+                'quality_score': quality_metrics.quality_score,
+                'recommendations': []
             }
-        }
-    
-    def recommend_format(self, audio_path: str, use_case: str = 'general') -> Dict[str, Any]:
-        """Recommend optimal audio format based on content and use case"""
-        try:
-            # Analyze audio characteristics
-            y, sr = librosa.load(audio_path, sr=None)
             
-            # Get audio info
-            duration = len(y) / sr
-            channels = 1 if y.ndim == 1 else y.shape[0]
-            current_sample_rate = sr
+            # Format recommendations based on use case
+            if quality_metrics.quality_score > 80:
+                recommendations['recommendations'].append({
+                    'format': '.flac',
+                    'reason': 'High quality audio - use lossless compression',
+                    'expected_size_reduction': '0%',
+                    'quality_impact': 'None'
+                })
             
-            # Analyze content type
-            content_type = self._analyze_content_type(y, sr)
+            elif quality_metrics.quality_score > 60:
+                recommendations['recommendations'].append({
+                    'format': '.mp3',
+                    'bitrate': '320kbps',
+                    'reason': 'Good quality - high bitrate MP3 suitable',
+                    'expected_size_reduction': '60-70%',
+                    'quality_impact': 'Minimal'
+                })
             
-            # Get format recommendation
-            if use_case in self.format_specs:
-                recommended = self.format_specs[use_case].copy()
             else:
-                recommended = self.format_specs[content_type].copy()
+                recommendations['recommendations'].append({
+                    'format': '.mp3',
+                    'bitrate': '192kbps',
+                    'reason': 'Moderate quality - standard MP3 sufficient',
+                    'expected_size_reduction': '70-80%',
+                    'quality_impact': 'Low'
+                })
             
-            # Calculate file size estimates
-            current_size = self._estimate_file_size(duration, current_sample_rate, channels, 16, 'wav')
-            recommended_size = self._estimate_file_size(
-                duration, 
-                recommended['sample_rate'], 
-                recommended['channels'],
-                recommended['bit_depth'],
-                recommended['codec']
-            )
+            # Add speech-specific recommendations
+            if quality_metrics.spectral_centroid < 2000:  # Likely speech
+                recommendations['recommendations'].append({
+                    'format': '.mp3',
+                    'bitrate': '128kbps',
+                    'reason': 'Speech content - lower bitrate acceptable',
+                    'expected_size_reduction': '80-85%',
+                    'quality_impact': 'Minimal for speech'
+                })
             
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Failed to generate format recommendations: {str(e)}")
             return {
-                'current_format': {
-                    'sample_rate': current_sample_rate,
-                    'channels': channels,
-                    'duration': duration,
-                    'estimated_size_mb': current_size
-                },
-                'recommended_format': recommended,
-                'estimated_size_mb': recommended_size,
-                'size_reduction_percent': ((current_size - recommended_size) / current_size) * 100 if current_size > 0 else 0,
-                'content_type': content_type,
-                'optimization_benefits': self._get_optimization_benefits(recommended, content_type)
+                'error': str(e),
+                'recommendations': []
             }
-            
-        except Exception as e:
-            logger.error(f"Error in format optimization: {e}")
-            return {}
+
+def main():
+    """Demo function for audio enhancement pipeline"""
+    import argparse
     
-    def _analyze_content_type(self, y: np.ndarray, sr: int) -> str:
-        """Analyze audio to determine content type"""
-        try:
-            # Extract features for content classification
-            
-            # Spectral features
-            spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
-            spectral_bandwidth = np.mean(librosa.feature.spectral_bandwidth(y=y, sr=sr))
-            spectral_rolloff = np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr))
-            
-            # Temporal features
-            zero_crossing_rate = np.mean(librosa.feature.zero_crossing_rate(y))
-            
-            # Energy features
-            rms_energy = np.mean(librosa.feature.rms(y=y))
-            
-            # Simple heuristic classification
-            if spectral_centroid < 2000 and zero_crossing_rate < 0.1:
-                return 'speech'
-            elif spectral_bandwidth > 3000 and rms_energy > 0.1:
-                return 'music'
-            elif spectral_centroid < 3000:
-                return 'podcast'
-            else:
-                return 'broadcast'
-                
-        except Exception:
-            return 'general'
+    parser = argparse.ArgumentParser(description='Audio Enhancement Pipeline Demo')
+    parser.add_argument('input_file', help='Input audio file path')
+    parser.add_argument('--output', help='Output file path (optional)')
+    parser.add_argument('--no-noise-reduction', action='store_true', help='Skip noise reduction')
+    parser.add_argument('--no-repair', action='store_true', help='Skip audio repair')
+    parser.add_argument('--no-enhancement', action='store_true', help='Skip spectral enhancement')
+    parser.add_argument('--format-analysis', action='store_true', help='Show format recommendations')
     
-    def _estimate_file_size(self, duration: float, sample_rate: int, channels: int, 
-                           bit_depth: int, codec: str) -> float:
-        """Estimate file size in MB"""
-        try:
-            if codec in ['wav', 'flac']:
-                # Uncompressed or lossless
-                bits_per_second = sample_rate * channels * bit_depth
-                bytes_per_second = bits_per_second / 8
-                total_bytes = bytes_per_second * duration
-                
-                if codec == 'flac':
-                    total_bytes *= 0.6  # Typical FLAC compression ratio
-                    
-            elif codec == 'mp3':
-                # Assume 128 kbps for MP3
-                bits_per_second = 128000
-                total_bytes = (bits_per_second / 8) * duration
-                
-            elif codec == 'opus':
-                # Assume 64 kbps for Opus
-                bits_per_second = 64000
-                total_bytes = (bits_per_second / 8) * duration
-                
-            else:
-                # Default to uncompressed
-                bits_per_second = sample_rate * channels * bit_depth
-                total_bytes = (bits_per_second / 8) * duration
-            
-            return total_bytes / (1024 * 1024)  # Convert to MB
-            
-        except Exception:
-            return 0.0
+    args = parser.parse_args()
     
-    def _get_optimization_benefits(self, format_spec: Dict[str, Any], content_type: str) -> List[str]:
-        """Get list of optimization benefits"""
-        benefits = []
+    # Initialize pipeline
+    pipeline = AudioEnhancementPipeline()
+    
+    try:
+        if args.format_analysis:
+            # Show format recommendations
+            recommendations = pipeline.get_format_recommendations(args.input_file)
+            print("\n=== Format Recommendations ===")
+            print(json.dumps(recommendations, indent=2))
         
-        if format_spec['codec'] in ['opus', 'mp3']:
-            benefits.append("Reduced file size through compression")
+        # Enhancement options
+        options = {
+            'noise_reduction': not args.no_noise_reduction,
+            'audio_repair': not args.no_repair,
+            'spectral_enhancement': not args.no_enhancement,
+            'dynamic_processing': True,
+            'normalization': True
+        }
         
-        if format_spec['sample_rate'] <= 22050 and content_type == 'speech':
-            benefits.append("Optimized sample rate for speech content")
+        # Enhance audio
+        result = pipeline.enhance_audio(args.input_file, args.output, options)
         
-        if format_spec['channels'] == 1 and content_type in ['speech', 'podcast']:
-            benefits.append("Mono encoding suitable for voice content")
+        print(f"\n=== Enhancement Results ===")
+        print(f"Enhanced audio saved to: {result.enhanced_audio_path}")
+        print(f"Processing time: {result.processing_time:.2f} seconds")
+        print(f"Enhancement applied: {', '.join(result.enhancement_applied)}")
+        print(f"Quality improvement: {result.improvement_score:+.1f} points")
         
-        if format_spec['codec'] == 'opus':
-            benefits.append("Superior compression efficiency")
-            benefits.append("Low latency encoding")
+        print(f"\n=== Quality Metrics ===")
+        print(f"Original quality score: {result.original_metrics.quality_score:.1f}/100")
+        print(f"Enhanced quality score: {result.enhanced_metrics.quality_score:.1f}/100")
         
-        if format_spec['codec'] == 'flac':
-            benefits.append("Lossless compression preserves quality")
+        print(f"\n=== Recommendations ===")
+        for rec in result.enhanced_metrics.recommendations:
+            print(f"- {rec}")
         
-        return benefits
+    except Exception as e:
+        logger.error(f"Enhancement failed: {str(e)}")
+        return 1
+    
+    return 0
+
+if __name__ == "__main__":
+    exit(main())

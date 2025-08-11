@@ -34,19 +34,14 @@ export function initPostHog(config: PostHogConfig) {
     capture_pageview: config.capturePageview ?? true,
     capture_pageleave: config.capturePageleave ?? true,
     
-    // Session recording
-    session_recording: {
-      enabled: config.sessionRecording?.enabled ?? false,
-      maskAllInputs: config.sessionRecording?.maskAllInputs ?? true,
-      maskAllText: config.sessionRecording?.maskAllText ?? false,
-    },
+    // Session recording disabled for now
+    disable_session_recording: true,
     
     // Privacy settings
     cross_subdomain_cookie: true,
     persistence: 'localStorage+cookie',
     
-    // Performance
-    disable_session_recording: process.env.NODE_ENV === 'development',
+    // Performance settings for development
     
     // Feature flags
     bootstrap: {

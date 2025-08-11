@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Console Test</title>
+</head>
+<body>
+    <h1>Check console for errors from main app</h1>
+    <iframe src="http://localhost:3000" width="100%" height="600"></iframe>
+    <script>
+        // Listen for errors from iframe
+        window.addEventListener('message', (e) => {
+            console.log('Message from iframe:', e.data);
+        });
+    </script>
+</body>
+</html>

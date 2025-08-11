@@ -8,7 +8,6 @@ import {
   Divider,
   FormControl,
   FormControlLabel,
-  Grid,
   InputLabel,
   MenuItem,
   Select,
@@ -60,7 +59,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Pie, Bar, Radar } from 'react-chartjs-2';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 
 ChartJS.register(
   ArcElement,
@@ -146,13 +145,12 @@ const ImageAnalysisInsights: React.FC = () => {
       formData.append('analysis_options', JSON.stringify(analysisOptions));
       formData.append('include_sections', JSON.stringify(analysisOptions.include_sections));
 
-      const response = await apiClient.post('/api/v1/image-analysis/analyze/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/image-analysis/analyze/upload`, {
+        method: 'POST',
+        body: formData,
+      }).then(res => res.json());
 
-      const taskId = response.data.task_id;
+      const taskId = response.task_id;
       pollForResults(taskId);
 
     } catch (err: any) {
@@ -164,7 +162,7 @@ const ImageAnalysisInsights: React.FC = () => {
   const pollForResults = (taskId: string) => {
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const response = await apiClient.get(`/api/v1/image-analysis/status/${taskId}`);
+        const response = await apiService.get(`/api/v1/image-analysis/status/${taskId}`);
         const result: AnalysisResults = response.data;
 
         if (result.status === 'completed') {
@@ -210,7 +208,7 @@ const ImageAnalysisInsights: React.FC = () => {
 
     const colors = results.color_analysis.dominant_colors.slice(0, 5);
     const data = {
-      labels: colors.map((_, i) => `Color ${i + 1}`),
+      labels: colors.map((_: any, i: number) => `Color ${i + 1}`),
       datasets: [
         {
           data: colors.map(() => 1),
@@ -342,8 +340,8 @@ const ImageAnalysisInsights: React.FC = () => {
     if (!results) return null;
 
     return (
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3, mb: 3 }}>
+        <Box>
           <Card sx={{ textAlign: 'center', bgcolor: getQualityColor(results.quality_metrics?.overall_quality) }}>
             <CardContent>
               <Assessment sx={{ fontSize: 40, mb: 1 }} />
@@ -358,9 +356,9 @@ const ImageAnalysisInsights: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Box>
           <Card sx={{ textAlign: 'center', bgcolor: '#e3f2fd' }}>
             <CardContent>
               <PhotoCamera sx={{ fontSize: 40, mb: 1 }} />
@@ -375,9 +373,9 @@ const ImageAnalysisInsights: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Box>
           <Card sx={{ textAlign: 'center', bgcolor: '#f3e5f5' }}>
             <CardContent>
               <Psychology sx={{ fontSize: 40, mb: 1 }} />
@@ -392,9 +390,9 @@ const ImageAnalysisInsights: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Box>
           <Card sx={{ textAlign: 'center', bgcolor: '#e8f5e8' }}>
             <CardContent>
               <Analytics sx={{ fontSize: 40, mb: 1 }} />
@@ -409,8 +407,8 @@ const ImageAnalysisInsights: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     );
   };
 
@@ -431,9 +429,9 @@ const ImageAnalysisInsights: React.FC = () => {
         Image Analysis & Insights
       </Typography>
 
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
         {/* Upload Section */}
-        <Grid item xs={12} md={6}>
+        <Box>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -485,10 +483,10 @@ const ImageAnalysisInsights: React.FC = () => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
         {/* Controls Section */}
-        <Grid item xs={12} md={6}>
+        <Box>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -576,11 +574,11 @@ const ImageAnalysisInsights: React.FC = () => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
         {/* Results Section */}
         {results && (
-          <Grid item xs={12}>
+          <Box>
             <Card>
               <CardContent>
                 <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -612,11 +610,11 @@ const ImageAnalysisInsights: React.FC = () => {
                     <Typography variant="h6" gutterBottom>
                       Color Analysis
                     </Typography>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={6}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+                      <Box>
                         {createColorChart()}
-                      </Grid>
-                      <Grid item xs={12} md={6}>
+                      </Box>
+                      <Box>
                         <Paper sx={{ p: 2 }}>
                           <Typography variant="h6" gutterBottom>
                             Color Properties
@@ -629,8 +627,8 @@ const ImageAnalysisInsights: React.FC = () => {
                             <Chip label={`Diversity: ${results.color_analysis.color_diversity?.toFixed(2)}`} />
                           </Box>
                         </Paper>
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   </Box>
                 )}
 
@@ -640,11 +638,11 @@ const ImageAnalysisInsights: React.FC = () => {
                     <Typography variant="h6" gutterBottom>
                       Composition Analysis
                     </Typography>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={6}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+                      <Box>
                         {createCompositionChart()}
-                      </Grid>
-                      <Grid item xs={12} md={6}>
+                      </Box>
+                      <Box>
                         <Paper sx={{ p: 2 }}>
                           <Typography variant="h6" gutterBottom>
                             Composition Details
@@ -657,8 +655,8 @@ const ImageAnalysisInsights: React.FC = () => {
                             <Typography>Depth of Field: {results.composition_analysis.depth_of_field_estimate}</Typography>
                           </Box>
                         </Paper>
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   </Box>
                 )}
 
@@ -668,8 +666,8 @@ const ImageAnalysisInsights: React.FC = () => {
                     <Typography variant="h6" gutterBottom>
                       Content Analysis
                     </Typography>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={6}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+                      <Box>
                         <Paper sx={{ p: 2 }}>
                           <Typography variant="h6" gutterBottom>
                             Scene Information
@@ -682,8 +680,8 @@ const ImageAnalysisInsights: React.FC = () => {
                             <Typography>Emotional Tone: {results.content_analysis.emotional_tone}</Typography>
                           </Box>
                         </Paper>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
+                      </Box>
+                      <Box>
                         <Paper sx={{ p: 2 }}>
                           <Typography variant="h6" gutterBottom>
                             Detected Objects
@@ -692,8 +690,8 @@ const ImageAnalysisInsights: React.FC = () => {
                             <Chip key={index} label={subject} sx={{ mr: 1, mb: 1 }} />
                           ))}
                         </Paper>
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   </Box>
                 )}
 
@@ -703,11 +701,11 @@ const ImageAnalysisInsights: React.FC = () => {
                     <Typography variant="h6" gutterBottom>
                       Quality Assessment
                     </Typography>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={6}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+                      <Box>
                         {createQualityRadar()}
-                      </Grid>
-                      <Grid item xs={12} md={6}>
+                      </Box>
+                      <Box>
                         <Paper sx={{ p: 2 }}>
                           <Typography variant="h6" gutterBottom>
                             Quality Metrics
@@ -730,8 +728,8 @@ const ImageAnalysisInsights: React.FC = () => {
                             )}
                           </Box>
                         </Paper>
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   </Box>
                 )}
 
@@ -797,9 +795,9 @@ const ImageAnalysisInsights: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         )}
-      </Grid>
+      </Box>
 
       {/* Settings Dialog */}
       <Dialog open={showSettings} onClose={() => setShowSettings(false)} maxWidth="sm" fullWidth>

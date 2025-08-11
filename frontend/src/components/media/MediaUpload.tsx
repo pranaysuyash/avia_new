@@ -15,7 +15,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  ListItemSecondary,
+  ListItemSecondaryAction,
   Dialog,
   DialogTitle,
   DialogContent,

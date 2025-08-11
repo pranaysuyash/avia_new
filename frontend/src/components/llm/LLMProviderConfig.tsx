@@ -67,7 +67,7 @@ import {
   Visibility,
   VisibilityOff,
 } from '@mui/icons-material';
-import { apiClient } from '../../services/api';
+import apiService from '../../services/api';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 
 interface ProviderConfig {
@@ -160,7 +160,7 @@ const LLMProviderConfig: React.FC = () => {
   const loadProviders = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/v1/llm-providers/');
+      const response = await apiService.get('/api/v1/llm-providers/');
       setProviders(response.data);
     } catch (error) {
       console.error('Failed to load providers:', error);
@@ -171,7 +171,7 @@ const LLMProviderConfig: React.FC = () => {
 
   const loadProviderStats = async () => {
     try {
-      const response = await apiClient.get('/api/v1/llm-providers/usage/stats');
+      const response = await apiService.get('/api/v1/llm-providers/usage/stats');
       setProviderStats(response.data);
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -200,7 +200,7 @@ const LLMProviderConfig: React.FC = () => {
 
   const saveConfiguration = async () => {
     try {
-      await apiClient.post('/api/v1/llm-providers/configure', editConfig);
+      await apiService.post('/api/v1/llm-providers/configure', editConfig);
       setSnackbar({ open: true, message: 'Provider configured successfully', severity: 'success' });
       setConfigDialog(false);
       loadProviders();
@@ -212,7 +212,7 @@ const LLMProviderConfig: React.FC = () => {
   const testProvider = async (provider: string) => {
     try {
       const config = providers.find(p => p.provider === provider);
-      const response = await apiClient.post('/api/v1/llm-providers/test', {
+      const response = await apiService.post('/api/v1/llm-providers/test', {
         provider,
         config: editConfig,
         test_prompt: 'Hello, can you respond to confirm the connection is working?',
@@ -230,7 +230,7 @@ const LLMProviderConfig: React.FC = () => {
 
   const switchProvider = async (provider: string, modelType?: string) => {
     try {
-      await apiClient.put('/api/v1/llm-providers/switch', {
+      await apiService.put('/api/v1/llm-providers/switch', {
         provider,
         model_type: modelType,
       });
@@ -243,7 +243,7 @@ const LLMProviderConfig: React.FC = () => {
 
   const deleteProvider = async (provider: string) => {
     try {
-      await apiClient.delete(`/api/v1/llm-providers/${provider}`);
+      await apiService.delete(`/api/v1/llm-providers/${provider}`);
       setSnackbar({ open: true, message: 'Provider deleted successfully', severity: 'success' });
       loadProviders();
     } catch (error) {
@@ -254,7 +254,7 @@ const LLMProviderConfig: React.FC = () => {
   const runBenchmark = async () => {
     try {
       const enabledProviders = providers.filter(p => p.enabled).map(p => p.provider);
-      const response = await apiClient.post('/api/v1/llm-providers/benchmark', {
+      const response = await apiService.post('/api/v1/llm-providers/benchmark', {
         providers: enabledProviders,
         iterations: 3,
       });
@@ -262,7 +262,7 @@ const LLMProviderConfig: React.FC = () => {
       // Poll for results
       const benchmarkId = response.data.benchmark_id;
       setTimeout(async () => {
-        const results = await apiClient.get(`/api/v1/llm-providers/benchmark/${benchmarkId}`);
+        const results = await apiService.get(`/api/v1/llm-providers/benchmark/${benchmarkId}`);
         setBenchmarkResults(results.data);
       }, 5000);
       

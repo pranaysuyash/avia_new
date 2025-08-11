@@ -6,7 +6,6 @@ import {
   Tabs,
   Tab,
   Paper,
-  Grid,
   Card,
   CardContent,
   Button,
@@ -248,8 +247,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
       
       {/* Configuration Panel */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+          <Box>
             <FormControl fullWidth>
               <InputLabel>Time Period</InputLabel>
               <Select
@@ -263,9 +262,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                 <MenuItem value="1y">Last year</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
+          <Box>
             <FormControl fullWidth>
               <InputLabel>Analysis Type</InputLabel>
               <Select
@@ -279,9 +278,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                 <MenuItem value="sentiment">Sentiment</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
+          <Box>
             <Button
               variant="contained"
               onClick={analyzeTrends}
@@ -292,9 +291,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             >
               Analyze Trends
             </Button>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
+          <Box>
             <Button
               variant="outlined"
               onClick={() => exportResults(trendData, 'trend_analysis')}
@@ -305,8 +304,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             >
               Export Results
             </Button>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         {/* Advanced Filters */}
         <Accordion sx={{ mt: 2 }}>
@@ -317,8 +316,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+              <Box>
                 <FormControl fullWidth>
                   <InputLabel>Language</InputLabel>
                   <Select
@@ -332,9 +331,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                     <MenuItem value="fr">French</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} md={3}>
+              <Box>
                 <TextField
                   fullWidth
                   label="Speakers"
@@ -342,9 +341,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   value={trendFilters.speakers}
                   onChange={(e) => setTrendFilters({...trendFilters, speakers: e.target.value})}
                 />
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} md={3}>
+              <Box>
                 <TextField
                   fullWidth
                   label="Tags"
@@ -352,9 +351,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   value={trendFilters.tags}
                   onChange={(e) => setTrendFilters({...trendFilters, tags: e.target.value})}
                 />
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} md={3}>
+              <Box>
                 <TextField
                   fullWidth
                   type="number"
@@ -363,8 +362,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   value={trendFilters.minConfidence}
                   onChange={(e) => setTrendFilters({...trendFilters, minConfidence: parseFloat(e.target.value)})}
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </AccordionDetails>
         </Accordion>
       </Paper>
@@ -444,8 +443,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
       
       {/* Configuration Panel */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+          <Box>
             <TextField
               fullWidth
               type="number"
@@ -454,9 +453,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               value={numTopics}
               onChange={(e) => setNumTopics(parseInt(e.target.value))}
             />
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
+          <Box>
             <FormControl fullWidth>
               <InputLabel>Method</InputLabel>
               <Select
@@ -468,9 +467,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                 <MenuItem value="semantic_clustering">Semantic Clustering</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
+          <Box>
             <Button
               variant="contained"
               onClick={extractTopics}
@@ -481,9 +480,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             >
               Extract Topics
             </Button>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
+          <Box>
             <Button
               variant="outlined"
               onClick={() => exportResults(topicModel, 'topic_model')}
@@ -494,8 +493,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             >
               Export Topics
             </Button>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         {/* Transcript Selection */}
         <Accordion sx={{ mt: 2 }}>
@@ -519,8 +518,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
       {/* Results Display */}
       {topicModel && (
         <Paper sx={{ p: 3 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+            <Box>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Model Statistics</Typography>
@@ -528,9 +527,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   <Typography>Coherence: {topicModel.coherence_score.toFixed(3)}</Typography>
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={8}>
+            <Box>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={topicModel.topics}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -540,8 +539,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   <Bar dataKey="weight" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           {/* Topic Details */}
           <Box sx={{ mt: 3 }}>
@@ -554,19 +553,19 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+                    <Box>
                       <Typography variant="subtitle2" gutterBottom>Keywords:</Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {topic.keywords.map((keyword, idx) => (
                           <Chip key={idx} label={keyword} size="small" />
                         ))}
                       </Box>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
+                    </Box>
+                    <Box>
                       <Typography variant="subtitle2">Weight: {topic.weight.toFixed(3)}</Typography>
-                    </Grid>
-                  </Grid>
+                    </Box>
+                  </Box>
                 </AccordionDetails>
               </Accordion>
             ))}
@@ -585,8 +584,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
       
       {/* Configuration Panel */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+          <Box>
             <TextField
               fullWidth
               label="Source A"
@@ -594,9 +593,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               value={sourceA}
               onChange={(e) => setSourceA(e.target.value)}
             />
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={4}>
+          <Box>
             <TextField
               fullWidth
               label="Source B"
@@ -604,9 +603,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               value={sourceB}
               onChange={(e) => setSourceB(e.target.value)}
             />
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={4}>
+          <Box>
             <FormControl fullWidth>
               <InputLabel>Comparison Type</InputLabel>
               <Select
@@ -620,9 +619,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                 <MenuItem value="sentiment">Sentiment Only</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12}>
+          <Box sx={{ gridColumn: '1 / -1' }}>
             <Button
               variant="contained"
               onClick={compareSources}
@@ -632,8 +631,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             >
               Compare Sources
             </Button>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Paper>
 
       {/* Results Display */}
@@ -643,9 +642,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             Comparison: {comparisonResult.source_a} vs {comparisonResult.source_b}
           </Typography>
           
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
             {/* Similarity Metrics */}
-            <Grid item xs={12} md={6}>
+            <Box>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Similarity Metrics</Typography>
@@ -680,10 +679,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   ))}
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
             
             {/* Radar Chart */}
-            <Grid item xs={12} md={6}>
+            <Box>
               <ResponsiveContainer width="100%" height={300}>
                 <RadarChart data={Object.entries(comparisonResult.similarities).map(([key, value]) => ({
                   metric: key.replace('_', ' '),
@@ -701,8 +700,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   />
                 </RadarChart>
               </ResponsiveContainer>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           {/* Common Themes */}
           {comparisonResult.common_themes.length > 0 && (
@@ -717,8 +716,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
           )}
 
           {/* Unique Themes */}
-          <Grid container spacing={3} sx={{ mt: 2 }}>
-            <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3, mt: 2 }}>
+            <Box>
               <Typography variant="h6" gutterBottom>
                 Unique to {comparisonResult.source_a}
               </Typography>
@@ -727,9 +726,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   <Chip key={index} label={theme} color="secondary" variant="outlined" />
                 ))}
               </Box>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={6}>
+            <Box>
               <Typography variant="h6" gutterBottom>
                 Unique to {comparisonResult.source_b}
               </Typography>
@@ -738,8 +737,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                   <Chip key={index} label={theme} color="info" variant="outlined" />
                 ))}
               </Box>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           {/* Export Button */}
           <Box sx={{ mt: 3, textAlign: 'center' }}>
@@ -768,8 +767,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
       </Alert>
       
       {/* Placeholder Charts */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+        <Box>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>Popular Search Terms</Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -788,9 +787,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               </BarChart>
             </ResponsiveContainer>
           </Paper>
-        </Grid>
+        </Box>
         
-        <Grid item xs={12} md={6}>
+        <Box>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>Search Success Rates</Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -809,8 +808,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               </BarChart>
             </ResponsiveContainer>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 

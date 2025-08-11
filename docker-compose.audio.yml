@@ -1,0 +1,204 @@
+version: '3.8'
+
+services:
+  # Audio Enhancement API Service
+  audio-enhancement-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.audio-enhancement
+    container_name: audio-enhancement-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_PORT=8000
+      - WORKERS=4
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://audio_user:audio_pass@postgres:5432/audio_db
+      - ENABLE_CORS=true
+      - LOG_LEVEL=INFO
+      - MAX_FILE_SIZE=100MB
+      - PROCESSING_TIMEOUT=300
+    volumes:
+      - ./audio_enhancement_pipeline.py:/app/audio_enhancement_pipeline.py
+      - ./advanced_audio_processing.py:/app/advanced_audio_processing.py
+      - ./api:/app/api
+      - audio-uploads:/app/uploads
+      - audio-processed:/app/processed
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - audio-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/audio-enhancement/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis for caching and task queue
+  redis:
+    image: redis:7-alpine
+    container_name: audio-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - audio-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: audio-postgres
+    environment:
+      - POSTGRES_USER=audio_user
+      - POSTGRES_PASSWORD=audio_pass
+      - POSTGRES_DB=audio_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - audio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audio_user -d audio_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Celery worker for async processing
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.audio-enhancement
+    container_name: audio-celery-worker
+    command: celery -A api.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://audio_user:audio_pass@postgres:5432/audio_db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./audio_enhancement_pipeline.py:/app/audio_enhancement_pipeline.py
+      - ./advanced_audio_processing.py:/app/advanced_audio_processing.py
+      - ./api:/app/api
+      - audio-uploads:/app/uploads
+      - audio-processed:/app/processed
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - audio-network
+
+  # Celery beat for scheduled tasks
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.audio-enhancement
+    container_name: audio-celery-beat
+    command: celery -A api.celery_app beat --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://audio_user:audio_pass@postgres:5432/audio_db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - audio-network
+
+  # Flower for Celery monitoring
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.audio-enhancement
+    container_name: audio-flower
+    command: celery -A api.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - celery-worker
+    networks:
+      - audio-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: audio-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf
+      - ./deploy/ssl:/etc/nginx/ssl
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - audio-enhancement-api
+    networks:
+      - audio-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: audio-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - audio-network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: audio-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./deploy/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./deploy/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - audio-network
+
+volumes:
+  redis-data:
+  postgres-data:
+  audio-uploads:
+  audio-processed:
+  nginx-cache:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  audio-network:
+    driver: bridge

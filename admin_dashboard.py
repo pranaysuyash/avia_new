@@ -125,8 +125,10 @@ class SupportTicket:
     assigned_to: Optional[str] = None
     resolution: Optional[str] = None
     resolved_at: Optional[datetime] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)cla
-ss AdminDatabase:
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class AdminDatabase:
     """Database manager for admin dashboard functionality"""
     
     def __init__(self, db_path: str = "admin.db"):
