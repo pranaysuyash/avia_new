@@ -155,12 +155,14 @@ class AdminDatabase:
                         total_usage REAL DEFAULT 0.0,
                         total_revenue REAL DEFAULT 0.0,
                         support_tickets INTEGER DEFAULT 0,
-                        metadata TEXT DEFAULT '{}',
-                        INDEX idx_user_status (status),
-                        INDEX idx_user_tier (subscription_tier),
-                        INDEX idx_user_created (created_at)
+                        metadata TEXT DEFAULT '{}'
                     )
                 """)
+                
+                # Create indexes for admin_users table
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_status ON admin_users (status)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_tier ON admin_users (subscription_tier)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_created ON admin_users (created_at)")
                 
                 # Revenue tracking table
                 cursor.execute("""
@@ -174,13 +176,14 @@ class AdminDatabase:
                         timestamp TEXT NOT NULL,
                         subscription_tier TEXT,
                         billing_period TEXT,
-                        metadata TEXT DEFAULT '{}',
-                        FOREIGN KEY (user_id) REFERENCES admin_users (user_id),
-                        INDEX idx_revenue_user (user_id),
-                        INDEX idx_revenue_timestamp (timestamp),
-                        INDEX idx_revenue_type (transaction_type)
+                        metadata TEXT DEFAULT '{}'
                     )
                 """)
+                
+                # Create indexes for revenue_records table
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_revenue_user ON revenue_records (user_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_revenue_timestamp ON revenue_records (timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_revenue_type ON revenue_records (transaction_type)")
                 
                 # User activity tracking table
                 cursor.execute("""
@@ -191,13 +194,14 @@ class AdminDatabase:
                         description TEXT NOT NULL,
                         timestamp TEXT NOT NULL,
                         duration REAL,
-                        metadata TEXT DEFAULT '{}',
-                        FOREIGN KEY (user_id) REFERENCES admin_users (user_id),
-                        INDEX idx_activity_user (user_id),
-                        INDEX idx_activity_timestamp (timestamp),
-                        INDEX idx_activity_type (activity_type)
+                        metadata TEXT DEFAULT '{}'
                     )
                 """)
+                
+                # Create indexes for user_activities table
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_user ON user_activities (user_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON user_activities (timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_type ON user_activities (activity_type)")
                 
                 # System metrics table
                 cursor.execute("""
@@ -208,12 +212,14 @@ class AdminDatabase:
                         metric_unit TEXT NOT NULL,
                         timestamp TEXT NOT NULL,
                         category TEXT NOT NULL,
-                        metadata TEXT DEFAULT '{}',
-                        INDEX idx_metric_name (metric_name),
-                        INDEX idx_metric_timestamp (timestamp),
-                        INDEX idx_metric_category (category)
+                        metadata TEXT DEFAULT '{}'
                     )
                 """)
+                
+                # Create indexes for system_metrics table
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_metric_name ON system_metrics (metric_name)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_metric_timestamp ON system_metrics (timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_metric_category ON system_metrics (category)")
                 
                 # Support tickets table
                 cursor.execute("""
@@ -230,14 +236,15 @@ class AdminDatabase:
                         assigned_to TEXT,
                         resolution TEXT,
                         resolved_at TEXT,
-                        metadata TEXT DEFAULT '{}',
-                        FOREIGN KEY (user_id) REFERENCES admin_users (user_id),
-                        INDEX idx_ticket_user (user_id),
-                        INDEX idx_ticket_status (status),
-                        INDEX idx_ticket_priority (priority),
-                        INDEX idx_ticket_created (created_at)
+                        metadata TEXT DEFAULT '{}'
                     )
                 """)
+                
+                # Create indexes for support_tickets table
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_ticket_user ON support_tickets (user_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_ticket_status ON support_tickets (status)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_ticket_priority ON support_tickets (priority)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_ticket_created ON support_tickets (created_at)")
                 
                 # Admin actions log table
                 cursor.execute("""
@@ -248,12 +255,14 @@ class AdminDatabase:
                         target_user_id TEXT,
                         description TEXT NOT NULL,
                         timestamp TEXT NOT NULL,
-                        metadata TEXT DEFAULT '{}',
-                        INDEX idx_admin_actions_admin (admin_user_id),
-                        INDEX idx_admin_actions_timestamp (timestamp),
-                        INDEX idx_admin_actions_type (action_type)
+                        metadata TEXT DEFAULT '{}'
                     )
                 """)
+                
+                # Create indexes for admin_actions table
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_admin_actions_admin ON admin_actions (admin_user_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_admin_actions_timestamp ON admin_actions (timestamp)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_admin_actions_type ON admin_actions (action_type)")
                 
                 conn.commit()
                 
@@ -288,8 +297,8 @@ class AdminDatabase:
             logger.error(f"Error adding user: {e}")
             return False
     
-    def get_users(self, status: str = None, limit: int = 100, offset: int = 0) -> List[AdminUser]:
-        """Get users with optional filtering"""
+    def get_users(self, status: str = None, limit: int = 100, offset: int = 0, sort_by: str = "created_at", sort_order: str = "DESC") -> List[AdminUser]:
+        """Get users with optional filtering, sorting, and pagination"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -306,7 +315,15 @@ class AdminDatabase:
                     query += " WHERE status = ?"
                     params.append(status)
                 
-                query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+                # Validate sort column to prevent SQL injection
+                valid_sort_columns = ["created_at", "last_login", "username", "total_revenue", "total_usage", "full_name"]
+                if sort_by not in valid_sort_columns:
+                    sort_by = "created_at"
+                
+                # Validate sort order
+                sort_order = "DESC" if sort_order.upper() not in ["ASC", "DESC"] else sort_order.upper()
+                
+                query += f" ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"
                 params.extend([limit, offset])
                 
                 cursor.execute(query, params)
@@ -446,8 +463,10 @@ class AdminDatabase:
                 
         except Exception as e:
             logger.error(f"Error adding support ticket: {e}")
-            return Falseclass U
-serManagementSystem:
+            return False
+
+
+class UserManagementSystem:
     """User management functionality for admin dashboard"""
     
     def __init__(self, db: AdminDatabase):
@@ -503,8 +522,10 @@ serManagementSystem:
             logger.error(f"Error getting user overview: {e}")
             return {}
     
-    def search_users(self, query: str, filters: Dict[str, Any] = None) -> List[AdminUser]:
-        """Search users by various criteria"""
+    def search_users(self, query: str, filters: Dict[str, Any] = None, 
+                    limit: int = 100, offset: int = 0, 
+                    sort_by: str = "created_at", sort_order: str = "DESC") -> List[AdminUser]:
+        """Search users by various criteria with pagination and sorting"""
         try:
             with sqlite3.connect(self.db.db_path) as conn:
                 cursor = conn.cursor()
@@ -532,7 +553,16 @@ serManagementSystem:
                         base_query += " AND created_at > ?"
                         params.append(filters['created_after'])
                 
-                base_query += " ORDER BY created_at DESC LIMIT 100"
+                # Validate sort column to prevent SQL injection
+                valid_sort_columns = ["created_at", "last_login", "username", "total_revenue", "total_usage", "full_name"]
+                if sort_by not in valid_sort_columns:
+                    sort_by = "created_at"
+                
+                # Validate sort order
+                sort_order = "DESC" if sort_order.upper() not in ["ASC", "DESC"] else sort_order.upper()
+                
+                base_query += f" ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
                 
                 cursor.execute(base_query, params)
                 
@@ -573,17 +603,13 @@ serManagementSystem:
                 """, (new_status.value, user_id))
                 
                 # Log admin action
-                cursor.execute("""
-                    INSERT INTO admin_actions (
-                        action_id, admin_user_id, action_type, target_user_id,
-                        description, timestamp
-                    ) VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    f"action_{int(time.time())}_{admin_user_id}",
-                    admin_user_id, "status_change", user_id,
-                    f"Changed user status to {new_status.value}",
-                    datetime.now().isoformat()
-                ))
+                self.add_admin_action(
+                    action_id=f"action_{int(time.time())}_{admin_user_id}",
+                    admin_user_id=admin_user_id,
+                    action_type="status_change",
+                    target_user_id=user_id,
+                    description=f"Changed user status to {new_status.value}"
+                )
                 
                 conn.commit()
                 return True
@@ -591,6 +617,75 @@ serManagementSystem:
         except Exception as e:
             logger.error(f"Error updating user status: {e}")
             return False
+    
+    def add_admin_action(self, action_id: str, admin_user_id: str, action_type: str, 
+                        target_user_id: Optional[str] = None, description: str = "") -> bool:
+        """Add admin action to the log"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    INSERT INTO admin_actions (
+                        action_id, admin_user_id, action_type, target_user_id,
+                        description, timestamp
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    action_id, admin_user_id, action_type, target_user_id,
+                    description, datetime.now().isoformat()
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error adding admin action: {e}")
+            return False
+    
+    def get_admin_actions(self, admin_user_id: Optional[str] = None, 
+                         action_type: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get admin actions with optional filtering"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                    SELECT action_id, admin_user_id, action_type, target_user_id,
+                           description, timestamp
+                    FROM admin_actions
+                    WHERE 1=1
+                """
+                params = []
+                
+                if admin_user_id:
+                    query += " AND admin_user_id = ?"
+                    params.append(admin_user_id)
+                
+                if action_type:
+                    query += " AND action_type = ?"
+                    params.append(action_type)
+                
+                query += " ORDER BY timestamp DESC LIMIT ?"
+                params.append(limit)
+                
+                cursor.execute(query, params)
+                
+                actions = []
+                for row in cursor.fetchall():
+                    actions.append({
+                        'action_id': row[0],
+                        'admin_user_id': row[1],
+                        'action_type': row[2],
+                        'target_user_id': row[3],
+                        'description': row[4],
+                        'timestamp': row[5]
+                    })
+                
+                return actions
+                
+        except Exception as e:
+            logger.error(f"Error getting admin actions: {e}")
+            return []
     
     def get_user_activity_summary(self, user_id: str, days: int = 30) -> Dict[str, Any]:
         """Get user activity summary"""
@@ -917,8 +1012,10 @@ class SystemHealthMonitor:
                 
         except Exception as e:
             logger.error(f"Error getting system health overview: {e}")
-            return {'status': 'error', 'alerts': ['Unable to retrieve system metrics']}class 
-SupportTicketSystem:
+            return {'status': 'error', 'alerts': ['Unable to retrieve system metrics']}
+
+
+class SupportTicketSystem:
     """Customer support ticket management system"""
     
     def __init__(self, db: AdminDatabase):
@@ -957,8 +1054,9 @@ SupportTicketSystem:
             return None
     
     def get_tickets(self, status: str = None, priority: str = None,
-                   assigned_to: str = None, limit: int = 50) -> List[SupportTicket]:
-        """Get support tickets with filtering"""
+                   assigned_to: str = None, limit: int = 50, offset: int = 0, 
+                   sort_by: str = "created_at", sort_order: str = "DESC") -> List[SupportTicket]:
+        """Get support tickets with filtering, sorting, and pagination"""
         try:
             with sqlite3.connect(self.db.db_path) as conn:
                 cursor = conn.cursor()
@@ -984,8 +1082,16 @@ SupportTicketSystem:
                     query += " AND assigned_to = ?"
                     params.append(assigned_to)
                 
-                query += " ORDER BY created_at DESC LIMIT ?"
-                params.append(limit)
+                # Validate sort column to prevent SQL injection
+                valid_sort_columns = ["created_at", "updated_at", "priority", "status", "category"]
+                if sort_by not in valid_sort_columns:
+                    sort_by = "created_at"
+                
+                # Validate sort order
+                sort_order = "DESC" if sort_order.upper() not in ["ASC", "DESC"] else sort_order.upper()
+                
+                query += f" ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
                 
                 cursor.execute(query, params)
                 

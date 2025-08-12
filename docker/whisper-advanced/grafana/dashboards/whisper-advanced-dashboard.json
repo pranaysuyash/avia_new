@@ -1,0 +1,293 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Whisper Advanced Integration Dashboard",
+    "tags": ["whisper", "transcription", "ai"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"whisper-advanced\"}",
+            "legendFormat": "Service Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+              {"options": {"1": {"text": "UP"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Transcription Requests/sec",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(whisper_transcription_requests_total[5m]))",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "whisper:transcription_success_rate_5m",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.8},
+                {"color": "green", "value": 0.95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Active Transcriptions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "whisper_active_transcriptions",
+            "legendFormat": "Active Jobs"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Transcription Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(whisper_transcription_requests_total[5m])) by (model)",
+            "legendFormat": "{{model}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "Response Time Percentiles",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(whisper_transcription_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(whisper_transcription_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(whisper_transcription_duration_seconds_bucket[5m]))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "Component Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "whisper_component_status",
+            "legendFormat": "{{component}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "UNHEALTHY"}}, "type": "value"},
+              {"options": {"0.5": {"text": "DEGRADED"}}, "type": "value"},
+              {"options": {"1": {"text": "HEALTHY"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Queue Depth",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "whisper_queue_depth",
+            "legendFormat": "Queue Depth"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Jobs",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 9,
+        "title": "System CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "whisper_system_cpu_usage_percent",
+            "legendFormat": "CPU Usage %"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Percent",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 18}
+      },
+      {
+        "id": 10,
+        "title": "System Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "whisper_system_memory_usage_bytes / (1024*1024*1024)",
+            "legendFormat": "Memory Usage GB"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "GB",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 18}
+      },
+      {
+        "id": 11,
+        "title": "Model Cache Size",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "whisper_model_cache_size_bytes / (1024*1024*1024)",
+            "legendFormat": "Cache Size GB"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "GB",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 18}
+      },
+      {
+        "id": 12,
+        "title": "Error Rate by Model",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(whisper_transcription_requests_total{status=\"error\"}[5m])) by (model)",
+            "legendFormat": "{{model}} errors/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Errors/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 13,
+        "title": "Model Load Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(whisper_model_load_time_seconds_bucket[5m])) by (model)",
+            "legendFormat": "{{model}} load time"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 24}
+      }
+    ]
+  }
+}

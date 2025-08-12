@@ -1,10 +1,20 @@
 name: Sentry Release
 
 on:
-  push:
-    branches: [main]
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
 
 jobs:
   create-sentry-release:

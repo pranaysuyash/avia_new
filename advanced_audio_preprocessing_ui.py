@@ -14,8 +14,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import librosa
 import librosa.display
-import matplotlib.pyplot as plt
-import seaborn as sns
 from datetime import datetime
 import tempfile
 import os

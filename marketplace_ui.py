@@ -406,7 +406,23 @@ class MarketplaceUI:
                         if 'audio_url' in preview_result:
                             st.success("Preview generated!")
                             st.write(f"Duration: {preview_result['estimated_duration']:.1f} seconds")
-                            st.info("In production, audio player would be displayed here")
+                            
+                            # Display audio player if audio file path is available
+                            if 'audio_file_path' in preview_result and os.path.exists(preview_result['audio_file_path']):
+                                # Create audio player
+                                with open(preview_result['audio_file_path'], "rb") as audio_file:
+                                    audio_bytes = audio_file.read()
+                                    st.audio(audio_bytes, format="audio/wav")
+                            else:
+                                # Display a mock audio player
+                                st.info("Audio player would be displayed here with the generated preview")
+                                # Show a simple audio player component
+                                st.components.v1.html("""
+                                    <audio controls style="width: 100%;">
+                                        <source src="#" type="audio/wav">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                """, height=50)
                         else:
                             st.error(preview_result.get('error', 'Preview failed'))
                 

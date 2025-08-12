@@ -416,26 +416,155 @@ class MarketingService:
     
     async def _get_email_recipients(self, segment: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get email recipients based on segment"""
-        # Simplified - in production would query user database with filters
+        from database.models import User
+        from sqlalchemy import text
+        
         recipients = []
         
-        # Mock data
-        base_users = [
-            {"email": f"user{i}@example.com", "name": f"User {i}"}
-            for i in range(1000)
-        ]
-        
-        # Apply filters
-        for user in base_users:
-            if self._matches_segment(user, segment):
-                recipients.append(user)
+        try:
+            # Build query based on segment criteria
+            query = self.db.query(User)
+            
+            # Apply segment filters
+            if segment.get('subscription_tier'):
+                query = query.filter(User.subscription_tier == segment['subscription_tier'])
+            
+            if segment.get('created_after'):
+                query = query.filter(User.created_at >= segment['created_after'])
+            
+            if segment.get('created_before'):
+                query = query.filter(User.created_at <= segment['created_before'])
+            
+            if segment.get('last_active_days'):
+                cutoff_date = datetime.utcnow() - timedelta(days=segment['last_active_days'])
+                query = query.filter(User.last_login >= cutoff_date)
+            
+            if segment.get('country'):
+                # Assuming country is stored in user metadata
+                query = query.filter(
+                    User.metadata.op('->>')('country') == segment['country']
+                )
+            
+            if segment.get('language'):
+                query = query.filter(
+                    User.metadata.op('->>')('language') == segment['language']
+                )
+            
+            if segment.get('has_transcripts'):
+                # Join with transcripts to find users with transcripts
+                from database.models import Transcript
+                query = query.join(Transcript, User.id == Transcript.user_id).distinct()
+            
+            if segment.get('min_transcripts'):
+                # Users with minimum number of transcripts
+                from database.models import Transcript
+                subquery = self.db.query(
+                    Transcript.user_id,
+                    func.count(Transcript.id).label('transcript_count')
+                ).group_by(Transcript.user_id).having(
+                    func.count(Transcript.id) >= segment['min_transcripts']
+                ).subquery()
+                
+                query = query.join(subquery, User.id == subquery.c.user_id)
+            
+            # Check email preferences
+            if segment.get('email_opted_in', True):
+                # Only include users who haven't opted out
+                query = query.filter(
+                    or_(
+                        User.metadata.op('->>')('email_opted_out') != 'true',
+                        User.metadata.op('->>')('email_opted_out').is_(None)
+                    )
+                )
+            
+            # Apply custom SQL filter if provided
+            if segment.get('custom_filter'):
+                query = query.filter(text(segment['custom_filter']))
+            
+            # Limit results for safety
+            max_recipients = segment.get('max_recipients', 10000)
+            query = query.limit(max_recipients)
+            
+            # Execute query
+            users = query.all()
+            
+            # Format recipients
+            for user in users:
+                # Check if user has valid email
+                if user.email and '@' in user.email:
+                    recipient = {
+                        "email": user.email,
+                        "name": user.full_name or user.username or "User",
+                        "user_id": str(user.id),
+                        "subscription_tier": getattr(user, 'subscription_tier', 'free'),
+                        "language": user.metadata.get('language', 'en') if hasattr(user, 'metadata') and user.metadata else 'en'
+                    }
+                    
+                    # Add custom fields from metadata
+                    if hasattr(user, 'metadata') and user.metadata:
+                        metadata = user.metadata if isinstance(user.metadata, dict) else {}
+                        recipient["first_name"] = metadata.get('first_name', user.full_name.split()[0] if user.full_name else "User")
+                        recipient["last_name"] = metadata.get('last_name', user.full_name.split()[-1] if user.full_name and len(user.full_name.split()) > 1 else "")
+                        recipient["company"] = metadata.get('company', '')
+                        recipient["role"] = metadata.get('role', '')
+                    
+                    recipients.append(recipient)
+            
+            # Log segment query results
+            import logging
+            logging.info(f"Email segment query returned {len(recipients)} recipients")
+            
+        except Exception as e:
+            import logging
+            logging.error(f"Error getting email recipients: {e}")
+            
+            # Return empty list on error
+            recipients = []
         
         return recipients
     
     def _matches_segment(self, user: Dict[str, Any], segment: Dict[str, Any]) -> bool:
         """Check if user matches segment criteria"""
-        # Simplified matching logic
-        return True  # Would implement actual filtering
+        
+        # Check each segment criterion
+        if segment.get('subscription_tier'):
+            if user.get('subscription_tier') != segment['subscription_tier']:
+                return False
+        
+        if segment.get('country'):
+            if user.get('country') != segment['country']:
+                return False
+        
+        if segment.get('language'):
+            if user.get('language') != segment['language']:
+                return False
+        
+        if segment.get('min_activity_score'):
+            if user.get('activity_score', 0) < segment['min_activity_score']:
+                return False
+        
+        if segment.get('has_subscription'):
+            if not user.get('subscription_tier') or user.get('subscription_tier') == 'free':
+                return False
+        
+        if segment.get('email_verified'):
+            if not user.get('email_verified'):
+                return False
+        
+        if segment.get('tags'):
+            user_tags = user.get('tags', [])
+            for required_tag in segment['tags']:
+                if required_tag not in user_tags:
+                    return False
+        
+        if segment.get('exclude_tags'):
+            user_tags = user.get('tags', [])
+            for excluded_tag in segment['exclude_tags']:
+                if excluded_tag in user_tags:
+                    return False
+        
+        # All criteria matched
+        return True
     
     async def _send_email_campaign(
         self,

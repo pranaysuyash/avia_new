@@ -1,0 +1,60 @@
+# Whisper Advanced Integration Requirements
+
+# Core Whisper and Audio Processing
+openai-whisper==20231117
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+librosa>=0.10.0
+soundfile>=0.12.0
+pyaudio>=0.2.11
+webrtcvad>=2.0.10
+noisereduce>=3.0.0
+
+# Speaker Diarization
+pyannote.audio>=3.1.0
+speechbrain>=0.5.15
+resemblyzer>=0.1.1
+
+# API and Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.4.0
+pydantic-settings>=2.0.0
+
+# Database and Caching
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+redis>=5.0.0
+psycopg2-binary>=2.9.0
+
+# Monitoring and Logging
+prometheus-client>=0.18.0
+structlog>=23.2.0
+sentry-sdk[fastapi]>=1.38.0
+
+# File Processing and Storage
+aiofiles>=23.2.0
+python-magic>=0.4.27
+boto3>=1.29.0  # For S3 storage
+azure-storage-blob>=12.19.0  # For Azure storage
+
+# Utilities
+python-dotenv>=1.0.0
+click>=8.1.0
+httpx>=0.25.0
+tenacity>=8.2.0  # For retry logic
+cryptography>=41.0.0  # For encryption
+
+# Development and Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.9.0
+isort>=5.12.0
+mypy>=1.6.0
+
+# Optional GPU support
+# torch-audio-cuda  # Uncomment for CUDA support

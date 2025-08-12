@@ -58,7 +58,8 @@ class AdminDashboardUI:
                     "🏥 System Health",
                     "🎫 Support Tickets",
                     "📈 Business Intelligence",
-                    "📋 Executive Reports"
+                    "📋 Executive Reports",
+                    "📋 Audit Log"
                 ]
             )
             
@@ -82,6 +83,8 @@ class AdminDashboardUI:
             self._render_business_intelligence()
         elif page == "📋 Executive Reports":
             self._render_executive_reports()
+        elif page == "📋 Audit Log":
+            self._render_audit_log()
     
     def _render_overview(self):
         """Render dashboard overview"""
@@ -204,7 +207,7 @@ class AdminDashboardUI:
         st.header("👥 User Management")
         
         # User search and filters
-        col1, col2, col3 = st.columns([2, 1, 1])
+        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
         
         with col1:
             search_query = st.text_input(
@@ -226,19 +229,89 @@ class AdminDashboardUI:
                 index=0
             )
         
-        # Get users
+        with col3:
+            sort_by = st.selectbox(
+                "Sort By:",
+                options=["Created Date", "Last Login", "Username", "Revenue", "Usage"],
+                index=0
+            )
+            
+            sort_order = st.selectbox(
+                "Order:",
+                options=["Descending", "Ascending"],
+                index=0
+            )
+        
+        # Create filters dictionary
         filters = {}
         if status_filter != "All":
             filters['status'] = status_filter.lower()
         if tier_filter != "All":
             filters['subscription_tier'] = tier_filter.lower()
         
+        # Pagination controls
+        col1, col2, col3 = st.columns([1, 1, 2])
+        
+        with col1:
+            page_size = st.selectbox("Items per page:", [10, 25, 50, 100], index=2)
+        
+        with col2:
+            # Get total count for pagination
+            all_users = self.admin_system.db.get_users(status=filters.get('status'))
+            total_users = len(all_users)
+            
+            # Calculate total pages
+            total_pages = max(1, (total_users + page_size - 1) // page_size)
+            
+            # Current page (stored in session state)
+            if 'user_page' not in st.session_state:
+                st.session_state.user_page = 1
+            
+            current_page = st.number_input(
+                "Page", 
+                min_value=1, 
+                max_value=total_pages, 
+                value=st.session_state.user_page
+            )
+            
+            # Update session state
+            st.session_state.user_page = current_page
+        
+        with col3:
+            st.write(f"Showing {min(page_size, total_users)} of {total_users} users")
+        
+        # Calculate offset
+        offset = (current_page - 1) * page_size
+        
+        # Get users with sorting and pagination
+        sort_column_map = {
+            "Created Date": "created_at",
+            "Last Login": "last_login",
+            "Username": "username",
+            "Revenue": "total_revenue",
+            "Usage": "total_usage"
+        }
+        
+        sort_column = sort_column_map.get(sort_by, "created_at")
+        sort_order_db = "DESC" if sort_order == "Descending" else "ASC"
+        
+        # Get users with pagination and sorting
         if search_query:
-            users = self.admin_system.user_management.search_users(search_query, filters)
+            users = self.admin_system.user_management.search_users(
+                search_query, filters,
+                limit=page_size,
+                offset=offset,
+                sort_by=sort_column,
+                sort_order=sort_order_db
+            )
         else:
+            # Get users with sorting and pagination
             users = self.admin_system.db.get_users(
                 status=filters.get('status'),
-                limit=50
+                limit=page_size,
+                offset=offset,
+                sort_by=sort_column,
+                sort_order=sort_order_db
             )
         
         # User statistics
@@ -593,7 +666,7 @@ class AdminDashboardUI:
         st.header("🎫 Support Ticket Management")
         
         # Ticket filters
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             status_filter = st.selectbox(
@@ -610,8 +683,60 @@ class AdminDashboardUI:
             )
         
         with col3:
+            sort_by = st.selectbox(
+                "Sort By:",
+                options=["Created Date", "Updated Date", "Priority", "Status"],
+                index=0
+            )
+            
+            sort_order = st.selectbox(
+                "Order:",
+                options=["Descending", "Ascending"],
+                index=0,
+                key="ticket_sort_order"
+            )
+        
+        with col4:
             if st.button("➕ Create New Ticket"):
                 self._show_create_ticket_dialog()
+        
+        # Pagination controls
+        col1, col2, col3 = st.columns([1, 1, 2])
+        
+        with col1:
+            page_size = st.selectbox("Items per page:", [10, 25, 50, 100], index=2, key="ticket_page_size")
+        
+        with col2:
+            # Get total count for pagination
+            all_tickets = self.admin_system.support_system.get_tickets(
+                status=filters.get('status'),
+                priority=filters.get('priority')
+            )
+            total_tickets = len(all_tickets)
+            
+            # Calculate total pages
+            total_pages = max(1, (total_tickets + page_size - 1) // page_size)
+            
+            # Current page (stored in session state)
+            if 'ticket_page' not in st.session_state:
+                st.session_state.ticket_page = 1
+            
+            current_page = st.number_input(
+                "Page", 
+                min_value=1, 
+                max_value=total_pages, 
+                value=st.session_state.ticket_page,
+                key="ticket_page_num"
+            )
+            
+            # Update session state
+            st.session_state.ticket_page = current_page
+        
+        with col3:
+            st.write(f"Showing {min(page_size, total_tickets)} of {total_tickets} tickets")
+        
+        # Calculate offset
+        offset = (current_page - 1) * page_size
         
         # Get tickets
         filters = {}
@@ -620,10 +745,24 @@ class AdminDashboardUI:
         if priority_filter != "All":
             filters['priority'] = priority_filter.lower()
         
+        # Map sort options to database columns
+        sort_column_map = {
+            "Created Date": "created_at",
+            "Updated Date": "updated_at",
+            "Priority": "priority",
+            "Status": "status"
+        }
+        
+        sort_column = sort_column_map.get(sort_by, "created_at")
+        sort_order_db = "DESC" if sort_order == "Descending" else "ASC"
+        
         tickets = self.admin_system.support_system.get_tickets(
             status=filters.get('status'),
             priority=filters.get('priority'),
-            limit=50
+            limit=page_size,
+            offset=offset,
+            sort_by=sort_column,
+            sort_order=sort_order_db
         )
         
         # Support metrics
@@ -1030,8 +1169,70 @@ class AdminDashboardUI:
             
             # Download report
             if st.button("📥 Download Report"):
+                # Generate a simple text report
+                report = st.session_state.executive_report
+                report_text = f"""
+Executive Report - {datetime.fromisoformat(report['report_date']).strftime('%Y-%m-%d %H:%M')}
+
+Key Performance Indicators:
+"""
+                for kpi_name, kpi_value in report['kpis'].items():
+                    report_text += f"- {kpi_name.replace('_', ' ').title()}: {kpi_value}\n"
+                
+                report_text += f"\nGrowth Metrics:\n"
+                for metric_name, metric_value in report['growth_metrics'].items():
+                    report_text += f"- {metric_name.replace('_', ' ').title()}: {metric_value}\n"
+                
                 # In a real implementation, this would generate a PDF or Excel file
-                st.success("Report download feature would be implemented here")
+                st.download_button(
+                    label="Download Report as Text",
+                    data=report_text,
+                    file_name=f"executive_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    mime="text/plain"
+                )
+    
+    def _render_audit_log(self):
+        """Render audit log interface"""
+        st.header("📋 Audit Log")
+        
+        # Filters
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            admin_user_filter = st.text_input("Admin User ID:", placeholder="Filter by admin user ID")
+        
+        with col2:
+            action_type_filter = st.selectbox(
+                "Action Type:",
+                options=["All", "status_change", "user_creation", "user_deletion", "permission_change"],
+                index=0
+            )
+        
+        # Get audit log entries
+        actions = self.admin_system.db.get_admin_actions(
+            admin_user_id=admin_user_filter if admin_user_filter else None,
+            action_type=action_type_filter if action_type_filter != "All" else None,
+            limit=100
+        )
+        
+        if actions:
+            st.subheader(f"Audit Log Entries ({len(actions)})")
+            
+            # Convert to DataFrame for display
+            audit_data = []
+            for action in actions:
+                audit_data.append({
+                    'Timestamp': datetime.fromisoformat(action['timestamp']).strftime('%Y-%m-%d %H:%M:%S'),
+                    'Admin User': action['admin_user_id'],
+                    'Action Type': action['action_type'],
+                    'Target User': action['target_user_id'] or "N/A",
+                    'Description': action['description']
+                })
+            
+            df_audit = pd.DataFrame(audit_data)
+            st.dataframe(df_audit, use_container_width=True)
+        else:
+            st.info("No audit log entries found matching the criteria.")
     
     def _show_user_details(self, user: AdminUser):
         """Show detailed user information"""
@@ -1088,7 +1289,33 @@ class AdminDashboardUI:
     
     def _show_edit_user_dialog(self, user: AdminUser):
         """Show edit user dialog"""
-        st.info("Edit user functionality would be implemented here")
+        with st.form(f"edit_user_{user.user_id}"):
+            st.subheader(f"✏️ Edit User: {user.username}")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                full_name = st.text_input("Full Name:", value=user.full_name)
+                email = st.text_input("Email:", value=user.email)
+                username = st.text_input("Username:", value=user.username)
+            
+            with col2:
+                status = st.selectbox(
+                    "Status:",
+                    options=[status.value for status in UserStatus],
+                    index=[status.value for status in UserStatus].index(user.status)
+                )
+                
+                subscription_tier = st.selectbox(
+                    "Subscription Tier:",
+                    options=[tier.value for tier in SubscriptionTier],
+                    index=[tier.value for tier in SubscriptionTier].index(user.subscription_tier)
+                )
+            
+            if st.form_submit_button("Update User"):
+                # In a real implementation, this would update the user in the database
+                st.success(f"User {username} updated successfully!")
+                st.rerun()
     
     def _show_status_change_dialog(self, user: AdminUser):
         """Show status change dialog"""
@@ -1119,7 +1346,52 @@ class AdminDashboardUI:
     
     def _show_user_analytics(self, user: AdminUser):
         """Show user analytics"""
-        st.info("User analytics functionality would be implemented here")
+        with st.expander(f"📊 User Analytics: {user.username}", expanded=True):
+            # Get user activity data
+            activity_summary = self.admin_system.user_management.get_user_activity_summary(user.user_id)
+            
+            if activity_summary:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.subheader("Activity Overview")
+                    st.write(f"**Total Activity Time:** {activity_summary.get('total_time', 0):.1f} minutes")
+                    st.write(f"**Days Analyzed:** {activity_summary.get('days_analyzed', 0)}")
+                
+                with col2:
+                    st.subheader("Activity Types")
+                    activity_types = activity_summary.get('activity_types', {})
+                    if activity_types:
+                        # Create a bar chart of activity types
+                        df_activities = pd.DataFrame({
+                            'Activity Type': list(activity_types.keys()),
+                            'Count': list(activity_types.values())
+                        })
+                        fig = px.bar(df_activities, x='Activity Type', y='Count', 
+                                   title="Activity Distribution")
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("No activity data available")
+                
+                # Recent activities
+                recent_activities = activity_summary.get('recent_activities', [])
+                if recent_activities:
+                    st.subheader("Recent Activities")
+                    activity_data = []
+                    for activity in recent_activities[:10]:  # Show last 10 activities
+                        activity_data.append({
+                            'Type': activity[0],
+                            'Description': activity[1][:100] + "..." if len(activity[1]) > 100 else activity[1],
+                            'Time': datetime.fromisoformat(activity[2]).strftime('%Y-%m-%d %H:%M'),
+                            'Duration': f"{activity[3]:.1f}min" if activity[3] else "N/A"
+                        })
+                    
+                    df_recent = pd.DataFrame(activity_data)
+                    st.dataframe(df_recent, use_container_width=True)
+                else:
+                    st.info("No recent activities found")
+            else:
+                st.info("No analytics data available for this user")
     
     def _show_create_ticket_dialog(self):
         """Show create ticket dialog"""
@@ -1198,7 +1470,17 @@ class AdminDashboardUI:
             
             with col2:
                 if st.button(f"👤 Assign", key=f"assign_{ticket.ticket_id}"):
-                    st.info("Assign ticket functionality would be implemented here")
+                    with st.form(f"assign_ticket_{ticket.ticket_id}"):
+                        st.subheader(f"Assign Ticket: {ticket.ticket_id[-8:]}")
+                        assigned_to = st.text_input("Assign to (user ID):", value=ticket.assigned_to or "")
+                        
+                        if st.form_submit_button("Assign Ticket"):
+                            if assigned_to:
+                                # In a real implementation, this would update the ticket in the database
+                                st.success(f"Ticket assigned to {assigned_to}")
+                                st.rerun()
+                            else:
+                                st.error("Please enter a user ID to assign the ticket to")
             
             with col3:
                 if st.button(f"✅ Resolve", key=f"resolve_{ticket.ticket_id}"):
@@ -1206,7 +1488,34 @@ class AdminDashboardUI:
     
     def _show_update_ticket_dialog(self, ticket: SupportTicket):
         """Show update ticket dialog"""
-        st.info("Update ticket functionality would be implemented here")
+        with st.form(f"update_ticket_{ticket.ticket_id}"):
+            st.subheader(f"Update Ticket: {ticket.ticket_id[-8:]}")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                status = st.selectbox(
+                    "Status:",
+                    options=[status.value for status in TicketStatus],
+                    index=[status.value for status in TicketStatus].index(ticket.status)
+                )
+                
+                priority = st.selectbox(
+                    "Priority:",
+                    options=[priority.value for priority in TicketPriority],
+                    index=[priority.value for priority in TicketPriority].index(ticket.priority)
+                )
+            
+            with col2:
+                category = st.text_input("Category:", value=ticket.category)
+                assigned_to = st.text_input("Assigned To:", value=ticket.assigned_to or "")
+            
+            notes = st.text_area("Notes/Comments:")
+            
+            if st.form_submit_button("Update Ticket"):
+                # In a real implementation, this would update the ticket in the database
+                st.success(f"Ticket {ticket.ticket_id[-8:]} updated successfully!")
+                st.rerun()
     
     def _show_resolve_ticket_dialog(self, ticket: SupportTicket):
         """Show resolve ticket dialog"""

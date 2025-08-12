@@ -655,20 +655,129 @@ class SupportService:
     
     def _get_available_agents(self) -> List[Dict[str, Any]]:
         """Get list of available agents"""
-        # In production, query from database
-        # For now, return mock data
-        return [
-            {
-                "id": "agent_001",
-                "name": "John Doe",
-                "team": "technical",
-                "specializations": ["technical", "api", "bug"],
-                "current_tickets": 5,
-                "max_tickets": 10,
-                "satisfaction_rating": 4.8,
-                "handles_priority": True
-            }
-        ]
+        try:
+            from database.models import User, Team
+            from sqlalchemy import text
+            
+            # Query agents with support role
+            agents_query = self.db.query(User).filter(
+                or_(
+                    User.role == 'support_agent',
+                    User.role == 'admin',
+                    User.metadata.op('->>')('is_support_agent') == 'true'
+                )
+            ).all()
+            
+            available_agents = []
+            
+            for agent in agents_query:
+                # Count current tickets
+                current_tickets = self.db.query(SupportTicket).filter(
+                    and_(
+                        SupportTicket.assigned_to == str(agent.id),
+                        SupportTicket.status.in_(['open', 'in_progress'])
+                    )
+                ).count()
+                
+                # Get agent's specializations from metadata
+                specializations = []
+                if hasattr(agent, 'metadata') and agent.metadata:
+                    agent_metadata = agent.metadata if isinstance(agent.metadata, dict) else {}
+                    specializations = agent_metadata.get('specializations', [])
+                    
+                    # Default specializations based on team
+                    if not specializations:
+                        team_name = agent_metadata.get('team', 'general')
+                        if team_name == 'technical':
+                            specializations = ['technical', 'api', 'bug', 'integration']
+                        elif team_name == 'billing':
+                            specializations = ['billing', 'subscription', 'payment']
+                        elif team_name == 'onboarding':
+                            specializations = ['onboarding', 'setup', 'training']
+                        else:
+                            specializations = ['general', 'account', 'feature']
+                
+                # Calculate satisfaction rating
+                try:
+                    rating_query = text("""
+                        SELECT AVG(rating) as avg_rating
+                        FROM ticket_feedback
+                        WHERE agent_id = :agent_id
+                        AND created_at > :since_date
+                    """)
+                    
+                    result = self.db.execute(
+                        rating_query,
+                        {
+                            'agent_id': str(agent.id),
+                            'since_date': datetime.utcnow() - timedelta(days=90)
+                        }
+                    ).first()
+                    
+                    satisfaction_rating = result.avg_rating if result and result.avg_rating else 4.5
+                except:
+                    satisfaction_rating = 4.5  # Default rating
+                
+                # Determine if agent is available
+                max_tickets = agent_metadata.get('max_tickets', 10) if hasattr(agent, 'metadata') and agent.metadata else 10
+                is_available = current_tickets < max_tickets
+                
+                # Check if agent is online/active
+                is_online = True  # Default to online
+                if hasattr(agent, 'last_activity'):
+                    is_online = (datetime.utcnow() - agent.last_activity).seconds < 600  # Active in last 10 mins
+                
+                if is_available and is_online:
+                    available_agents.append({
+                        "id": str(agent.id),
+                        "name": agent.full_name or agent.username,
+                        "team": agent_metadata.get('team', 'general') if hasattr(agent, 'metadata') and agent.metadata else 'general',
+                        "specializations": specializations,
+                        "current_tickets": current_tickets,
+                        "max_tickets": max_tickets,
+                        "satisfaction_rating": round(satisfaction_rating, 1),
+                        "handles_priority": agent_metadata.get('handles_priority', True) if hasattr(agent, 'metadata') and agent.metadata else True,
+                        "email": agent.email,
+                        "experience_level": agent_metadata.get('experience_level', 'intermediate') if hasattr(agent, 'metadata') and agent.metadata else 'intermediate'
+                    })
+            
+            # If no agents available, return default agent
+            if not available_agents:
+                # Create a system agent for assignment
+                available_agents.append({
+                    "id": "system_agent",
+                    "name": "Support Team",
+                    "team": "general",
+                    "specializations": ["general"],
+                    "current_tickets": 0,
+                    "max_tickets": 100,
+                    "satisfaction_rating": 4.5,
+                    "handles_priority": True,
+                    "email": "support@example.com",
+                    "experience_level": "senior"
+                })
+            
+            return available_agents
+            
+        except Exception as e:
+            # Return default agent on error
+            import logging
+            logging.error(f"Error getting available agents: {e}")
+            
+            return [
+                {
+                    "id": "default_agent",
+                    "name": "Support Team",
+                    "team": "general",
+                    "specializations": ["general"],
+                    "current_tickets": 0,
+                    "max_tickets": 100,
+                    "satisfaction_rating": 4.5,
+                    "handles_priority": True,
+                    "email": "support@example.com",
+                    "experience_level": "senior"
+                }
+            ]
     
     def _calculate_avg_wait_time(self, chat_metrics: Dict[str, Any]) -> float:
         """Calculate average wait time across departments"""

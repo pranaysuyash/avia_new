@@ -575,21 +575,51 @@ def export_job_results(job_id: str, format_type: str, include_metadata: bool):
             st.error("❌ Could not retrieve job data")
             return
         
-        # For now, show a placeholder for the export functionality
-        st.info("🔄 Export functionality would be implemented here")
-        st.json({
-            "job_id": job_id,
-            "format": format_type,
-            "include_metadata": include_metadata,
-            "status": "This would generate the actual export file"
-        })
-        
-        # In a real implementation, you would:
-        # 1. Reconstruct the BatchJob object
-        # 2. Use batch_exporter.export_job_results()
-        # 3. Provide download button with the exported data
-        
-        st.success(f"✅ Export prepared in {format_type} format")
+        # Implement actual export functionality
+        try:
+            # Reconstruct the BatchJob object
+            job = batch_processor.get_job(job_id)
+            if not job:
+                st.error(f"Job {job_id} not found")
+                return
+            
+            # Use batch_exporter to export job results
+            export_data = batch_exporter.export_job_results(
+                job=job,
+                format_type=format_type,
+                include_metadata=include_metadata
+            )
+            
+            if export_data:
+                # Determine file extension based on format
+                file_extension = format_type.lower()
+                if format_type == "JSON":
+                    file_extension = "json"
+                elif format_type == "CSV":
+                    file_extension = "csv"
+                elif format_type == "TXT":
+                    file_extension = "txt"
+                elif format_type == "HTML":
+                    file_extension = "html"
+                
+                # Generate filename
+                filename = f"batch_export_{job_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_extension}"
+                
+                # Provide download button with the exported data
+                st.download_button(
+                    label=f"📥 Download {format_type} Export",
+                    data=export_data,
+                    file_name=filename,
+                    mime=f"text/{file_extension}" if file_extension in ["json", "csv", "txt", "html"] else "application/octet-stream"
+                )
+                
+                st.success(f"✅ Export prepared in {format_type} format")
+            else:
+                st.error("❌ Failed to generate export data")
+                
+        except Exception as e:
+            logger.error(f"Export failed: {e}")
+            st.error(f"❌ Export failed: {str(e)}")
         
     except Exception as e:
         logger.error(f"Export failed: {e}")

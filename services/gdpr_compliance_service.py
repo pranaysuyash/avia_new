@@ -307,38 +307,208 @@ class GDPRComplianceService:
     async def _collect_analytics_data(self, user_id: int, db: Session) -> Dict[str, Any]:
         """Collect user analytics data"""
         
-        # This would integrate with actual analytics tables
-        # For now, returning placeholder structure
-        return {
-            "session_count": 0,
-            "total_transcription_time": 0,
-            "languages_used": [],
-            "features_used": [],
-            "last_activity": None,
-            "api_usage": {
-                "total_requests": 0,
-                "endpoints_used": [],
-                "rate_limit_hits": 0
+        try:
+            # Import models dynamically to avoid circular imports
+            from sqlalchemy import func, text
+            
+            analytics_data = {
+                "transcription_stats": {},
+                "api_usage": {},
+                "activity_patterns": {},
+                "feature_usage": {}
             }
-        }
+            
+            # 1. Transcription statistics
+            transcripts = db.query(Transcript).filter(Transcript.user_id == user_id).all()
+            if transcripts:
+                total_duration = sum(t.duration or 0 for t in transcripts)
+                languages = list(set(t.language for t in transcripts if t.language))
+                
+                analytics_data["transcription_stats"] = {
+                    "total_transcripts": len(transcripts),
+                    "total_duration_seconds": total_duration,
+                    "languages_used": languages,
+                    "average_duration": total_duration / len(transcripts) if transcripts else 0,
+                    "first_transcript": min(t.created_at for t in transcripts).isoformat() if transcripts else None,
+                    "last_transcript": max(t.created_at for t in transcripts).isoformat() if transcripts else None
+                }
+            
+            # 2. API usage patterns (from audit logs)
+            try:
+                # Query audit logs for API activity
+                api_logs_query = text("""
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        COUNT(DISTINCT action) as unique_actions,
+                        MAX(created_at) as last_api_call
+                    FROM audit_logs 
+                    WHERE user_id = :user_id 
+                    AND event_type LIKE 'api_%'
+                """)
+                
+                api_result = db.execute(api_logs_query, {"user_id": user_id}).first()
+                
+                if api_result:
+                    analytics_data["api_usage"] = {
+                        "total_requests": api_result.total_requests or 0,
+                        "unique_actions": api_result.unique_actions or 0,
+                        "last_api_call": api_result.last_api_call.isoformat() if api_result.last_api_call else None
+                    }
+            except Exception as e:
+                logger.warning(f"Could not collect API usage data: {e}")
+                analytics_data["api_usage"] = {"error": "Could not retrieve API usage"}
+            
+            # 3. Activity patterns
+            try:
+                # Get login activity from audit logs
+                login_query = text("""
+                    SELECT 
+                        COUNT(*) as login_count,
+                        MAX(created_at) as last_login,
+                        MIN(created_at) as first_login
+                    FROM audit_logs
+                    WHERE user_id = :user_id
+                    AND event_type = 'login'
+                """)
+                
+                login_result = db.execute(login_query, {"user_id": user_id}).first()
+                
+                if login_result:
+                    analytics_data["activity_patterns"] = {
+                        "login_count": login_result.login_count or 0,
+                        "first_login": login_result.first_login.isoformat() if login_result.first_login else None,
+                        "last_login": login_result.last_login.isoformat() if login_result.last_login else None
+                    }
+            except Exception as e:
+                logger.warning(f"Could not collect activity patterns: {e}")
+                analytics_data["activity_patterns"] = {"error": "Could not retrieve activity patterns"}
+            
+            # 4. Feature usage
+            try:
+                # Analyze transcript metadata for feature usage
+                features_used = set()
+                for transcript in transcripts:
+                    if hasattr(transcript, 'metadata') and transcript.metadata:
+                        metadata = transcript.metadata if isinstance(transcript.metadata, dict) else {}
+                        if metadata.get('speaker_detection'):
+                            features_used.add('speaker_detection')
+                        if metadata.get('noise_reduction'):
+                            features_used.add('noise_reduction')
+                        if metadata.get('punctuation_restoration'):
+                            features_used.add('punctuation_restoration')
+                        if metadata.get('translation'):
+                            features_used.add('translation')
+                
+                analytics_data["feature_usage"] = {
+                    "features_used": list(features_used),
+                    "feature_count": len(features_used)
+                }
+            except Exception as e:
+                logger.warning(f"Could not collect feature usage: {e}")
+                analytics_data["feature_usage"] = {"error": "Could not retrieve feature usage"}
+            
+            return analytics_data
+            
+        except Exception as e:
+            logger.error(f"Error collecting analytics data for user {user_id}: {e}")
+            return {
+                "error": "Failed to collect analytics data",
+                "message": str(e)
+            }
     
     async def _collect_user_preferences(self, user_id: int, db: Session) -> Dict[str, Any]:
         """Collect user preferences and settings"""
         
-        # This would integrate with a user preferences table
-        return {
-            "language_preference": "en",
-            "notification_settings": {
-                "email_notifications": True,
-                "transcription_complete": True,
-                "system_updates": False
-            },
-            "privacy_settings": {
-                "data_sharing": False,
-                "analytics_tracking": True,
-                "marketing_emails": False
+        try:
+            preferences = {
+                "general_settings": {},
+                "notification_preferences": {},
+                "privacy_preferences": {},
+                "ui_preferences": {}
             }
-        }
+            
+            # 1. Get user's general settings
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                # Extract preferences from user metadata or settings
+                preferences["general_settings"] = {
+                    "language": getattr(user, 'language_preference', 'en'),
+                    "timezone": getattr(user, 'timezone', 'UTC'),
+                    "date_format": getattr(user, 'date_format', 'YYYY-MM-DD'),
+                    "time_format": getattr(user, 'time_format', '24h')
+                }
+                
+                # Check for user metadata
+                if hasattr(user, 'metadata') and user.metadata:
+                    user_metadata = user.metadata if isinstance(user.metadata, dict) else {}
+                    
+                    # Extract notification preferences
+                    preferences["notification_preferences"] = {
+                        "email_enabled": user_metadata.get('email_notifications', True),
+                        "transcription_complete": user_metadata.get('notify_transcription_complete', True),
+                        "weekly_digest": user_metadata.get('weekly_digest', False),
+                        "product_updates": user_metadata.get('product_updates', False),
+                        "marketing_emails": user_metadata.get('marketing_emails', False)
+                    }
+                    
+                    # Extract privacy preferences
+                    preferences["privacy_preferences"] = {
+                        "data_collection": user_metadata.get('allow_data_collection', True),
+                        "usage_analytics": user_metadata.get('allow_analytics', True),
+                        "error_reporting": user_metadata.get('allow_error_reporting', True),
+                        "personalization": user_metadata.get('allow_personalization', False),
+                        "third_party_sharing": user_metadata.get('allow_third_party_sharing', False)
+                    }
+                    
+                    # Extract UI preferences
+                    preferences["ui_preferences"] = {
+                        "theme": user_metadata.get('theme', 'light'),
+                        "sidebar_collapsed": user_metadata.get('sidebar_collapsed', False),
+                        "default_view": user_metadata.get('default_view', 'dashboard'),
+                        "items_per_page": user_metadata.get('items_per_page', 25)
+                    }
+            
+            # 2. Check for dedicated preferences table (if exists)
+            try:
+                # Try to query a preferences table if it exists
+                prefs_query = text("""
+                    SELECT * FROM user_preferences 
+                    WHERE user_id = :user_id
+                    LIMIT 1
+                """)
+                
+                pref_result = db.execute(prefs_query, {"user_id": user_id}).first()
+                if pref_result:
+                    # Override with values from preferences table
+                    if hasattr(pref_result, 'language'):
+                        preferences["general_settings"]["language"] = pref_result.language
+                    if hasattr(pref_result, 'timezone'):
+                        preferences["general_settings"]["timezone"] = pref_result.timezone
+            except Exception:
+                # Preferences table might not exist
+                pass
+            
+            # 3. Get consent records
+            consent_records = self._get_consent_records(user_id)
+            if consent_records:
+                preferences["consent_history"] = [
+                    {
+                        "purpose": record.get('purpose'),
+                        "status": record.get('consent_status'),
+                        "given_at": record.get('given_at'),
+                        "version": record.get('consent_version')
+                    }
+                    for record in consent_records
+                ]
+            
+            return preferences
+            
+        except Exception as e:
+            logger.error(f"Error collecting user preferences for user {user_id}: {e}")
+            return {
+                "error": "Failed to collect user preferences",
+                "message": str(e)
+            }
     
     async def _collect_cached_data(self, user_id: int) -> Dict[str, Any]:
         """Collect user data from Redis cache"""
@@ -387,18 +557,103 @@ class GDPRComplianceService:
     async def _collect_file_metadata(self, user_id: int) -> List[Dict[str, Any]]:
         """Collect metadata about user's uploaded files"""
         
-        # This would integrate with file storage system
-        # For now, returning placeholder structure
-        return [
-            {
-                "filename": "example_audio.mp3",
-                "upload_date": "2024-01-15T10:30:00Z",
-                "file_size": 1024000,
-                "mime_type": "audio/mpeg",
-                "processing_status": "completed",
-                "retention_until": "2025-01-15T10:30:00Z"
-            }
-        ]
+        file_metadata = []
+        
+        try:
+            # Get database session
+            db = next(get_db())
+            
+            # Query transcripts for file information
+            transcripts = db.query(Transcript).filter(Transcript.user_id == user_id).all()
+            
+            for transcript in transcripts:
+                file_info = {
+                    "transcript_id": transcript.id,
+                    "filename": transcript.title or "Untitled",
+                    "upload_date": transcript.created_at.isoformat() if transcript.created_at else None,
+                    "processing_status": "completed",
+                    "retention_until": None
+                }
+                
+                # Extract file metadata from transcript
+                if hasattr(transcript, 'file_url') and transcript.file_url:
+                    file_info["file_url"] = transcript.file_url
+                    # Extract filename from URL if not in title
+                    if not transcript.title and '/' in transcript.file_url:
+                        file_info["filename"] = transcript.file_url.split('/')[-1]
+                
+                if hasattr(transcript, 'file_size') and transcript.file_size:
+                    file_info["file_size"] = transcript.file_size
+                
+                # Determine MIME type from metadata or filename
+                if hasattr(transcript, 'metadata') and transcript.metadata:
+                    metadata = transcript.metadata if isinstance(transcript.metadata, dict) else {}
+                    file_info["mime_type"] = metadata.get('mime_type', 'audio/mpeg')
+                    file_info["original_format"] = metadata.get('format')
+                    file_info["sample_rate"] = metadata.get('sample_rate')
+                    file_info["channels"] = metadata.get('channels')
+                else:
+                    # Guess MIME type from extension
+                    filename = file_info["filename"].lower()
+                    if filename.endswith('.mp3'):
+                        file_info["mime_type"] = "audio/mpeg"
+                    elif filename.endswith('.wav'):
+                        file_info["mime_type"] = "audio/wav"
+                    elif filename.endswith('.m4a'):
+                        file_info["mime_type"] = "audio/mp4"
+                    elif filename.endswith('.mp4'):
+                        file_info["mime_type"] = "video/mp4"
+                    elif filename.endswith('.webm'):
+                        file_info["mime_type"] = "video/webm"
+                    else:
+                        file_info["mime_type"] = "application/octet-stream"
+                
+                # Calculate retention date based on data category
+                if transcript.created_at:
+                    # Content files retained for 7 years by default
+                    retention_days = self.retention_periods.get(DataCategory.CONTENT, 2555)
+                    retention_date = transcript.created_at + timedelta(days=retention_days)
+                    file_info["retention_until"] = retention_date.isoformat()
+                
+                file_metadata.append(file_info)
+            
+            # Also check for files in storage service
+            try:
+                from services.storage_service import StorageService
+                storage = StorageService()
+                
+                # List user files from storage
+                user_files = await storage.list_files(prefix=f"user_{user_id}/")
+                
+                for file_path in user_files:
+                    # Check if file is already in transcript metadata
+                    if not any(f.get('file_url', '').endswith(file_path) for f in file_metadata):
+                        file_stat = await storage.get_file_info(file_path)
+                        if file_stat:
+                            file_metadata.append({
+                                "filename": file_path.split('/')[-1],
+                                "file_path": file_path,
+                                "file_size": file_stat.get('size', 0),
+                                "upload_date": file_stat.get('last_modified', datetime.utcnow()).isoformat(),
+                                "mime_type": file_stat.get('content_type', 'application/octet-stream'),
+                                "processing_status": "stored",
+                                "retention_until": (
+                                    datetime.utcnow() + timedelta(days=self.retention_periods.get(DataCategory.CONTENT, 2555))
+                                ).isoformat()
+                            })
+            except Exception as e:
+                logger.warning(f"Could not retrieve files from storage service: {e}")
+            
+        except Exception as e:
+            logger.error(f"Error collecting file metadata for user {user_id}: {e}")
+            # Return at least the metadata we could collect
+            pass
+        
+        finally:
+            if 'db' in locals():
+                db.close()
+        
+        return file_metadata
     
     async def _create_export_file(
         self, 

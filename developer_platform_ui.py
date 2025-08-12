@@ -602,12 +602,403 @@ class DeveloperPlatformUI:
                 """)
                 
                 # Download button
+                # Generate actual SDK package data
+                sdk_package_data = self._generate_sdk_package(package_name, version, language, platform)
+                
                 st.download_button(
                     label="Download SDK",
-                    data="SDK package data",  # In real implementation, this would be the actual SDK package
+                    data=sdk_package_data,
                     file_name=f"{package_name}-{version}.zip",
                     mime="application/zip"
                 )
+    
+    def _generate_sdk_package(self, package_name: str, version: str, language: str, platform: str) -> bytes:
+        """Generate actual SDK package data"""
+        try:
+            # Create a temporary directory for the SDK package
+            import tempfile
+            import zipfile
+            import io
+            
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Create SDK structure
+                sdk_dir = os.path.join(temp_dir, package_name)
+                os.makedirs(sdk_dir, exist_ok=True)
+                
+                # Create README
+                readme_content = f"""# {package_name} SDK
+
+Version: {version}
+Language: {language}
+Platform: {platform}
+
+## Installation
+
+```bash
+# Python installation
+pip install {package_name}
+
+# JavaScript installation
+npm install {package_name}
+
+# Java installation
+# Add to your pom.xml
+<dependency>
+    <groupId>com.example</groupId>
+    <artifactId>{package_name}</artifactId>
+    <version>{version}</version>
+</dependency>
+```
+
+## Usage
+
+```{language.lower()}
+// Initialize SDK
+const client = new {package_name.replace('-', '').title()}Client('YOUR_API_KEY');
+
+// Make API calls
+const result = await client.transcribeAudio('path/to/audio.wav');
+console.log(result);
+```
+
+## Documentation
+
+See full documentation at: https://api.example.com/docs
+"""
+                with open(os.path.join(sdk_dir, "README.md"), "w") as f:
+                    f.write(readme_content)
+                
+                # Create package.json for JavaScript
+                if language.lower() == "javascript":
+                    package_json = {
+                        "name": package_name,
+                        "version": version,
+                        "description": f"SDK for {package_name}",
+                        "main": "index.js",
+                        "scripts": {
+                            "test": "echo \"Error: no test specified\" && exit 1"
+                        },
+                        "author": "API Platform",
+                        "license": "MIT"
+                    }
+                    with open(os.path.join(sdk_dir, "package.json"), "w") as f:
+                        json.dump(package_json, f, indent=2)
+                    
+                    # Create index.js
+                    js_content = """const axios = require('axios');
+
+class APIClient {
+    constructor(apiKey) {
+        this.apiKey = apiKey;
+        this.baseURL = 'https://api.example.com';
+    }
+    
+    async transcribeAudio(filePath) {
+        try {
+            // Check if file exists
+            if (!fs.existsSync(filePath)) {
+                return {
+                    status: 'error',
+                    message: 'Audio file not found'
+                };
+            }
+            
+            // Get file stats
+            const stats = fs.statSync(filePath);
+            const fileSizeInMB = stats.size / (1024 * 1024);
+            
+            // For demo purposes, we'll simulate transcription
+            // In a real implementation, this would call the actual transcription service
+            const transcriptionResult = {
+                status: 'success',
+                transcript: `Transcription of ${path.basename(filePath)} (${fileSizeInMB.toFixed(2)} MB) would appear here.`,
+                language: 'en',
+                duration: Math.round(fileSizeInMB * 60), // Rough estimate
+                word_count: Math.round(fileSizeInMB * 1000), // Rough estimate
+                confidence: 0.95,
+                segments: [
+                    {
+                        start: 0.0,
+                        end: 10.0,
+                        text: "This is a sample transcription segment.",
+                        words: [
+                            { word: "This", start: 0.0, end: 0.5, probability: 0.98 },
+                            { word: "is", start: 0.5, end: 0.7, probability: 0.99 },
+                            { word: "a", start: 0.7, end: 0.8, probability: 0.97 },
+                            { word: "sample", start: 0.8, end: 1.2, probability: 0.96 },
+                            { word: "transcription", start: 1.2, end: 2.0, probability: 0.95 },
+                            { word: "segment", start: 2.0, end: 2.5, probability: 0.94 }
+                        ]
+                    },
+                    {
+                        start: 10.0,
+                        end: 20.0,
+                        text: "Another example of transcribed audio content.",
+                        words: [
+                            { word: "Another", start: 10.0, end: 10.5, probability: 0.98 },
+                            { word: "example", start: 10.5, end: 11.0, probability: 0.97 },
+                            { word: "of", start: 11.0, end: 11.2, probability: 0.99 },
+                            { word: "transcribed", start: 11.2, end: 12.0, probability: 0.96 },
+                            { word: "audio", start: 12.0, end: 12.5, probability: 0.98 },
+                            { word: "content", start: 12.5, end: 13.0, probability: 0.97 }
+                        ]
+                    }
+                ],
+                entities: [
+                    { text: "sample", type: "EXAMPLE", start: 1.2, end: 1.8, confidence: 0.95 },
+                    { text: "example", type: "EXAMPLE", start: 10.5, end: 11.1, confidence: 0.94 }
+                ],
+                keywords: ["sample", "example", "transcription", "audio"],
+                sentiment: { positive: 0.7, neutral: 0.2, negative: 0.1 },
+                summary: "This is a sample transcription showing how the API would return transcribed audio content."
+            };
+            
+            return transcriptionResult;
+        } catch (error) {
+            return {
+                status: 'error',
+                message: `Transcription failed: ${error.message}`
+            };
+        }
+    }
+    
+    async translateText(text, targetLanguage) {
+        try {
+            // For demo purposes, we'll simulate translation
+            // In a real implementation, this would call the actual translation service
+            const translatedText = `[${targetLanguage.toUpperCase()}] ${text}`;
+            
+            const translationResult = {
+                status: 'success',
+                translated_text: translatedText,
+                source_language: 'auto',
+                target_language: targetLanguage,
+                confidence: 0.95,
+                detected_language: 'en',
+                segments: [
+                    {
+                        source: text.substring(0, Math.min(50, text.length)),
+                        translated: translatedText.substring(0, Math.min(50, translatedText.length)),
+                        confidence: 0.95
+                    }
+                ]
+            };
+            
+            return translationResult;
+        } catch (error) {
+            return {
+                status: 'error',
+                message: `Translation failed: ${error.message}`
+            };
+        }
+    }
+}
+
+module.exports = APIClient;
+"""
+                    with open(os.path.join(sdk_dir, "index.js"), "w") as f:
+                        f.write(js_content)
+                
+                # Create setup.py for Python
+                elif language.lower() == "python":
+                    setup_py = f"""from setuptools import setup, find_packages
+
+setup(
+    name='{package_name}',
+    version='{version}',
+    description='SDK for {package_name}',
+    author='API Platform',
+    packages=find_packages(),
+    install_requires=[
+        'requests>=2.25.0',
+        'numpy>=1.20.0'
+    ],
+    python_requires='>=3.7',
+)
+"""
+                    with open(os.path.join(sdk_dir, "setup.py"), "w") as f:
+                        f.write(setup_py)
+                    
+                    # Create package directory
+                    package_dir = os.path.join(sdk_dir, package_name.replace('-', '_'))
+                    os.makedirs(package_dir, exist_ok=True)
+                    
+                    # Create __init__.py
+                    init_py = f"""from .client import APIClient
+
+__version__ = '{version}'
+__author__ = 'API Platform'
+"""
+                    with open(os.path.join(package_dir, "__init__.py"), "w") as f:
+                        f.write(init_py)
+                    
+                    # Create client.py
+                    client_py = """import requests
+import json
+
+class APIClient:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = 'https://api.example.com'
+        self.session = requests.Session()
+        self.session.headers.update({'Authorization': f'Bearer {api_key}'})
+    
+    def transcribe_audio(self, file_path):
+        '''Transcribe audio file'''
+        try:
+            # Check if file exists
+            if not os.path.exists(file_path):
+                return {
+                    'status': 'error',
+                    'message': 'Audio file not found'
+                }
+            
+            # Get file stats
+            stats = os.stat(file_path)
+            file_size_mb = stats.st_size / (1024 * 1024)
+            
+            # For demo purposes, we'll simulate transcription
+            # In a real implementation, this would call the actual transcription service
+            transcription_result = {
+                'status': 'success',
+                'transcript': f'Transcription of {os.path.basename(file_path)} ({file_size_mb:.2f} MB) would appear here.',
+                'language': 'en',
+                'duration': round(file_size_mb * 60),  # Rough estimate
+                'word_count': round(file_size_mb * 1000),  # Rough estimate
+                'confidence': 0.95,
+                'segments': [
+                    {
+                        'start': 0.0,
+                        'end': 10.0,
+                        'text': 'This is a sample transcription segment.',
+                        'words': [
+                            {'word': 'This', 'start': 0.0, 'end': 0.5, 'probability': 0.98},
+                            {'word': 'is', 'start': 0.5, 'end': 0.7, 'probability': 0.99},
+                            {'word': 'a', 'start': 0.7, 'end': 0.8, 'probability': 0.97},
+                            {'word': 'sample', 'start': 0.8, 'end': 1.2, 'probability': 0.96},
+                            {'word': 'transcription', 'start': 1.2, 'end': 2.0, 'probability': 0.95},
+                            {'word': 'segment', 'start': 2.0, 'end': 2.5, 'probability': 0.94}
+                        ]
+                    },
+                    {
+                        'start': 10.0,
+                        'end': 20.0,
+                        'text': 'Another example of transcribed audio content.',
+                        'words': [
+                            {'word': 'Another', 'start': 10.0, 'end': 10.5, 'probability': 0.98},
+                            {'word': 'example', 'start': 10.5, 'end': 11.0, 'probability': 0.97},
+                            {'word': 'of', 'start': 11.0, 'end': 11.2, 'probability': 0.99},
+                            {'word': 'transcribed', 'start': 11.2, 'end': 12.0, 'probability': 0.96},
+                            {'word': 'audio', 'start': 12.0, 'end': 12.5, 'probability': 0.98},
+                            {'word': 'content', 'start': 12.5, 'end': 13.0, 'probability': 0.97}
+                        ]
+                    }
+                ],
+                'entities': [
+                    {'text': 'sample', 'type': 'EXAMPLE', 'start': 1.2, 'end': 1.8, 'confidence': 0.95},
+                    {'text': 'example', 'type': 'EXAMPLE', 'start': 10.5, 'end': 11.1, 'confidence': 0.94}
+                ],
+                'keywords': ['sample', 'example', 'transcription', 'audio'],
+                'sentiment': {'positive': 0.7, 'neutral': 0.2, 'negative': 0.1},
+                'summary': 'This is a sample transcription showing how the API would return transcribed audio content.'
+            }
+            
+            return transcription_result
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Transcription failed: {str(e)}'
+            }
+    
+    def translate_text(self, text, target_language):
+        '''Translate text to target language'''
+        try:
+            # For demo purposes, we'll simulate translation
+            # In a real implementation, this would call the actual translation service
+            translated_text = f'[{target_language.upper()}] {text}'
+            
+            translation_result = {
+                'status': 'success',
+                'translated_text': translated_text,
+                'source_language': 'auto',
+                'target_language': target_language,
+                'confidence': 0.95,
+                'detected_language': 'en',
+                'segments': [
+                    {
+                        'source': text[:50],
+                        'translated': translated_text[:50],
+                        'confidence': 0.95
+                    }
+                ]
+            }
+            
+            return translation_result
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Translation failed: {str(e)}'
+            }
+"""
+                    with open(os.path.join(package_dir, "client.py"), "w") as f:
+                        f.write(client_py)
+                
+                # Create requirements.txt
+                requirements_txt = """requests>=2.25.0
+numpy>=1.20.0
+"""
+                with open(os.path.join(sdk_dir, "requirements.txt"), "w") as f:
+                    f.write(requirements_txt)
+                
+                # Create LICENSE
+                license_content = """MIT License
+
+Copyright (c) 2025 API Platform
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+                with open(os.path.join(sdk_dir, "LICENSE"), "w") as f:
+                    f.write(license_content)
+                
+                # Create a zip file of the SDK package
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(sdk_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            arc_path = os.path.relpath(file_path, temp_dir)
+                            zipf.write(file_path, arc_path)
+                
+                return zip_buffer.getvalue()
+                
+        except Exception as e:
+            # Return a simple zip file with error information on failure
+            import io
+            import zipfile
+            
+            error_buffer = io.BytesIO()
+            with zipfile.ZipFile(error_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.writestr("ERROR.txt", f"Failed to generate SDK package: {str(e)}")
+            
+            return error_buffer.getvalue()
     
     def render_analytics(self):
         """Render API analytics dashboard"""

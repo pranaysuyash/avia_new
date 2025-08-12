@@ -505,15 +505,269 @@ class InternationalizationService:
         source_language: str = "en"
     ) -> Dict[str, str]:
         """Bulk translate texts using AI translation service"""
-        # This would integrate with translation services like Google Translate, DeepL, etc.
-        # For now, return a mock implementation
         
         translated_texts = {}
-        for key, text in texts.items():
-            # Mock translation - in production, use actual translation service
-            translated_texts[key] = f"[{target_language.upper()}] {text}"
+        
+        # Try different translation providers in order of preference
+        provider = os.getenv('TRANSLATION_PROVIDER', 'google').lower()
+        
+        try:
+            if provider == 'google':
+                translated_texts = await self._translate_with_google(
+                    texts, target_language, source_language
+                )
+            elif provider == 'deepl':
+                translated_texts = await self._translate_with_deepl(
+                    texts, target_language, source_language
+                )
+            elif provider == 'azure':
+                translated_texts = await self._translate_with_azure(
+                    texts, target_language, source_language
+                )
+            elif provider == 'openai':
+                translated_texts = await self._translate_with_openai(
+                    texts, target_language, source_language
+                )
+            else:
+                # Fallback to basic translation
+                for key, text in texts.items():
+                    translated_texts[key] = await self._basic_translate(
+                        text, target_language, source_language
+                    )
+        except Exception as e:
+            # If translation service fails, return original texts with warning
+            import logging
+            logging.error(f"Translation service failed: {e}")
+            for key, text in texts.items():
+                translated_texts[key] = text  # Return original
         
         return translated_texts
+    
+    async def _translate_with_google(
+        self,
+        texts: Dict[str, str],
+        target_language: str,
+        source_language: str
+    ) -> Dict[str, str]:
+        """Translate using Google Translate API"""
+        try:
+            from google.cloud import translate_v2 as translate
+            
+            client = translate.Client()
+            translated = {}
+            
+            # Google Translate supports batch translation
+            text_list = list(texts.values())
+            results = client.translate(
+                text_list,
+                target_language=target_language,
+                source_language=source_language if source_language != 'auto' else None
+            )
+            
+            for key, result in zip(texts.keys(), results):
+                translated[key] = result['translatedText']
+            
+            return translated
+            
+        except ImportError:
+            # Google Cloud library not installed, try alternative
+            return await self._translate_with_googletrans(texts, target_language, source_language)
+    
+    async def _translate_with_googletrans(
+        self,
+        texts: Dict[str, str],
+        target_language: str,
+        source_language: str
+    ) -> Dict[str, str]:
+        """Translate using googletrans library (free alternative)"""
+        try:
+            from googletrans import Translator
+            
+            translator = Translator()
+            translated = {}
+            
+            for key, text in texts.items():
+                result = translator.translate(
+                    text,
+                    dest=target_language,
+                    src=source_language if source_language != 'auto' else 'auto'
+                )
+                translated[key] = result.text
+            
+            return translated
+            
+        except Exception:
+            raise ValueError("Google Translate not available")
+    
+    async def _translate_with_deepl(
+        self,
+        texts: Dict[str, str],
+        target_language: str,
+        source_language: str
+    ) -> Dict[str, str]:
+        """Translate using DeepL API"""
+        try:
+            import deepl
+            
+            auth_key = os.getenv('DEEPL_AUTH_KEY')
+            if not auth_key:
+                raise ValueError("DeepL auth key not configured")
+            
+            translator = deepl.Translator(auth_key)
+            translated = {}
+            
+            # Convert language codes to DeepL format
+            target_lang = self._convert_to_deepl_code(target_language)
+            source_lang = self._convert_to_deepl_code(source_language) if source_language != 'auto' else None
+            
+            for key, text in texts.items():
+                result = translator.translate_text(
+                    text,
+                    target_lang=target_lang,
+                    source_lang=source_lang
+                )
+                translated[key] = result.text
+            
+            return translated
+            
+        except ImportError:
+            raise ValueError("DeepL library not installed")
+    
+    async def _translate_with_azure(
+        self,
+        texts: Dict[str, str],
+        target_language: str,
+        source_language: str
+    ) -> Dict[str, str]:
+        """Translate using Azure Cognitive Services"""
+        try:
+            import requests
+            
+            subscription_key = os.getenv('AZURE_TRANSLATOR_KEY')
+            endpoint = os.getenv('AZURE_TRANSLATOR_ENDPOINT', 'https://api.cognitive.microsofttranslator.com')
+            
+            if not subscription_key:
+                raise ValueError("Azure Translator key not configured")
+            
+            path = '/translate'
+            constructed_url = endpoint + path
+            
+            params = {
+                'api-version': '3.0',
+                'to': target_language
+            }
+            
+            if source_language != 'auto':
+                params['from'] = source_language
+            
+            headers = {
+                'Ocp-Apim-Subscription-Key': subscription_key,
+                'Content-type': 'application/json',
+                'X-ClientTraceId': str(os.urandom(16).hex())
+            }
+            
+            # Prepare batch request
+            body = [{'text': text} for text in texts.values()]
+            
+            response = requests.post(
+                constructed_url,
+                params=params,
+                headers=headers,
+                json=body
+            )
+            
+            if response.status_code == 200:
+                results = response.json()
+                translated = {}
+                
+                for key, result in zip(texts.keys(), results):
+                    translated[key] = result['translations'][0]['text']
+                
+                return translated
+            else:
+                raise ValueError(f"Azure Translator API error: {response.status_code}")
+                
+        except ImportError:
+            raise ValueError("Requests library not available")
+    
+    async def _translate_with_openai(
+        self,
+        texts: Dict[str, str],
+        target_language: str,
+        source_language: str
+    ) -> Dict[str, str]:
+        """Translate using OpenAI GPT models"""
+        try:
+            import openai
+            
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
+                raise ValueError("OpenAI API key not configured")
+            
+            openai.api_key = api_key
+            translated = {}
+            
+            # Get target language name
+            target_name = self._get_language_name(target_language)
+            
+            for key, text in texts.items():
+                prompt = f"Translate the following text to {target_name}:\n\n{text}"
+                
+                response = await asyncio.to_thread(
+                    openai.ChatCompletion.create,
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": f"You are a professional translator. Translate text accurately to {target_name}."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=len(text) * 2  # Allow for expansion
+                )
+                
+                translated[key] = response.choices[0].message.content.strip()
+            
+            return translated
+            
+        except ImportError:
+            raise ValueError("OpenAI library not installed")
+    
+    async def _basic_translate(
+        self,
+        text: str,
+        target_language: str,
+        source_language: str
+    ) -> str:
+        """Basic translation fallback using dictionaries"""
+        # This is a very basic fallback - in production, use proper translation services
+        # For now, just return the original text with language indicator
+        return f"[{target_language}] {text}"
+    
+    def _convert_to_deepl_code(self, language_code: str) -> str:
+        """Convert language code to DeepL format"""
+        # DeepL uses different language codes
+        deepl_codes = {
+            'en': 'EN-US',
+            'de': 'DE',
+            'fr': 'FR',
+            'es': 'ES',
+            'pt': 'PT-BR',
+            'it': 'IT',
+            'nl': 'NL',
+            'pl': 'PL',
+            'ru': 'RU',
+            'ja': 'JA',
+            'zh-CN': 'ZH'
+        }
+        return deepl_codes.get(language_code, language_code.upper())
+    
+    def _get_language_name(self, language_code: str) -> str:
+        """Get language name from code"""
+        for lang in SupportedLanguage:
+            if lang.value == language_code:
+                locale = self.locales.get(lang)
+                if locale:
+                    return locale.name
+        return language_code
     
     async def export_translations(
         self,

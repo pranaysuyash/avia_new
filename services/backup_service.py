@@ -494,22 +494,136 @@ class BackupService:
     
     async def _restore_database(self, backup_path: str) -> bool:
         """Restore database from backup"""
-        # Implementation would depend on database type
-        # This is a placeholder
-        logger.info("Database restore not implemented in demo")
-        return False
+        try:
+            db_backup_file = os.path.join(backup_path, 'database.sql')
+            
+            if not os.path.exists(db_backup_file):
+                logger.error("Database backup file not found")
+                return False
+            
+            # Use psql for PostgreSQL
+            if 'postgresql' in DATABASE_URL:
+                import subprocess
+                from urllib.parse import urlparse
+                
+                parsed = urlparse(DATABASE_URL)
+                env = os.environ.copy()
+                env['PGPASSWORD'] = parsed.password
+                
+                # Drop and recreate database (be careful!)
+                # This is for demo purposes - production should be more careful
+                cmd = [
+                    'psql',
+                    '-h', parsed.hostname,
+                    '-p', str(parsed.port or 5432),
+                    '-U', parsed.username,
+                    '-d', parsed.path[1:],
+                    '-f', db_backup_file
+                ]
+                
+                result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+                
+                if result.returncode != 0:
+                    logger.error(f"Database restore failed: {result.stderr}")
+                    return False
+                
+                logger.info("Database restored successfully")
+                return True
+            
+            else:
+                # For other databases, use SQLAlchemy
+                engine = create_engine(DATABASE_URL)
+                
+                with open(db_backup_file, 'r') as f:
+                    sql_commands = f.read()
+                
+                # Execute SQL commands
+                with engine.begin() as conn:
+                    for command in sql_commands.split(';'):
+                        if command.strip():
+                            conn.execute(text(command))
+                
+                logger.info("Database restored successfully")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Database restore failed: {e}")
+            return False
     
     async def _restore_configuration(self, backup_path: str) -> bool:
         """Restore configuration from backup"""
-        # This would restore config files
-        logger.info("Configuration restore not implemented in demo")
-        return False
+        try:
+            config_dir = os.path.join(backup_path, 'config')
+            
+            if not os.path.exists(config_dir):
+                logger.error("Configuration backup not found")
+                return False
+            
+            # Restore configuration files
+            config_files = [
+                'config.yaml',
+                'config.json',
+                '.env.example'
+            ]
+            
+            restored_count = 0
+            for config_file in config_files:
+                backup_file = os.path.join(config_dir, config_file)
+                if os.path.exists(backup_file):
+                    # Create backup of current config
+                    if os.path.exists(config_file):
+                        shutil.copy2(config_file, f"{config_file}.backup")
+                    
+                    # Restore from backup
+                    shutil.copy2(backup_file, config_file)
+                    restored_count += 1
+                    logger.info(f"Restored {config_file}")
+            
+            # Log environment variables (for reference only)
+            env_file = os.path.join(config_dir, 'environment.json')
+            if os.path.exists(env_file):
+                with open(env_file, 'r') as f:
+                    env_data = json.load(f)
+                logger.info(f"Environment variables reference loaded ({len(env_data)} variables)")
+            
+            logger.info(f"Configuration restored: {restored_count} files")
+            return restored_count > 0
+            
+        except Exception as e:
+            logger.error(f"Configuration restore failed: {e}")
+            return False
     
     async def _restore_files(self, backup_path: str) -> bool:
         """Restore files from backup"""
-        # This would restore file storage
-        logger.info("Files restore not implemented in demo")
-        return False
+        try:
+            files_dir = os.path.join(backup_path, 'files')
+            
+            if not os.path.exists(files_dir):
+                logger.info("No files backup found")
+                return True  # Not an error if no files to restore
+            
+            storage_path = os.getenv('STORAGE_PATH', '/tmp/storage')
+            
+            # Create backup of current files
+            if os.path.exists(storage_path):
+                backup_storage = f"{storage_path}.backup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+                shutil.move(storage_path, backup_storage)
+                logger.info(f"Current files backed up to {backup_storage}")
+            
+            # Restore files
+            shutil.copytree(files_dir, storage_path, dirs_exist_ok=True)
+            
+            # Count restored files
+            file_count = sum(
+                len(files) for _, _, files in os.walk(storage_path)
+            )
+            
+            logger.info(f"Files restored: {file_count} files")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Files restore failed: {e}")
+            return False
     
     def list_backups(self) -> List[Dict[str, Any]]:
         """List available backups"""

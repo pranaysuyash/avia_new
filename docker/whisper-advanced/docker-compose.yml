@@ -1,0 +1,203 @@
+# Docker Compose for Whisper Advanced Integration
+version: '3.8'
+
+services:
+  # Whisper Advanced Processing Service
+  whisper-advanced:
+    build:
+      context: ../../
+      dockerfile: docker/whisper-advanced/Dockerfile
+      target: production
+    container_name: whisper-advanced-processor
+    restart: unless-stopped
+    environment:
+      # Application Configuration
+      - WHISPER_MODEL_CACHE_SIZE=3
+      - WHISPER_MAX_CONCURRENT_JOBS=2
+      - WHISPER_TEMP_DIR=/app/temp
+      - WHISPER_LOG_LEVEL=INFO
+      
+      # Database Configuration
+      - DATABASE_URL=postgresql://whisper_user:${DB_PASSWORD:-whisper_pass}@postgres:5432/whisper_advanced
+      
+      # Redis Configuration
+      - REDIS_URL=redis://redis:6379/1
+      
+      # Security
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-jwt-secret-change-in-production}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-encryption-key-change-in-production}
+      
+      # External APIs
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      
+      # Monitoring
+      - PROMETHEUS_ENABLED=true
+      - SENTRY_DSN=${SENTRY_DSN}
+      
+      # Storage
+      - STORAGE_BACKEND=local
+      - MAX_FILE_SIZE=26214400  # 25MB
+      - CLEANUP_TEMP_FILES=true
+      - TEMP_FILE_TTL=3600  # 1 hour
+      
+      # Performance
+      - WORKER_PROCESSES=1
+      - WORKER_THREADS=4
+      - MODEL_PRELOAD=tiny,base,small
+      
+    volumes:
+      - whisper_models:/home/whisperuser/.cache/whisper
+      - whisper_uploads:/app/uploads
+      - whisper_temp:/app/temp
+      - whisper_logs:/app/logs
+    
+    ports:
+      - "8001:8000"
+    
+    depends_on:
+      - postgres
+      - redis
+    
+    networks:
+      - whisper-network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/whisper-advanced/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: whisper-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=whisper_advanced
+      - POSTGRES_USER=whisper_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-whisper_pass}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5433:5432"
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whisper_user -d whisper_advanced"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: whisper-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - whisper-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: whisper-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - whisper-network
+    depends_on:
+      - whisper-advanced
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: whisper-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - whisper-network
+    depends_on:
+      - prometheus
+
+  # Nginx Load Balancer (for scaling)
+  nginx:
+    image: nginx:alpine
+    container_name: whisper-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - whisper-network
+    depends_on:
+      - whisper-advanced
+
+volumes:
+  whisper_models:
+    driver: local
+  whisper_uploads:
+    driver: local
+  whisper_temp:
+    driver: local
+  whisper_logs:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  whisper-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

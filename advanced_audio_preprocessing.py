@@ -20,7 +20,6 @@ Features:
 import os
 import json
 import numpy as np
-import pandas as pd
 from typing import Dict, List, Tuple, Optional, Any, Union
 from dataclasses import dataclass, asdict
 from datetime import datetime
@@ -34,23 +33,16 @@ warnings.filterwarnings("ignore")
 # Audio processing
 import librosa
 import librosa.display
-import soundfile as sf
-from scipy import signal, stats
+from scipy import stats
 from scipy.spatial.distance import cosine, euclidean
-from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+from scipy.cluster.hierarchy import linkage, fcluster
 
 # Machine learning
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, DBSCAN
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.neighbors import NearestNeighbors
 
 # Visualization
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
 
 # Setup logging

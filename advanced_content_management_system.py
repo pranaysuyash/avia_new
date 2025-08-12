@@ -790,18 +790,49 @@ class ContentManagementSystem:
             "dates": []
         }
         
-        # Simple pattern-based entity extraction
-        # This would be replaced with proper NER in production
-        person_patterns = re.findall(r'\b[A-Z][a-z]+ [A-Z][a-z]+\b', text)
-        entities["persons"] = list(set(person_patterns))[:10]
-        
-        # Extract potential organization names (capitalized words followed by Inc, Corp, LLC, etc.)
-        org_patterns = re.findall(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*(?: (?:Inc|Corp|LLC|Ltd|Company)\.?)\b', text)
-        entities["organizations"] = list(set(org_patterns))[:10]
-        
-        # Extract dates
-        date_patterns = re.findall(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2},? \d{4}\b', text)
-        entities["dates"] = list(set(date_patterns))[:10]
+        # Entity extraction using spaCy NER if available
+        try:
+            import spacy
+            nlp = spacy.load("en_core_web_sm")
+            doc = nlp(text)
+            
+            # Extract named entities
+            for ent in doc.ents:
+                if ent.label_ not in entities:
+                    entities[ent.label_] = []
+                entities[ent.label_].append(ent.text)
+                
+                # Limit to 10 entities per type
+                if len(entities[ent.label_]) > 10:
+                    entities[ent.label_] = entities[ent.label_][:10]
+            
+            # Convert to standard entity types
+            if "PERSON" in entities:
+                entities["persons"] = entities.pop("PERSON")
+            if "ORG" in entities:
+                entities["organizations"] = entities.pop("ORG")
+            if "DATE" in entities:
+                entities["dates"] = entities.pop("DATE")
+            if "GPE" in entities:
+                entities["locations"] = entities.pop("GPE")
+            if "MONEY" in entities:
+                entities["monetary_values"] = entities.pop("MONEY")
+                
+        except ImportError:
+            # Fallback to pattern-based extraction if spaCy is not available
+            logger.warning("spaCy not available, using pattern-based entity extraction")
+            
+            # Simple pattern-based entity extraction
+            person_patterns = re.findall(r'\b[A-Z][a-z]+ [A-Z][a-z]+\b', text)
+            entities["persons"] = list(set(person_patterns))[:10]
+            
+            # Extract potential organization names (capitalized words followed by Inc, Corp, LLC, etc.)
+            org_patterns = re.findall(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*(?: (?:Inc|Corp|LLC|Ltd|Company)\.?)\b', text)
+            entities["organizations"] = list(set(org_patterns))[:10]
+            
+            # Extract dates
+            date_patterns = re.findall(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2},? \d{4}\b', text)
+            entities["dates"] = list(set(date_patterns))[:10]
         
         return entities
     

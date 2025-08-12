@@ -14,6 +14,7 @@ Requirements addressed:
 import asyncio
 import json
 import logging
+import os
 import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any, Union
@@ -82,8 +83,9 @@ class MeetingInsights:
     
     def __post_init__(self):
         if self.follow_up_required is None:
-            self.follow_up_required = []c
-lass ActionItemExtractor:
+            self.follow_up_required = []
+            
+class ActionItemExtractor:
     """Advanced action item extraction using multiple AI approaches"""
     
     def __init__(self, openai_api_key: Optional[str] = None):

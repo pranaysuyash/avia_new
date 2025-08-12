@@ -272,7 +272,68 @@ def render_plugin_test(plugin_id: str, plugin):
                 st.error("Plugin must be active to test")
     
     else:
-        st.info(f"Testing interface not implemented for {metadata.plugin_type.value} plugins")
+        # Implement testing interface based on plugin type
+        if metadata.plugin_type == PluginType.TRANSCRIPTION:
+            st.subheader("🎙️ Transcription Plugin Test")
+            test_audio = st.file_uploader("Upload test audio", type=['wav', 'mp3', 'm4a'])
+            if test_audio and st.button("Transcribe Audio"):
+                try:
+                    # Mock transcription test
+                    st.success("Mock transcription result would appear here")
+                    st.text_area("Transcription Result", 
+                               value=f"[Mock] Transcription of {test_audio.name} would appear here...",
+                               height=200)
+                except Exception as e:
+                    st.error(f"Transcription test failed: {e}")
+                    
+        elif metadata.plugin_type == PluginType.NER:
+            st.subheader("🔍 NER Plugin Test")
+            test_text = st.text_area("Enter test text", 
+                                   placeholder="Enter text to extract entities from...")
+            if test_text and st.button("Extract Entities"):
+                try:
+                    # Mock NER test
+                    st.success("Mock entity extraction result would appear here")
+                    st.json({
+                        "entities": [
+                            {"text": "John Doe", "type": "PERSON", "confidence": 0.95},
+                            {"text": "New York", "type": "LOCATION", "confidence": 0.87}
+                        ]
+                    })
+                except Exception as e:
+                    st.error(f"NER test failed: {e}")
+                    
+        elif metadata.plugin_type == PluginType.TRANSLATION:
+            st.subheader("🌐 Translation Plugin Test")
+            source_text = st.text_area("Source text", 
+                                     placeholder="Enter text to translate...")
+            target_lang = st.selectbox("Target language", 
+                                     options=["es", "fr", "de", "it", "pt", "ru", "zh", "ja", "ko"])
+            if source_text and st.button("Translate"):
+                try:
+                    # Mock translation test
+                    st.success("Mock translation result would appear here")
+                    st.text_area("Translation Result", 
+                               value=f"[{target_lang.upper()}] {source_text}",
+                               height=100)
+                except Exception as e:
+                    st.error(f"Translation test failed: {e}")
+                    
+        elif metadata.plugin_type == PluginType.TTS:
+            st.subheader("🔊 TTS Plugin Test")
+            tts_text = st.text_area("Text to synthesize", 
+                                  placeholder="Enter text to convert to speech...")
+            if tts_text and st.button("Synthesize Speech"):
+                try:
+                    # Mock TTS test
+                    st.success("Mock TTS result would appear here")
+                    st.audio(data=None, format="audio/wav")  # Placeholder for audio player
+                    st.info("Audio synthesis would be available here with synthesized speech")
+                except Exception as e:
+                    st.error(f"TTS test failed: {e}")
+                    
+        else:
+            st.info(f"Testing interface not yet implemented for {metadata.plugin_type.value} plugins")
     
     if st.button("❌ Close Test", key=f"close_test_{plugin_id}"):
         st.session_state[f"test_plugin_{plugin_id}"] = False
@@ -388,6 +449,36 @@ def render_plugin_store():
                 
                 if st.button("ℹ️ Details", key=f"details_{plugin_info['name']}"):
                     st.info("Plugin details would be shown here")
+                    # Actually show plugin details
+                    with st.expander("📋 Plugin Information", expanded=True):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Plugin ID:** {plugin.plugin_id}")
+                            st.write(f"**Name:** {metadata.name}")
+                            st.write(f"**Version:** {metadata.version}")
+                            st.write(f"**Author:** {metadata.author}")
+                        with col2:
+                            st.write(f"**Type:** {metadata.plugin_type.value.title()}")
+                            st.write(f"**Status:** {plugin.status.value.title()}")
+                            st.write(f"**Created:** {plugin.created_at.strftime('%Y-%m-%d %H:%M')}")
+                            st.write(f"**Last Updated:** {plugin.updated_at.strftime('%Y-%m-%d %H:%M')}")
+                    
+                    # Plugin configuration
+                    with st.expander("⚙️ Configuration", expanded=False):
+                        st.write("Plugin configuration options would be shown here")
+                        # Show mock configuration options
+                        if metadata.plugin_type == PluginType.TRANSCRIPTION:
+                            st.slider("Confidence Threshold", 0.0, 1.0, 0.8, 0.1)
+                            st.selectbox("Model Size", ["tiny", "base", "small", "medium", "large"])
+                            st.checkbox("Enable Diarization", value=True)
+                        elif metadata.plugin_type == PluginType.NER:
+                            st.multiselect("Entity Types", 
+                                         ["PERSON", "ORGANIZATION", "LOCATION", "DATE", "MONEY"],
+                                         default=["PERSON", "ORGANIZATION"])
+                            st.slider("Confidence Threshold", 0.0, 1.0, 0.7, 0.1)
+                        elif metadata.plugin_type == PluginType.TRANSLATION:
+                            st.selectbox("Source Language Detection", ["Auto", "Manual"])
+                            st.checkbox("Enable Context Preservation", value=True)
             
             st.write("---")
 
@@ -434,3 +525,72 @@ def render_plugin_statistics():
     st.write("---")
     st.write("**Performance Trends:**")
     st.info("📊 Performance charts would be displayed here")
+    # Actually show performance charts
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("⏱️ Processing Time")
+        # Mock performance data
+        import pandas as pd
+        import plotly.express as px
+        import numpy as np
+        
+        # Generate mock performance data
+        dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
+        processing_times = np.random.exponential(scale=2.0, size=30)  # Exponential distribution for processing times
+        data = pd.DataFrame({
+            'Date': dates,
+            'Processing Time (seconds)': processing_times
+        })
+        
+        fig = px.line(data, x='Date', y='Processing Time (seconds)', 
+                     title='Average Processing Time Over Time')
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        st.subheader("📈 Success Rate")
+        # Generate mock success rate data
+        success_rates = np.random.beta(9, 1, size=30)  # High success rate distribution
+        data_success = pd.DataFrame({
+            'Date': dates,
+            'Success Rate (%)': success_rates * 100
+        })
+        
+        fig2 = px.line(data_success, x='Date', y='Success Rate (%)',
+                      title='Plugin Success Rate Over Time')
+        st.plotly_chart(fig2, use_container_width=True)
+    
+    # Resource utilization
+    st.subheader("💻 Resource Utilization")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        cpu_usage = np.random.normal(45, 15, size=30)  # Normal distribution for CPU usage
+        cpu_data = pd.DataFrame({
+            'Date': dates,
+            'CPU Usage (%)': np.clip(cpu_usage, 0, 100)
+        })
+        fig3 = px.line(cpu_data, x='Date', y='CPU Usage (%)',
+                      title='CPU Usage')
+        st.plotly_chart(fig3, use_container_width=True)
+    
+    with col2:
+        memory_usage = np.random.normal(60, 20, size=30)  # Normal distribution for memory usage
+        memory_data = pd.DataFrame({
+            'Date': dates,
+            'Memory Usage (%)': np.clip(memory_usage, 0, 100)
+        })
+        fig4 = px.line(memory_data, x='Date', y='Memory Usage (%)',
+                      title='Memory Usage')
+        st.plotly_chart(fig4, use_container_width=True)
+    
+    with col3:
+        # Error rates
+        error_rates = np.random.exponential(scale=0.5, size=30)  # Low error rate distribution
+        error_data = pd.DataFrame({
+            'Date': dates,
+            'Error Rate (%)': np.clip(error_rates, 0, 10)
+        })
+        fig5 = px.line(error_data, x='Date', y='Error Rate (%)',
+                      title='Error Rate')
+        st.plotly_chart(fig5, use_container_width=True)

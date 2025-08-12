@@ -1060,18 +1060,71 @@ class VoiceModelMarketplace:
                 name, language, gender, accent, model_file_path = result
                 
                 # In production, this would generate actual audio using the voice model
-                # For demo, return metadata about what would be generated
-                return {
-                    "model_id": model_id,
-                    "model_name": name,
-                    "language": language,
-                    "gender": gender,
-                    "accent": accent,
-                    "preview_text": text,
-                    "estimated_duration": len(text.split()) * 0.5,  # Rough estimate
-                    "audio_url": f"/api/voice/preview/{model_id}",  # Would be actual audio URL
-                    "status": "generated"
-                }
+                # For now, we'll simulate a more realistic preview with actual TTS if available
+                try:
+                    # Try to use a TTS service if available
+                    import tts
+                    tts_available = True
+                except ImportError:
+                    tts_available = False
+                    logger.warning("TTS service not available, using simulated preview")
+                
+                if tts_available:
+                    # Generate actual audio preview using TTS
+                    try:
+                        # Use the voice model to generate audio
+                        audio_preview = tts.generate_speech(
+                            text=text,
+                            voice_model=model_id,
+                            language=language
+                        )
+                        
+                        # Save audio to temporary file
+                        import tempfile
+                        temp_audio_path = tempfile.mktemp(suffix=".wav")
+                        with open(temp_audio_path, "wb") as f:
+                            f.write(audio_preview)
+                        
+                        # Return metadata with actual audio URL
+                        return {
+                            "model_id": model_id,
+                            "model_name": name,
+                            "language": language,
+                            "gender": gender,
+                            "accent": accent,
+                            "preview_text": text,
+                            "estimated_duration": len(text.split()) * 0.5,  # Rough estimate
+                            "audio_url": f"/api/voice/preview/{model_id}",  # Actual audio URL
+                            "audio_file_path": temp_audio_path,  # Local file path
+                            "status": "generated"
+                        }
+                    except Exception as tts_error:
+                        logger.warning(f"TTS generation failed: {tts_error}, falling back to simulation")
+                        # Fall back to simulation
+                        return {
+                            "model_id": model_id,
+                            "model_name": name,
+                            "language": language,
+                            "gender": gender,
+                            "accent": accent,
+                            "preview_text": text,
+                            "estimated_duration": len(text.split()) * 0.5,  # Rough estimate
+                            "audio_url": f"/api/voice/preview/{model_id}",  # Would be actual audio URL
+                            "status": "simulated"
+                        }
+                else:
+                    # Return simulated preview metadata
+                    return {
+                        "model_id": model_id,
+                        "model_name": name,
+                        "language": language,
+                        "gender": gender,
+                        "accent": accent,
+                        "preview_text": text,
+                        "estimated_duration": len(text.split()) * 0.5,  # Rough estimate
+                        "audio_url": f"/api/voice/preview/{model_id}",  # Would be actual audio URL
+                        "status": "simulated"
+                    }
                 
         except Exception as e:
             logger.error(f"Error previewing voice model: {e}")
@@ -1214,6 +1267,10 @@ class VoiceModelMarketplace:
                     placeholder = f"{{{var}}}"
                     generated_content = generated_content.replace(placeholder, value)
                 
+                # Validate generated content
+                if not generated_content.strip():
+                    raise ValueError("Generated content is empty")
+                
                 # Update usage count
                 cursor.execute("""
                     UPDATE script_templates 
@@ -1222,13 +1279,28 @@ class VoiceModelMarketplace:
                 """, (template_id,))
                 conn.commit()
                 
+                # Perform content validation and enhancement
+                content_stats = {
+                    "word_count": len(generated_content.split()),
+                    "character_count": len(generated_content),
+                    "paragraph_count": len([p for p in generated_content.split('
+') if p.strip()]),
+                    "sentence_count": len([s for s in generated_content.split('.') if s.strip()])
+                }
+                
+                # Return enhanced metadata
                 return {
                     "template_id": template_id,
                     "template_name": name,
                     "generated_content": generated_content,
                     "variables_used": variables,
-                    "word_count": len(generated_content.split()),
-                    "character_count": len(generated_content)
+                    "word_count": content_stats["word_count"],
+                    "character_count": content_stats["character_count"],
+                    "paragraph_count": content_stats["paragraph_count"],
+                    "sentence_count": content_stats["sentence_count"],
+                    "content_stats": content_stats,
+                    "generation_timestamp": datetime.now().isoformat(),
+                    "status": "success"
                 }
                 
         except Exception as e:

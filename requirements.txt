@@ -8,8 +8,9 @@ openai>=1.3.0
 openai-whisper>=20231117
 
 # Natural Language Processing
-spacy>=3.7.0,<3.8.0
-pydantic>=1.10.0,<2.0.0
+spacy>=3.7.2
+spacy-transformers>=1.3.0  # For transformer-based models
+pydantic>=2.0.0
 textblob>=0.17.1
 
 # Multi-language support (Task 36)
@@ -36,7 +37,7 @@ vosk>=0.3.44
 torchaudio>=2.7.0
 
 # GraphQL Support (Task 22)
-strawberry-graphql[fastapi]==0.214.1
+strawberry-graphql[fastapi]>=0.270.0
 graphql-core==3.2.3
 
 
@@ -46,7 +47,7 @@ pydub>=0.25.1
 
 # Video processing
 opencv-python>=4.8.0
-Pillow>=10.0.0
+Pillow>=11.3.0
 ffmpeg>=1.4
 
 # Export and sharing
@@ -61,8 +62,85 @@ python-dotenv>=1.0.0
 
 # Additional dependencies for robust operation
 requests>=2.31.0
-numpy>=1.24.0
-pandas>=2.0.0
+numpy>=2.2.6
+pandas>=2.3.1
+asyncio>=4.0.0
+
+# Audio processing for AI features
+librosa>=0.11.0
+soundfile>=0.13.1
+scikit-learn>=1.7.1
+
+# AI/ML models and transformers
+transformers>=4.35.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Visualization and plotting dependencies
+contourpy>=1.3.3
+cycler>=0.12.1
+fonttools>=4.59.0
+kiwisolver>=1.4.9
+pyparsing>=3.2.3
+python-dateutil>=2.9.0.post0
+six>=1.17.0
+wordcloud>=1.9.4
+
+# Core dependencies for collaborative discussion facilitator
+openai>=1.99.9
+pandas>=2.3.1
+librosa>=0.11.0
+soundfile>=0.13.1
+scikit-learn>=1.7.1
+transformers>=4.35.0
+torch>=2.0.0
+sqlalchemy>=2.0.0
+pyaudio>=0.2.11
+
+# Additional missing dependencies found in Python files
+streamlit>=1.48.0
+fastapi>=0.104.0
+uvicorn>=0.35.0
+websockets>=15.0.1
+redis>=5.0.0
+googletrans>=4.0.0rc1
+langdetect>=1.0.9
+bcrypt>=4.0.1
+PyJWT>=2.8.0
+pytest>=7.4.0
+opencv-python>=4.8.0
+pytesseract>=0.3.10
+easyocr>=1.7.0
+paddleocr>=2.7.0
+PyMuPDF>=1.23.0
+layoutparser>=0.3.4
+transformers>=4.35.0
+torch>=2.0.0
+torchvision>=0.15.0
+detectron2>=0.6
+camelot-py[cv]>=0.11.0
+tabula-py>=2.8.0
+pdfplumber>=0.10.0
+seaborn>=0.12.0
+aiohttp>=3.9.0
+aioredis>=2.0.1
+jinja2>=3.1.6
+celery>=5.3.0
+boto3>=1.29.0
+twilio>=8.10.0
+aiosmtplib>=3.0.0
+xgboost>=1.7.0
+lightgbm>=4.1.0
+pyiqa>=0.1.7
+pdfminer.six>=20221105
+diskcache>=5.6.0
+cerberus>=1.3.4
+marshmallow>=3.20.0
+click>=8.1.0
+dill>=0.3.7
+cloudpickle>=3.0.0
+imagehash>=4.3.2
+seaborn>=0.12.0
 
 # Excel export functionality
 openpyxl>=3.1.0
@@ -80,7 +158,7 @@ soundfile>=0.12.0
 # Audio Enhancement Pipeline (Task 117)
 noisereduce>=3.0.0
 scipy>=1.10.0  # Already included above but needed for audio enhancement
-matplotlib>=3.7.0  # Already included above but needed for visualizations
+matplotlib>=3.10.5  # Already included above but needed for visualizations
 plotly>=5.17.0  # Already included above but needed for UI visualizations
 
 # Database and Authentication
@@ -99,7 +177,7 @@ python-socketio>=5.10.0
 
 # Analytics and visualization
 plotly>=5.17.0
-matplotlib>=3.7.0
+matplotlib>=3.10.5
 psutil>=5.9.0
 
 # JSON Schema validation
@@ -154,7 +232,7 @@ zipfile-deflate64>=0.2.0  # Enhanced ZIP compression support
 bcrypt>=4.0.1
 pyotp>=2.9.0
 qrcode>=7.4.2
-Pillow>=10.0.0  # Already included above for image processing
+Pillow>=11.3.0  # Already included above for image processing
 
 # Notification System Dependencies (Task 52)
 # Email notifications
@@ -209,7 +287,7 @@ pdfplumber>=0.10.0
 
 # Advanced Image Processing
 scikit-learn>=1.0.0  # Already included above
-matplotlib>=3.7.0  # Already included above
+matplotlib>=3.10.5  # Already included above
 
 # Data Processing and Analysis
 pandas>=2.0.0  # Already included above
@@ -238,7 +316,7 @@ nltk>=3.8.0
 huggingface-hub>=0.17.0
 
 # Additional Dependencies for Advanced Features
-Pillow>=10.0.0  # Already included above
+Pillow>=11.3.0  # Already included above
 requests>=2.31.0  # Already included above
 python-dotenv>=1.0.0  # Already included above
 

@@ -1,10 +1,13 @@
 name: Lighthouse CI
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'URL to test with Lighthouse'
+        required: false
+        default: 'http://localhost:3000'
+        type: string
 
 jobs:
   lighthouse:

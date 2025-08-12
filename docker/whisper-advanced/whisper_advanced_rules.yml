@@ -1,0 +1,149 @@
+# Prometheus alerting rules for Whisper Advanced Integration
+groups:
+  - name: whisper_advanced_alerts
+    rules:
+      # Service availability alerts
+      - alert: WhisperAdvancedServiceDown
+        expr: up{job="whisper-advanced"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Whisper Advanced service is down"
+          description: "Whisper Advanced service has been down for more than 1 minute"
+
+      - alert: WhisperAdvancedHighErrorRate
+        expr: rate(whisper_transcription_requests_total{status="error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Whisper Advanced"
+          description: "Error rate is {{ $value }} errors per second"
+
+      # Performance alerts
+      - alert: WhisperAdvancedHighLatency
+        expr: histogram_quantile(0.95, rate(whisper_transcription_duration_seconds_bucket[5m])) > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High transcription latency"
+          description: "95th percentile latency is {{ $value }} seconds"
+
+      - alert: WhisperAdvancedQueueBacklog
+        expr: whisper_queue_depth > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large queue backlog"
+          description: "Queue depth is {{ $value }} jobs"
+
+      # Resource alerts
+      - alert: WhisperAdvancedHighCPU
+        expr: whisper_system_cpu_usage_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: WhisperAdvancedHighMemory
+        expr: (whisper_system_memory_usage_bytes / (1024*1024*1024)) > 3.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}GB"
+
+      - alert: WhisperAdvancedLowDiskSpace
+        expr: (whisper_system_disk_usage_bytes / (1024*1024*1024)) > 80
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}GB"
+
+      # Component health alerts
+      - alert: WhisperAdvancedComponentUnhealthy
+        expr: whisper_component_status < 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Component {{ $labels.component }} is unhealthy"
+          description: "Component {{ $labels.component }} status is {{ $value }}"
+
+      - alert: WhisperAdvancedDatabaseDown
+        expr: whisper_component_status{component="database"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection failed"
+          description: "Cannot connect to PostgreSQL database"
+
+      - alert: WhisperAdvancedRedisDown
+        expr: whisper_component_status{component="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis connection failed"
+          description: "Cannot connect to Redis cache"
+
+      # Model and processing alerts
+      - alert: WhisperAdvancedModelLoadFailure
+        expr: increase(whisper_model_load_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model loading failures detected"
+          description: "{{ $value }} model load failures in the last 5 minutes"
+
+      - alert: WhisperAdvancedLargeCacheSize
+        expr: (whisper_model_cache_size_bytes / (1024*1024*1024)) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large model cache size"
+          description: "Model cache size is {{ $value }}GB"
+
+  - name: whisper_advanced_recording_rules
+    rules:
+      # Recording rules for dashboard queries
+      - record: whisper:transcription_rate_5m
+        expr: rate(whisper_transcription_requests_total[5m])
+
+      - record: whisper:transcription_success_rate_5m
+        expr: rate(whisper_transcription_requests_total{status="success"}[5m]) / rate(whisper_transcription_requests_total[5m])
+
+      - record: whisper:avg_transcription_duration_5m
+        expr: rate(whisper_transcription_duration_seconds_sum[5m]) / rate(whisper_transcription_duration_seconds_count[5m])
+
+      - record: whisper:p95_transcription_duration_5m
+        expr: histogram_quantile(0.95, rate(whisper_transcription_duration_seconds_bucket[5m]))
+
+      - record: whisper:p99_transcription_duration_5m
+        expr: histogram_quantile(0.99, rate(whisper_transcription_duration_seconds_bucket[5m]))
+
+      - record: whisper:active_transcriptions_avg_5m
+        expr: avg_over_time(whisper_active_transcriptions[5m])
+
+      - record: whisper:queue_depth_avg_5m
+        expr: avg_over_time(whisper_queue_depth[5m])
+
+      - record: whisper:system_cpu_avg_5m
+        expr: avg_over_time(whisper_system_cpu_usage_percent[5m])
+
+      - record: whisper:system_memory_avg_5m
+        expr: avg_over_time(whisper_system_memory_usage_bytes[5m])
+
+      - record: whisper:component_availability_5m
+        expr: avg_over_time(whisper_component_status[5m])

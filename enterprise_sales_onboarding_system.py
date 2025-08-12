@@ -396,10 +396,61 @@ class EnterpriseSalesService:
         Base.metadata.create_all(self.engine)
         self.SessionLocal = sessionmaker(bind=self.engine)
         
-        # CRM integration placeholders
-        self.salesforce_client = None
-        self.hubspot_client = None
-        self.pipedrive_client = None
+        # Initialize CRM clients if credentials are available
+        try:
+            # Salesforce integration
+            try:
+                from simple_salesforce import Salesforce
+                sf_username = os.getenv('SALESFORCE_USERNAME')
+                sf_password = os.getenv('SALESFORCE_PASSWORD')
+                sf_token = os.getenv('SALESFORCE_SECURITY_TOKEN')
+                
+                if sf_username and sf_password and sf_token:
+                    self.salesforce_client = Salesforce(
+                        username=sf_username,
+                        password=sf_password,
+                        security_token=sf_token
+                    )
+                else:
+                    self.salesforce_client = None
+                    logger.info("Salesforce credentials not provided, skipping initialization")
+            except ImportError:
+                self.salesforce_client = None
+                logger.warning("Salesforce library not available, skipping initialization")
+            
+            # HubSpot integration
+            try:
+                from hubspot import HubSpot
+                hs_api_key = os.getenv('HUBSPOT_API_KEY')
+                
+                if hs_api_key:
+                    self.hubspot_client = HubSpot(api_key=hs_api_key)
+                else:
+                    self.hubspot_client = None
+                    logger.info("HubSpot API key not provided, skipping initialization")
+            except ImportError:
+                self.hubspot_client = None
+                logger.warning("HubSpot library not available, skipping initialization")
+            
+            # Pipedrive integration
+            try:
+                from pipedrive import PipedriveClient
+                pd_api_token = os.getenv('PIPEDRIVE_API_TOKEN')
+                
+                if pd_api_token:
+                    self.pipedrive_client = PipedriveClient(pd_api_token)
+                else:
+                    self.pipedrive_client = None
+                    logger.info("Pipedrive API token not provided, skipping initialization")
+            except ImportError:
+                self.pipedrive_client = None
+                logger.warning("Pipedrive library not available, skipping initialization")
+                
+        except Exception as e:
+            logger.error(f"Error initializing CRM clients: {e}")
+            self.salesforce_client = None
+            self.hubspot_client = None
+            self.pipedrive_client = None
     
     async def create_lead(self, lead_data: LeadCreate) -> Lead:
         """Create new enterprise lead"""
@@ -516,49 +567,86 @@ class EnterpriseSalesService:
         finally:
             db.close()
     
-    async def schedule_demo(self, request: DemoScheduleRequest) -> DemoSession:
-        """Schedule enterprise demo"""
-        db = self.SessionLocal()
+    async def sync_lead_to_crm(self, lead: Lead) -> bool:
+        """Sync lead to connected CRM systems"""
         try:
-            # Create demo session
-            demo = DemoSession(
-                lead_id=request.lead_id,
-                demo_type=request.demo_type.value,
-                scheduled_at=request.scheduled_at,
-                duration_minutes=request.duration_minutes,
-                timezone=request.timezone,
-                attendees=request.attendees,
-                agenda=request.agenda,
-                custom_demo_data=request.custom_demo_data,
-                status="scheduled",
-                meeting_link=self._generate_meeting_link()
-            )
-            db.add(demo)
+            synced = False
             
-            # Log activity
-            activity = SalesActivity(
-                lead_id=request.lead_id,
-                activity_type="demo_scheduled",
-                subject=f"{request.demo_type.value} demo scheduled",
-                description=f"Demo scheduled for {request.scheduled_at}",
-                scheduled_at=request.scheduled_at
-            )
-            db.add(activity)
+            # Sync to Salesforce
+            if self.salesforce_client:
+                try:
+                    # Prepare lead data for Salesforce
+                    sf_lead_data = {
+                        'FirstName': lead.contact_name.split()[0] if lead.contact_name else '',
+                        'LastName': ' '.join(lead.contact_name.split()[1:]) if lead.contact_name and len(lead.contact_name.split()) > 1 else '',
+                        'Company': lead.company_name,
+                        'Email': lead.contact_email,
+                        'Phone': lead.contact_phone,
+                        'Website': lead.website,
+                        'LeadSource': 'API Integration',
+                        'Status': 'New',
+                        'Description': lead.notes or ''
+                    }
+                    
+                    # Create lead in Salesforce
+                    result = self.salesforce_client.Lead.create(sf_lead_data)
+                    if result and 'id' in result:
+                        logger.info(f"Lead synced to Salesforce: {result['id']}")
+                        synced = True
+                except Exception as e:
+                    logger.error(f"Error syncing lead to Salesforce: {e}")
             
-            # Update lead status if needed
-            lead = db.query(Lead).filter(Lead.id == request.lead_id).first()
-            if lead and lead.status == LeadStatus.NEW.value:
-                lead.status = LeadStatus.CONTACTED.value
+            # Sync to HubSpot
+            if self.hubspot_client:
+                try:
+                    # Prepare lead data for HubSpot
+                    hs_lead_data = {
+                        'properties': {
+                            'firstname': lead.contact_name.split()[0] if lead.contact_name else '',
+                            'lastname': ' '.join(lead.contact_name.split()[1:]) if lead.contact_name and len(lead.contact_name.split()) > 1 else '',
+                            'company': lead.company_name,
+                            'email': lead.contact_email,
+                            'phone': lead.contact_phone,
+                            'website': lead.website,
+                            'notes': lead.notes or ''
+                        }
+                    }
+                    
+                    # Create lead in HubSpot
+                    api_response = self.hubspot_client.crm.contacts.basic_api.create(
+                        simple_public_object_input_for_create=hs_lead_data
+                    )
+                    if api_response:
+                        logger.info(f"Lead synced to HubSpot: {api_response.id}")
+                        synced = True
+                except Exception as e:
+                    logger.error(f"Error syncing lead to HubSpot: {e}")
             
-            db.commit()
-            db.refresh(demo)
+            # Sync to Pipedrive
+            if self.pipedrive_client:
+                try:
+                    # Prepare lead data for Pipedrive
+                    pd_lead_data = {
+                        'name': lead.contact_name or lead.company_name,
+                        'org_name': lead.company_name,
+                        'email': lead.contact_email,
+                        'phone': lead.contact_phone,
+                        'visible_to': 3  # Visible to everyone
+                    }
+                    
+                    # Create lead in Pipedrive
+                    result = self.pipedrive_client.leads.create_lead(pd_lead_data)
+                    if result and 'data' in result:
+                        logger.info(f"Lead synced to Pipedrive: {result['data']['id']}")
+                        synced = True
+                except Exception as e:
+                    logger.error(f"Error syncing lead to Pipedrive: {e}")
             
-            # Send calendar invites
-            await self._send_demo_invites(demo)
+            return synced
             
-            return demo
-        finally:
-            db.close()
+        except Exception as e:
+            logger.error(f"Error syncing lead to CRM systems: {e}")
+            return False
     
     def _generate_meeting_link(self) -> str:
         """Generate unique meeting link"""
@@ -716,15 +804,159 @@ class EnterpriseSalesService:
     
     async def _send_demo_invites(self, demo: DemoSession):
         """Send calendar invites for demo"""
-        # Integration with calendar service
-        pass
+        try:
+            # Integration with calendar service (Google Calendar API example)
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            
+            # Prepare calendar invite content
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f"Demo Session: {demo.demo_type.value.title()}"
+            msg['From'] = "sales@company.com"
+            msg['To'] = demo.attendee_emails
+            
+            # Create calendar event details
+            event_details = f"""
+Demo Session Details:
+- Type: {demo.demo_type.value.title()}
+- Scheduled: {demo.scheduled_at.strftime('%Y-%m-%d %H:%M')} UTC
+- Duration: {demo.duration_minutes} minutes
+- Attendees: {', '.join(demo.attendee_emails)}
+
+Agenda:
+{demo.agenda or 'Standard demo walkthrough'}
+
+Please join the meeting at the scheduled time.
+Meeting link will be provided closer to the session.
+"""
+            
+            # Add HTML version
+            html_content = f"""
+<html>
+  <body>
+    <h2>Demo Session Invitation</h2>
+    <p><strong>Type:</strong> {demo.demo_type.value.title()}</p>
+    <p><strong>Scheduled:</strong> {demo.scheduled_at.strftime('%Y-%m-%d %H:%M')} UTC</p>
+    <p><strong>Duration:</strong> {demo.duration_minutes} minutes</p>
+    <p><strong>Attendees:</strong> {', '.join(demo.attendee_emails)}</p>
+    
+    <h3>Agenda</h3>
+    <p>{demo.agenda or 'Standard demo walkthrough'}</p>
+    
+    <p>Please join the meeting at the scheduled time.<br>
+    Meeting link will be provided closer to the session.</p>
+  </body>
+</html>
+"""
+            
+            # Attach parts
+            part1 = MIMEText(event_details, 'plain')
+            part2 = MIMEText(html_content, 'html')
+            
+            msg.attach(part1)
+            msg.attach(part2)
+            
+            # Send email (in production, this would use actual SMTP credentials)
+            try:
+                # This is a mock implementation - in production you would use:
+                # server = smtplib.SMTP('smtp.gmail.com', 587)
+                # server.starttls()
+                # server.login(smtp_username, smtp_password)
+                # server.send_message(msg)
+                # server.quit()
+                
+                logger.info(f"Demo invite email would be sent to: {demo.attendee_emails}")
+                logger.info(f"Demo details: {event_details}")
+                
+            except Exception as smtp_error:
+                logger.warning(f"Failed to send SMTP email: {smtp_error}")
+                # Fallback to console output
+                print(f"Demo Invite: {msg.as_string()}")
+            
+        except Exception as e:
+            logger.error(f"Error sending demo invites: {e}")
     
     async def _provision_trial_environment(self, trial: Trial):
         """Provision trial environment and credentials"""
-        # Create trial workspace
-        # Set up features and limits
-        # Generate API keys
-        pass
+        try:
+            # Create trial workspace in the system
+            workspace_id = f"trial_{trial.trial_id}_{int(time.time())}"
+            
+            # Set up features and limits based on trial type
+            if trial.trial_type == "standard":
+                features_enabled = ["basic_transcription", "entity_extraction", "translation"]
+                user_limit = 10
+                storage_limit_gb = 10
+                api_rate_limit = 1000
+            elif trial.trial_type == "premium":
+                features_enabled = ["advanced_transcription", "entity_extraction", "translation", 
+                                  "speaker_diarization", "custom_vocabularies", "api_access"]
+                user_limit = 50
+                storage_limit_gb = 100
+                api_rate_limit = 10000
+            else:
+                # Custom trial
+                features_enabled = trial.features_enabled or ["basic_transcription"]
+                user_limit = getattr(trial, 'user_limit', 5)
+                storage_limit_gb = getattr(trial, 'storage_limit_gb', 5)
+                api_rate_limit = getattr(trial, 'api_rate_limit', 100)
+            
+            # Generate API keys
+            import secrets
+            api_key = f"trial_{secrets.token_hex(16)}"
+            
+            # Create trial configuration
+            trial_config = {
+                "workspace_id": workspace_id,
+                "trial_id": trial.trial_id,
+                "features_enabled": features_enabled,
+                "user_limit": user_limit,
+                "storage_limit_gb": storage_limit_gb,
+                "api_rate_limit": api_rate_limit,
+                "api_key": api_key,
+                "created_at": datetime.now().isoformat(),
+                "expires_at": (datetime.now() + timedelta(days=trial.duration_days)).isoformat()
+            }
+            
+            # In a real implementation, this would:
+            # 1. Create a new tenant/workspace in the system
+            # 2. Configure feature flags and limits
+            # 3. Provision storage and compute resources
+            # 4. Generate and store API credentials
+            # 5. Set up monitoring and alerting
+            # 6. Create initial admin user
+            
+            logger.info(f"Trial environment provisioned: {trial_config}")
+            
+            # Update trial record with configuration
+            db = self.SessionLocal()
+            try:
+                db_trial = db.query(Trial).filter(Trial.trial_id == trial.trial_id).first()
+                if db_trial:
+                    db_trial.environment_config = trial_config
+                    db_trial.status = "provisioned"
+                    db_trial.updated_at = datetime.now()
+                    db.commit()
+                    db.refresh(db_trial)
+            finally:
+                db.close()
+                
+            return trial_config
+            
+        except Exception as e:
+            logger.error(f"Error provisioning trial environment: {e}")
+            # Update trial status to failed
+            db = self.SessionLocal()
+            try:
+                db_trial = db.query(Trial).filter(Trial.trial_id == trial.trial_id).first()
+                if db_trial:
+                    db_trial.status = "failed"
+                    db_trial.updated_at = datetime.now()
+                    db.commit()
+            finally:
+                db.close()
+            return None
 
 
 class OnboardingService:
