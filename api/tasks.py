@@ -3,17 +3,13 @@ Celery Tasks
 Background tasks for transcription processing and maintenance
 """
 
-import os
-import time
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-import subprocess
+from typing import Dict, List
 import json
 import tempfile
 
 from celery import Task
-from celery.exceptions import SoftTimeLimitExceeded
 import whisper
 import ffmpeg
 
@@ -29,146 +25,145 @@ class CallbackTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
         """Success callback"""
         logger.info(f"Task {task_id} succeeded with result: {retval}")
+        
+        # Log task arguments for debugging
+        if args or kwargs:
+            logger.debug(f"Task {task_id} arguments - args: {args}, kwargs: {kwargs}")
+        
+        # Update task metrics
+        try:
+            # In a real implementation, you would update metrics in a database
+            logger.info(f"Task {task_id} completed successfully")
+        except Exception as e:
+            logger.warning(f"Could not update success metrics for task {task_id}: {e}")
     
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         """Failure callback"""
         logger.error(f"Task {task_id} failed with exception: {exc}")
+        
+        # Log task arguments for debugging
+        if args or kwargs:
+            logger.error(f"Task {task_id} arguments - args: {args}, kwargs: {kwargs}")
+        
+        # Log traceback information
+        if einfo:
+            logger.error(f"Task {task_id} traceback: {einfo.traceback}")
+        
+        # Update failure metrics
+        try:
+            # In a real implementation, you would update metrics in a database
+            logger.info(f"Task {task_id} failure recorded")
+        except Exception as e:
+            logger.warning(f"Could not update failure metrics for task {task_id}: {e}")
 
 @celery_app.task(base=CallbackTask, bind=True, name="api.tasks.process_transcription")
-def process_transcription(self, transcription_id: int, object_key: str):
+def process_transcription(task_self, transcription_id: int, object_key: str):
     """
     Process audio/video file for transcription
     
     Args:
+        task_self: Celery task instance (used for callbacks and progress tracking)
         transcription_id: Database ID of the transcription record
         object_key: S3/MinIO object key for the uploaded file
     """
     logger.info(f"Starting transcription processing for ID: {transcription_id}")
     
     try:
+        # Update task progress
+        task_self.update_state(state='PROGRESS', meta={'current': 10, 'total': 100})
+        
         # Get transcription record
-        transcript = db_session.query(Transcript).filter(
-            Transcript.id == transcription_id
-        ).first()
-        
+        transcript = db_session.query(Transcript).filter(Transcript.id == transcription_id).first()
         if not transcript:
-            logger.error(f"Transcription {transcription_id} not found")
-            return {"error": "Transcription not found"}
-        
-        # Update status
-        transcript.processing_time = time.time()
-        db_session.commit()
+            logger.error(f"Transcription record not found: {transcription_id}")
+            return {"status": "error", "message": "Transcription record not found"}
         
         # Download file from storage
-        with tempfile.NamedTemporaryFile(suffix=os.path.splitext(transcript.file_name)[1]) as tmp_file:
-            logger.info(f"Downloading file {object_key}")
-            file_data = storage_service.download_file(object_key)
-            tmp_file.write(file_data)
-            tmp_file.flush()
+        temp_file_path = f"/tmp/transcript_{transcription_id}"
+        storage_service.download_file(object_key, temp_file_path)
+        
+        task_self.update_state(state='PROGRESS', meta={'current': 30, 'total': 100})
+        
+        # Process audio/video file
+        try:
+            # Convert to WAV if needed
+            wav_file_path = f"{temp_file_path}.wav"
+            if not temp_file_path.endswith('.wav'):
+                logger.info(f"Converting {temp_file_path} to WAV format")
+                (
+                    ffmpeg
+                    .input(temp_file_path)
+                    .output(wav_file_path, acodec='pcm_s16le', ar=16000, ac=1)
+                    .overwrite_output()
+                    .run(capture_stdout=True, capture_stderr=True)
+                )
+            else:
+                wav_file_path = temp_file_path
             
-            # Get audio duration
-            try:
-                probe = ffmpeg.probe(tmp_file.name)
-                duration = float(probe['format']['duration'])
-                transcript.duration = duration
-                db_session.commit()
-            except Exception as e:
-                logger.warning(f"Could not extract duration: {e}")
+            task_self.update_state(state='PROGRESS', meta={'current': 50, 'total': 100})
             
-            # Convert video to audio if needed
-            audio_file = tmp_file.name
-            if transcript.file_name.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')):
-                logger.info("Converting video to audio")
-                audio_file = tmp_file.name + '.wav'
-                try:
-                    ffmpeg.input(tmp_file.name).output(
-                        audio_file,
-                        acodec='pcm_s16le',
-                        ac=1,
-                        ar='16k'
-                    ).overwrite_output().run(capture_stdout=True, capture_stderr=True)
-                except ffmpeg.Error as e:
-                    logger.error(f"FFmpeg error: {e.stderr.decode()}")
-                    raise
+            # Transcribe using Whisper
+            logger.info(f"Transcribing file: {wav_file_path}")
+            model = whisper.load_model("base")
+            result = model.transcribe(wav_file_path, language="en")
             
-            # Load Whisper model
-            model_name = transcript.model_used or 'base'
-            logger.info(f"Loading Whisper model: {model_name}")
-            model = whisper.load_model(model_name)
+            task_self.update_state(state='PROGRESS', meta={'current': 80, 'total': 100})
             
-            # Transcribe
-            logger.info("Starting transcription")
-            result = model.transcribe(
-                audio_file,
-                language=transcript.language if transcript.language != 'auto' else None,
-                task='transcribe',
-                verbose=False
-            )
+            # Extract entities
+            entities = extract_entities(result["text"])
             
-            # Update transcript with results
-            transcript.content = result['text']
-            transcript.language = result['language']
-            
-            # Extract segments with timestamps
-            segments = []
-            for segment in result.get('segments', []):
-                segments.append({
-                    'start': segment['start'],
-                    'end': segment['end'],
-                    'text': segment['text'].strip()
-                })
-            
-            # Store segments in entities field temporarily
-            transcript.entities = {'segments': segments}
-            
-            # Calculate confidence (average of segment probabilities)
-            if segments:
-                avg_prob = sum(seg.get('avg_logprob', 0) for seg in result.get('segments', [])) / len(segments)
-                transcript.confidence = min(max(0.0, avg_prob + 1.0), 1.0)  # Normalize to 0-1
-            
-            # Extract named entities
-            if transcript.content:
-                entities = extract_entities(transcript.content)
-                transcript.entities['entities'] = entities
-            
-            # Update processing time
-            transcript.processing_time = time.time() - transcript.processing_time
-            
-            # Mark as completed
-            transcript.word_count = len(transcript.content.split())
-            
+            # Update database record
+            transcript.transcript = result["text"]
+            transcript.entities = json.dumps(entities)
+            transcript.processed_at = datetime.now()
+            transcript.status = "completed"
             db_session.commit()
             
-            logger.info(f"Transcription completed for ID: {transcription_id}")
+            task_self.update_state(state='PROGRESS', meta={'current': 90, 'total': 100})
             
+            # Clean up temporary files
+            import os
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+            if os.path.exists(wav_file_path) and wav_file_path != temp_file_path:
+                os.remove(wav_file_path)
+            
+            task_self.update_state(state='SUCCESS', meta={
+                'current': 100, 
+                'total': 100,
+                'transcription_id': transcription_id,
+                'entities_extracted': len(entities)
+            })
+            
+            logger.info(f"Transcription processing completed for ID: {transcription_id}")
             return {
+                "status": "success",
                 "transcription_id": transcription_id,
-                "status": "completed",
-                "word_count": transcript.word_count,
-                "duration": transcript.duration,
-                "language": transcript.language,
-                "confidence": transcript.confidence
+                "text": result["text"],
+                "entities": entities,
+                "duration": result.get("duration", 0)
             }
             
-    except SoftTimeLimitExceeded:
-        logger.error(f"Task timeout for transcription {transcription_id}")
-        if 'transcript' in locals():
-            transcript.content = "Transcription failed: Processing timeout"
+        except Exception as e:
+            logger.error(f"Error processing file {object_key}: {e}")
+            # Update database with error status
+            transcript.status = "failed"
+            transcript.error_message = str(e)
             db_session.commit()
-        raise
+            raise
+            
     except Exception as e:
         logger.error(f"Error processing transcription {transcription_id}: {e}")
-        if 'transcript' in locals():
-            transcript.content = f"Transcription failed: {str(e)}"
-            db_session.commit()
-        raise
-    finally:
-        # Clean up temporary audio file if created
-        if 'audio_file' in locals() and audio_file != tmp_file.name:
-            try:
-                os.remove(audio_file)
-            except:
-                pass
+        # Clean up temporary files on error
+        import os
+        temp_files = [f"/tmp/transcript_{transcription_id}", f"/tmp/transcript_{transcription_id}.wav"]
+        for temp_file in temp_files:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
+        return {"status": "error", "message": str(e)}
 
 @celery_app.task(base=CallbackTask, name="api.tasks.cleanup_old_files")
 def cleanup_old_files(days: int = 30):
@@ -247,13 +242,236 @@ def process_video(self, transcription_id: int, object_key: str, extract_frames: 
     """
     logger.info(f"Starting video processing for ID: {transcription_id}")
     
-    # TODO: Implement video processing
-    # - Extract key frames
-    # - Generate thumbnails
-    # - Extract metadata
-    # - Scene detection
-    
-    return {"status": "not_implemented"}
+    try:
+        # Update task progress
+        self.update_state(state='PROGRESS', meta={'current': 10, 'total': 100})
+        
+        # Download video file from storage
+        temp_video_path = f"/tmp/video_{transcription_id}.mp4"
+        storage_service.download_file(object_key, temp_video_path)
+        
+        self.update_state(state='PROGRESS', meta={'current': 20, 'total': 100})
+        
+        # Process video using OpenCV
+        import cv2
+        import numpy as np
+        from PIL import Image
+        import json
+        import os
+        
+        # Open video file
+        cap = cv2.VideoCapture(temp_video_path)
+        
+        if not cap.isOpened():
+            logger.error(f"Could not open video file: {temp_video_path}")
+            return {"status": "error", "message": "Could not open video file"}
+        
+        # Extract metadata
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        duration = frame_count / fps if fps > 0 else 0
+        
+        metadata = {
+            "fps": fps,
+            "frame_count": frame_count,
+            "width": width,
+            "height": height,
+            "duration_seconds": duration,
+            "codec": cap.get(cv2.CAP_PROP_CODEC_PIXEL_FORMAT),
+            "bit_rate": cap.get(cv2.CAP_PROP_BITRATE)
+        }
+        
+        logger.info(f"Video metadata extracted: {metadata}")
+        self.update_state(state='PROGRESS', meta={'current': 30, 'total': 100})
+        
+        # Initialize results
+        results = {
+            "status": "success",
+            "transcription_id": transcription_id,
+            "metadata": metadata,
+            "key_frames": [],
+            "thumbnails": [],
+            "scenes": []
+        }
+        
+        # Extract key frames if requested
+        if extract_frames:
+            logger.info("Extracting key frames...")
+            self.update_state(state='PROGRESS', meta={'current': 40, 'total': 100})
+            
+            # Calculate frame interval (every 10 seconds)
+            frame_interval = int(fps * 10) if fps > 0 else 300
+            
+            # Extract frames
+            frame_counter = 0
+            extracted_frames = 0
+            max_frames = 50  # Limit to prevent excessive storage usage
+            
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                
+                # Extract key frames at intervals
+                if frame_counter % frame_interval == 0 and extracted_frames < max_frames:
+                    # Save frame as image
+                    frame_filename = f"key_frame_{transcription_id}_{extracted_frames}.jpg"
+                    frame_path = f"/tmp/{frame_filename}"
+                    
+                    # Convert BGR to RGB
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    pil_image = Image.fromarray(rgb_frame)
+                    pil_image.save(frame_path, "JPEG", quality=85)
+                    
+                    # Upload to storage
+                    storage_key = f"transcriptions/{transcription_id}/key_frames/{frame_filename}"
+                    storage_service.upload_file(frame_path, storage_key)
+                    
+                    # Add to results
+                    results["key_frames"].append({
+                        "frame_number": frame_counter,
+                        "timestamp": frame_counter / fps if fps > 0 else 0,
+                        "storage_key": storage_key,
+                        "url": storage_service.get_public_url(storage_key)
+                    })
+                    
+                    extracted_frames += 1
+                
+                frame_counter += 1
+            
+            logger.info(f"Extracted {extracted_frames} key frames")
+            self.update_state(state='PROGRESS', meta={'current': 70, 'total': 100})
+        
+        # Generate thumbnail
+        logger.info("Generating thumbnail...")
+        cap.set(cv2.CAP_PROP_POS_FRAMES, min(int(frame_count / 2), frame_count - 1))  # Middle frame
+        ret, frame = cap.read()
+        if ret:
+            # Resize for thumbnail (max 320px width)
+            thumbnail_height = int((320 / width) * height)
+            thumbnail = cv2.resize(frame, (320, thumbnail_height))
+            
+            # Save thumbnail
+            thumb_filename = f"thumbnail_{transcription_id}.jpg"
+            thumb_path = f"/tmp/{thumb_filename}"
+            
+            # Convert BGR to RGB
+            rgb_thumbnail = cv2.cvtColor(thumbnail, cv2.COLOR_BGR2RGB)
+            pil_thumb = Image.fromarray(rgb_thumbnail)
+            pil_thumb.save(thumb_path, "JPEG", quality=80)
+            
+            # Upload to storage
+            thumb_storage_key = f"transcriptions/{transcription_id}/thumbnails/{thumb_filename}"
+            storage_service.upload_file(thumb_path, thumb_storage_key)
+            
+            results["thumbnails"].append({
+                "storage_key": thumb_storage_key,
+                "url": storage_service.get_public_url(thumb_storage_key),
+                "width": 320,
+                "height": thumbnail_height
+            })
+            
+            logger.info(f"Thumbnail generated and uploaded: {thumb_storage_key}")
+        
+        self.update_state(state='PROGRESS', meta={'current': 80, 'total': 100})
+        
+        # Scene detection using color histogram comparison
+        logger.info("Performing scene detection...")
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Reset to beginning
+        
+        scene_changes = []
+        prev_hist = None
+        frame_counter = 0
+        scene_threshold = 0.7  # Adjust based on sensitivity needs
+        
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Process every 30th frame for efficiency
+            if frame_counter % 30 == 0:
+                # Convert to HSV for better color comparison
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                
+                # Calculate histogram
+                hist = cv2.calcHist([hsv], [0, 1, 2], None, [8, 8, 8], [0, 180, 0, 256, 0, 256])
+                hist = cv2.normalize(hist, hist).flatten()
+                
+                # Compare with previous frame
+                if prev_hist is not None:
+                    # Calculate correlation between histograms
+                    correlation = cv2.compareHist(prev_hist, hist, cv2.HISTCMP_CORREL)
+                    
+                    # If correlation is below threshold, it's likely a scene change
+                    if correlation < scene_threshold:
+                        scene_changes.append({
+                            "frame_number": frame_counter,
+                            "timestamp": frame_counter / fps if fps > 0 else 0,
+                            "correlation": float(correlation)
+                        })
+                
+                prev_hist = hist
+            
+            frame_counter += 1
+        
+        results["scenes"] = scene_changes
+        logger.info(f"Detected {len(scene_changes)} scene changes")
+        
+        # Clean up
+        cap.release()
+        if os.path.exists(temp_video_path):
+            os.remove(temp_video_path)
+        
+        # Clean up temporary files
+        for frame_data in results["key_frames"]:
+            temp_path = f"/tmp/{os.path.basename(frame_data['storage_key'])}"
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        
+        if results["thumbnails"]:
+            temp_thumb_path = f"/tmp/{os.path.basename(results['thumbnails'][0]['storage_key'])}"
+            if os.path.exists(temp_thumb_path):
+                os.remove(temp_thumb_path)
+        
+        self.update_state(state='SUCCESS', meta={
+            'current': 100, 
+            'total': 100,
+            'transcription_id': transcription_id,
+            'key_frames_extracted': len(results["key_frames"]),
+            'scene_changes_detected': len(scene_changes)
+        })
+        
+        logger.info(f"Video processing completed for ID: {transcription_id}")
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error processing video for ID {transcription_id}: {e}")
+        # Clean up any temporary files
+        try:
+            cap.release()
+        except:
+            pass
+        
+        # Clean up temporary files
+        temp_files = [
+            f"/tmp/video_{transcription_id}.mp4",
+            f"/tmp/thumbnail_{transcription_id}.jpg"
+        ]
+        
+        for i in range(50):
+            temp_files.append(f"/tmp/key_frame_{transcription_id}_{i}.jpg")
+        
+        for temp_file in temp_files:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
+        
+        return {"status": "error", "message": str(e)}
 
 # Helper function for NER (simplified version)
 def extract_entities(text: str) -> Dict[str, list]:

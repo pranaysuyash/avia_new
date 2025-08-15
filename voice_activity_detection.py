@@ -107,8 +107,9 @@ class DeepVADModel(nn.Module):
         return x
 
 class VoiceActivityDetector:
-    def __init__(self, db_path: str = "vad_system.db"):
+    def __init__(self, db_path: str = "vad_system.db", webrtc_vad_mode: int = 2):
         self.db_path = db_path
+        self.webrtc_vad_mode = webrtc_vad_mode
         self.webrtc_vad = None
         self.ml_classifier = None
         self.scaler = None
@@ -181,7 +182,7 @@ class VoiceActivityDetector:
         try:
             # Initialize WebRTC VAD
             self.webrtc_vad = webrtcvad.Vad()
-            self.webrtc_vad.set_mode(VADMode.NORMAL.value)
+            self.webrtc_vad.set_mode(self.webrtc_vad_mode)
             
             # Initialize ML classifier
             self.ml_classifier = RandomForestClassifier(
@@ -201,6 +202,19 @@ class VoiceActivityDetector:
             
         except Exception as e:
             logger.error(f"Error initializing VAD models: {e}")
+
+    def set_webrtc_vad_mode(self, mode: int):
+        """Set WebRTC VAD mode (0-3, where 0 is most aggressive, 3 is least aggressive)"""
+        if self.webrtc_vad and 0 <= mode <= 3:
+            self.webrtc_vad_mode = mode
+            self.webrtc_vad.set_mode(mode)
+            logger.info(f"WebRTC VAD mode updated to {mode}")
+        else:
+            logger.warning(f"Invalid WebRTC VAD mode: {mode}")
+    
+    def get_webrtc_vad_mode(self) -> int:
+        """Get current WebRTC VAD mode"""
+        return self.webrtc_vad_mode
 
     def load_pretrained_models(self):
         """Load pre-trained models if available"""

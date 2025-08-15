@@ -11,7 +11,9 @@
       "700": "#1D4ED8",
       "800": "#1E40AF",
       "900": "#1E3A8A",
-      "DEFAULT": "#3B82F6"
+      "DEFAULT": "#3B82F6",
+      "contrast": "#FFFFFF",
+      "onPrimary": "#FFFFFF"
     },
     "secondary": {
       "50": "#F5F3FF",
@@ -125,6 +127,21 @@
         "#98D8C8",
         "#F7DC6F"
       ]
+    },
+    "accessibility": {
+      "focus": {
+        "outline": "#3B82F6",
+        "outlineWidth": "2px",
+        "outlineOffset": "2px"
+      },
+      "highContrast": {
+        "text": "#000000",
+        "background": "#FFFFFF",
+        "border": "#000000"
+      },
+      "colorBlind": {
+        "safe": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+      }
     }
   },
   "typography": {

@@ -1,0 +1,873 @@
+{
+  "patterns": [
+    {
+      "pattern_id": "correction_grammar_99bd927d",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent grammar corrections detected",
+      "confidence": 0.9,
+      "frequency": 40,
+      "first_seen": "2025-06-29T14:54:14.786874",
+      "last_seen": "2025-08-06T15:31:14.786874",
+      "affected_users": [
+        "eve_inconsistent",
+        "alice_expert"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "correction_type": "grammar",
+        "avg_edit_distance": 2,
+        "common_original_texts": [
+          "example text 38",
+          "example text 36",
+          "example text 34",
+          "example text 32",
+          "example text 30",
+          "example text 28",
+          "example text 26",
+          "example text 24",
+          "example text 22",
+          "example text 20",
+          "example text 18",
+          "example text 16",
+          "example text 14",
+          "example text 12",
+          "example text 10",
+          "example text 8",
+          "example text 6",
+          "example text 4",
+          "example text 2",
+          "example text 0"
+        ],
+        "common_corrected_texts": [
+          "Example Text 38",
+          "Example Text 36",
+          "Example Text 34",
+          "Example Text 32",
+          "Example Text 30",
+          "Example Text 28",
+          "Example Text 26",
+          "Example Text 24",
+          "Example Text 22",
+          "Example Text 20",
+          "Example Text 18",
+          "Example Text 16",
+          "Example Text 14",
+          "Example Text 12",
+          "Example Text 10",
+          "Example Text 8",
+          "Example Text 6",
+          "Example Text 4",
+          "Example Text 2",
+          "Example Text 0"
+        ]
+      }
+    },
+    {
+      "pattern_id": "correction_spelling_da951975",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent spelling corrections detected",
+      "confidence": 0.9,
+      "frequency": 20,
+      "first_seen": "2025-06-29T15:17:14.786874",
+      "last_seen": "2025-08-06T15:17:14.786874",
+      "affected_users": [
+        "bob_casual"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "correction_type": "spelling",
+        "avg_edit_distance": 2,
+        "common_original_texts": [],
+        "common_corrected_texts": []
+      }
+    },
+    {
+      "pattern_id": "correction_punctuation_7c63b341",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent punctuation corrections detected",
+      "confidence": 0.9,
+      "frequency": 20,
+      "first_seen": "2025-06-29T15:47:14.786874",
+      "last_seen": "2025-08-06T15:47:14.786874",
+      "affected_users": [
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "correction_type": "punctuation",
+        "avg_edit_distance": 2,
+        "common_original_texts": [],
+        "common_corrected_texts": []
+      }
+    },
+    {
+      "pattern_id": "correction_capitalization_47374916",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent capitalization corrections detected",
+      "confidence": 0.7999999999999999,
+      "frequency": 7,
+      "first_seen": "2025-06-29T15:34:14.786874",
+      "last_seen": "2025-08-04T15:34:14.786874",
+      "affected_users": [
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "correction_type": "capitalization",
+        "avg_edit_distance": 2,
+        "common_original_texts": [],
+        "common_corrected_texts": []
+      }
+    },
+    {
+      "pattern_id": "text_pattern_a2b81c01",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 38' \u2192 'Example Text 38'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-08-06T14:54:14.786874",
+      "last_seen": "2025-08-06T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 38",
+        "most_common_correction": "Example Text 38",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 38",
+          "Example Text 38",
+          "Example Text 38",
+          "Example Text 38"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_b19a9fa8",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 36' \u2192 'Example Text 36'",
+      "confidence": 0.8,
+      "frequency": 5,
+      "first_seen": "2025-08-04T14:54:14.786874",
+      "last_seen": "2025-08-04T15:47:14.786874",
+      "affected_users": [
+        "alice_expert",
+        "charlie_balanced",
+        "bob_casual",
+        "eve_inconsistent",
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 36",
+        "most_common_correction": "Example Text 36",
+        "correction_frequency": 5,
+        "all_corrections": [
+          "Example Text 36",
+          "Example Text 36",
+          "Example Text 36",
+          "Example Text 36",
+          "Example Text 36"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_9dbb7403",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 34' \u2192 'Example Text 34'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-08-02T14:54:14.786874",
+      "last_seen": "2025-08-02T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 34",
+        "most_common_correction": "Example Text 34",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 34",
+          "Example Text 34",
+          "Example Text 34",
+          "Example Text 34"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_16fae556",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 32' \u2192 'Example Text 32'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-31T14:54:14.786874",
+      "last_seen": "2025-07-31T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 32",
+        "most_common_correction": "Example Text 32",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 32",
+          "Example Text 32",
+          "Example Text 32",
+          "Example Text 32"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_e32c5762",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 30' \u2192 'Example Text 30'",
+      "confidence": 0.8,
+      "frequency": 5,
+      "first_seen": "2025-07-29T14:54:14.786874",
+      "last_seen": "2025-07-29T15:47:14.786874",
+      "affected_users": [
+        "alice_expert",
+        "charlie_balanced",
+        "bob_casual",
+        "eve_inconsistent",
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 30",
+        "most_common_correction": "Example Text 30",
+        "correction_frequency": 5,
+        "all_corrections": [
+          "Example Text 30",
+          "Example Text 30",
+          "Example Text 30",
+          "Example Text 30",
+          "Example Text 30"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_2b9d42ac",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 28' \u2192 'Example Text 28'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-27T14:54:14.786874",
+      "last_seen": "2025-07-27T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 28",
+        "most_common_correction": "Example Text 28",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 28",
+          "Example Text 28",
+          "Example Text 28",
+          "Example Text 28"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_1cf1be58",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 26' \u2192 'Example Text 26'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-25T14:54:14.786874",
+      "last_seen": "2025-07-25T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 26",
+        "most_common_correction": "Example Text 26",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 26",
+          "Example Text 26",
+          "Example Text 26",
+          "Example Text 26"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_c161ae43",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 24' \u2192 'Example Text 24'",
+      "confidence": 0.8,
+      "frequency": 5,
+      "first_seen": "2025-07-23T14:54:14.786874",
+      "last_seen": "2025-07-23T15:47:14.786874",
+      "affected_users": [
+        "alice_expert",
+        "charlie_balanced",
+        "bob_casual",
+        "eve_inconsistent",
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 24",
+        "most_common_correction": "Example Text 24",
+        "correction_frequency": 5,
+        "all_corrections": [
+          "Example Text 24",
+          "Example Text 24",
+          "Example Text 24",
+          "Example Text 24",
+          "Example Text 24"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_c744f282",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 22' \u2192 'Example Text 22'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-21T14:54:14.786874",
+      "last_seen": "2025-07-21T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 22",
+        "most_common_correction": "Example Text 22",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 22",
+          "Example Text 22",
+          "Example Text 22",
+          "Example Text 22"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_a949c761",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 20' \u2192 'Example Text 20'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-19T14:54:14.786874",
+      "last_seen": "2025-07-19T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 20",
+        "most_common_correction": "Example Text 20",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 20",
+          "Example Text 20",
+          "Example Text 20",
+          "Example Text 20"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_6cdbec6a",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 18' \u2192 'Example Text 18'",
+      "confidence": 0.8,
+      "frequency": 5,
+      "first_seen": "2025-07-17T14:54:14.786874",
+      "last_seen": "2025-07-17T15:47:14.786874",
+      "affected_users": [
+        "alice_expert",
+        "charlie_balanced",
+        "bob_casual",
+        "eve_inconsistent",
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 18",
+        "most_common_correction": "Example Text 18",
+        "correction_frequency": 5,
+        "all_corrections": [
+          "Example Text 18",
+          "Example Text 18",
+          "Example Text 18",
+          "Example Text 18",
+          "Example Text 18"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_14a9a9a4",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 16' \u2192 'Example Text 16'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-15T14:54:14.786874",
+      "last_seen": "2025-07-15T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 16",
+        "most_common_correction": "Example Text 16",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 16",
+          "Example Text 16",
+          "Example Text 16",
+          "Example Text 16"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_9c6958fe",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 14' \u2192 'Example Text 14'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-13T14:54:14.786874",
+      "last_seen": "2025-07-13T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 14",
+        "most_common_correction": "Example Text 14",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 14",
+          "Example Text 14",
+          "Example Text 14",
+          "Example Text 14"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_35f9f8fb",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 12' \u2192 'Example Text 12'",
+      "confidence": 0.8,
+      "frequency": 5,
+      "first_seen": "2025-07-11T14:54:14.786874",
+      "last_seen": "2025-07-11T15:47:14.786874",
+      "affected_users": [
+        "alice_expert",
+        "charlie_balanced",
+        "bob_casual",
+        "eve_inconsistent",
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 12",
+        "most_common_correction": "Example Text 12",
+        "correction_frequency": 5,
+        "all_corrections": [
+          "Example Text 12",
+          "Example Text 12",
+          "Example Text 12",
+          "Example Text 12",
+          "Example Text 12"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_0c7efb08",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 10' \u2192 'Example Text 10'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-09T14:54:14.786874",
+      "last_seen": "2025-07-09T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 10",
+        "most_common_correction": "Example Text 10",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 10",
+          "Example Text 10",
+          "Example Text 10",
+          "Example Text 10"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_a8be6acc",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 8' \u2192 'Example Text 8'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-07T14:54:14.786874",
+      "last_seen": "2025-07-07T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 8",
+        "most_common_correction": "Example Text 8",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 8",
+          "Example Text 8",
+          "Example Text 8",
+          "Example Text 8"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_5217b77a",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 6' \u2192 'Example Text 6'",
+      "confidence": 0.8,
+      "frequency": 5,
+      "first_seen": "2025-07-05T14:54:14.786874",
+      "last_seen": "2025-07-05T15:47:14.786874",
+      "affected_users": [
+        "alice_expert",
+        "charlie_balanced",
+        "bob_casual",
+        "eve_inconsistent",
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 6",
+        "most_common_correction": "Example Text 6",
+        "correction_frequency": 5,
+        "all_corrections": [
+          "Example Text 6",
+          "Example Text 6",
+          "Example Text 6",
+          "Example Text 6",
+          "Example Text 6"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_6a9f4ed2",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 4' \u2192 'Example Text 4'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-03T14:54:14.786874",
+      "last_seen": "2025-07-03T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 4",
+        "most_common_correction": "Example Text 4",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 4",
+          "Example Text 4",
+          "Example Text 4",
+          "Example Text 4"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_129eee7e",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 2' \u2192 'Example Text 2'",
+      "confidence": 0.8,
+      "frequency": 4,
+      "first_seen": "2025-07-01T14:54:14.786874",
+      "last_seen": "2025-07-01T15:47:14.786874",
+      "affected_users": [
+        "bob_casual",
+        "eve_inconsistent",
+        "alice_expert",
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 2",
+        "most_common_correction": "Example Text 2",
+        "correction_frequency": 4,
+        "all_corrections": [
+          "Example Text 2",
+          "Example Text 2",
+          "Example Text 2",
+          "Example Text 2"
+        ]
+      }
+    },
+    {
+      "pattern_id": "text_pattern_fb36a0fe",
+      "pattern_type": "correction_pattern",
+      "description": "Frequent correction: 'example text 0' \u2192 'Example Text 0'",
+      "confidence": 0.8,
+      "frequency": 5,
+      "first_seen": "2025-06-29T14:54:14.786874",
+      "last_seen": "2025-06-29T15:47:14.786874",
+      "affected_users": [
+        "alice_expert",
+        "charlie_balanced",
+        "bob_casual",
+        "eve_inconsistent",
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "original_text": "example text 0",
+        "most_common_correction": "Example Text 0",
+        "correction_frequency": 5,
+        "all_corrections": [
+          "Example Text 0",
+          "Example Text 0",
+          "Example Text 0",
+          "Example Text 0",
+          "Example Text 0"
+        ]
+      }
+    },
+    {
+      "pattern_id": "user_pattern_alice_expert_0c558d7c",
+      "pattern_type": "user_behavior",
+      "description": "User alice_expert frequently makes grammar corrections",
+      "confidence": 0.9,
+      "frequency": 20,
+      "first_seen": "2025-06-29T15:31:14.786874",
+      "last_seen": "2025-08-06T15:31:14.786874",
+      "affected_users": [
+        "alice_expert"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "user_id": "alice_expert",
+        "dominant_correction_type": "grammar",
+        "dominance_ratio": 1.0,
+        "correction_type_distribution": {
+          "grammar": 20
+        }
+      }
+    },
+    {
+      "pattern_id": "user_pattern_bob_casual_a2fbc491",
+      "pattern_type": "user_behavior",
+      "description": "User bob_casual frequently makes spelling corrections",
+      "confidence": 0.9,
+      "frequency": 20,
+      "first_seen": "2025-06-29T15:17:14.786874",
+      "last_seen": "2025-08-06T15:17:14.786874",
+      "affected_users": [
+        "bob_casual"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "user_id": "bob_casual",
+        "dominant_correction_type": "spelling",
+        "dominance_ratio": 1.0,
+        "correction_type_distribution": {
+          "spelling": 20
+        }
+      }
+    },
+    {
+      "pattern_id": "user_pattern_charlie_balanced_d82def9b",
+      "pattern_type": "user_behavior",
+      "description": "User charlie_balanced frequently makes punctuation corrections",
+      "confidence": 0.9,
+      "frequency": 20,
+      "first_seen": "2025-06-29T15:47:14.786874",
+      "last_seen": "2025-08-06T15:47:14.786874",
+      "affected_users": [
+        "charlie_balanced"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "user_id": "charlie_balanced",
+        "dominant_correction_type": "punctuation",
+        "dominance_ratio": 1.0,
+        "correction_type_distribution": {
+          "punctuation": 20
+        }
+      }
+    },
+    {
+      "pattern_id": "user_pattern_diana_newcomer_19f9d99f",
+      "pattern_type": "user_behavior",
+      "description": "User diana_newcomer frequently makes capitalization corrections",
+      "confidence": 0.9,
+      "frequency": 7,
+      "first_seen": "2025-06-29T15:34:14.786874",
+      "last_seen": "2025-08-04T15:34:14.786874",
+      "affected_users": [
+        "diana_newcomer"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "user_id": "diana_newcomer",
+        "dominant_correction_type": "capitalization",
+        "dominance_ratio": 1.0,
+        "correction_type_distribution": {
+          "capitalization": 7
+        }
+      }
+    },
+    {
+      "pattern_id": "user_pattern_eve_inconsistent_53b75547",
+      "pattern_type": "user_behavior",
+      "description": "User eve_inconsistent frequently makes grammar corrections",
+      "confidence": 0.9,
+      "frequency": 20,
+      "first_seen": "2025-06-29T14:54:14.786874",
+      "last_seen": "2025-08-06T14:54:14.786874",
+      "affected_users": [
+        "eve_inconsistent"
+      ],
+      "affected_content": [
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "user_id": "eve_inconsistent",
+        "dominant_correction_type": "grammar",
+        "dominance_ratio": 1.0,
+        "correction_type_distribution": {
+          "grammar": 20
+        }
+      }
+    },
+    {
+      "pattern_id": "lenient_rater_bob_casual_815c773a",
+      "pattern_type": "user_behavior",
+      "description": "User bob_casual consistently gives high ratings",
+      "confidence": 0.8,
+      "frequency": 40,
+      "first_seen": "2025-06-29T14:17:14.786874",
+      "last_seen": "2025-08-06T16:17:14.786874",
+      "affected_users": [
+        "bob_casual"
+      ],
+      "affected_content": [
+        "client_call_002",
+        "weekly_standup_001"
+      ],
+      "metadata": {
+        "user_id": "bob_casual",
+        "average_rating": 0.8,
+        "rating_consistency": 1.0,
+        "pattern_type": "lenient_rater"
+      }
+    }
+  ],
+  "user_preferences": {
+    "alice_expert": [
+      {
+        "user_id": "alice_expert",
+        "preference_type": "preferred_rating_type",
+        "preference_value": "stars",
+        "confidence": 1.0,
+        "evidence_count": 120,
+        "last_updated": "2025-08-13 13:48:15.252927",
+        "metadata": {
+          "all_rating_types": {
+            

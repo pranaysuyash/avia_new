@@ -1,24 +1,27 @@
-# Makefile for Video NER Application
+# Makefile for Comprehensive Transcription Platform
 .PHONY: help install test lint format type-check security clean docker-build docker-run migrate setup-db run-api run-app
+.PHONY: dev prod health monitor logs backup restore quick-start comprehensive-test
 
 # Default target
-help:
-	@echo "Available targets:"
-	@echo "  install       - Install all dependencies"
-	@echo "  test          - Run all tests with coverage"
-	@echo "  test-unit     - Run unit tests only"
-	@echo "  test-integration - Run integration tests only"
-	@echo "  lint          - Run linting checks"
-	@echo "  format        - Format code with black and isort"
-	@echo "  type-check    - Run type checking with mypy"
-	@echo "  security      - Run security checks with bandit and safety"
-	@echo "  clean         - Remove build artifacts and cache"
-	@echo "  docker-build  - Build Docker images"
-	@echo "  docker-run    - Run application with Docker Compose"
-	@echo "  migrate       - Run database migrations"
-	@echo "  setup-db      - Initialize database"
-	@echo "  run-api       - Run API server"
-	@echo "  run-app       - Run Streamlit app"
+help: ## Show this help message
+	@echo "Comprehensive Transcription Platform - Development Commands"
+	@echo "=========================================================="
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+# Quick Development Commands
+dev: docker-build docker-run ## Full development environment setup
+	@echo "🚀 Development environment started!"
+	@echo "   Streamlit:     http://localhost:8501"
+	@echo "   API:           http://localhost:8000"
+	@echo "   Analytics:     http://localhost:8502"
+	@echo "   Grafana:       http://localhost:3000 (admin/admin123)"
+	@echo "   Prometheus:    http://localhost:9090"
+
+quick-start: install docker-run ## Quick start for development
+
+comprehensive-test: ## Run comprehensive test suite
+	@echo "🧪 Running comprehensive test suite..."
+	@python test_comprehensive_suite.py
 
 # Install dependencies
 install:

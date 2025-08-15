@@ -8,12 +8,34 @@ const log = require('electron-log');
 const findFreePort = require('find-free-port');
 const axios = require('axios');
 const NativeIntegrations = require('./native-integrations');
+const safeLogger = require('./safe-logger');
 
 // Initialize electron store for app settings
 const store = new Store();
 
-// Configure logging
+// Configure logging with EPIPE error handling
 log.transports.file.level = 'info';
+log.transports.console.level = isDev ? 'debug' : 'warn';
+
+// Handle EPIPE errors in console transport
+log.transports.console.format = '[{h}:{i}:{s}] {text}';
+log.catchErrors({
+  showDialog: false,
+  onError: (error) => {
+    if (error?.code === 'EPIPE' || error?.message?.includes('EPIPE')) {
+      // Silently ignore EPIPE errors
+      return;
+    }
+    // Log other errors to file
+    log.error('Unhandled error:', error);
+  }
+});
+
+// Disable console transport if it's causing issues
+if (!isDev) {
+  log.transports.console.level = false;
+}
+
 autoUpdater.logger = log;
 
 let mainWindow;
@@ -311,6 +333,7 @@ function createMenu() {
           accelerator: 'CmdOrCtrl+,',
           click: () => {
             // Open preferences in Streamlit app
+            safeLogger.info('Opening preferences...');
             mainWindow.webContents.executeJavaScript(`
               // Navigate to settings if available
               console.log('Opening preferences...');
@@ -360,6 +383,7 @@ function createMenu() {
           label: 'AI Customization',
           click: () => {
             // Navigate to AI customization in Streamlit
+            safeLogger.info('Opening AI customization...');
             mainWindow.webContents.executeJavaScript(`
               // Enable AI customization feature if available
               console.log('Opening AI customization...');
@@ -370,6 +394,7 @@ function createMenu() {
           label: 'Batch Processing',
           click: () => {
             // Navigate to batch processing
+            safeLogger.info('Opening batch processing...');
             mainWindow.webContents.executeJavaScript(`
               console.log('Opening batch processing...');
             `);
@@ -578,4 +603,36 @@ autoUpdater.on('download-progress', (progressObj) => {
 autoUpdater.on('update-downloaded', (info) => {
   log.info('Update downloaded');
   autoUpdater.quitAndInstall();
+});
+
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  if (error?.code === 'EPIPE' || error?.message?.includes('EPIPE')) {
+    // Silently ignore EPIPE errors
+    safeLogger.debug('Ignoring EPIPE error');
+    return;
+  }
+  safeLogger.error('Uncaught Exception:', error);
+  // Don't exit on EPIPE errors
+  if (!error?.message?.includes('EPIPE')) {
+    app.quit();
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  if (reason?.code === 'EPIPE' || reason?.message?.includes('EPIPE')) {
+    // Silently ignore EPIPE errors
+    safeLogger.debug('Ignoring EPIPE rejection');
+    return;
+  }
+  safeLogger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle process warnings
+process.on('warning', (warning) => {
+  if (warning?.message?.includes('EPIPE')) {
+    // Silently ignore EPIPE warnings
+    return;
+  }
+  safeLogger.warn('Process warning:', warning);
 });

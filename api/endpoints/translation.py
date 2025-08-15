@@ -92,7 +92,33 @@ async def translate_text(
         result = await translation_system.translate_text(system_request)
         
         # Log translation for analytics
-        # TODO: Add database logging
+        # Add database logging
+        try:
+            from database.connection import get_db_context
+            from database.models import TranslationRecord
+            
+            with get_db_context() as db:
+                translation_record = TranslationRecord(
+                    source_text=result.original_text[:500],  # Limit to 500 chars
+                    target_text=result.translated_text[:500],  # Limit to 500 chars
+                    source_language=result.source_language,
+                    target_language=result.target_language,
+                    provider=result.provider,
+                    confidence=result.confidence,
+                    processing_time=result.processing_time,
+                    cached=result.cached,
+                    user_id=getattr(current_user, 'id', None),
+                    created_at=datetime.now()
+                )
+                
+                db.add(translation_record)
+                db.commit()
+                
+                logger.info(f"Translation logged to database: {translation_record.id}")
+                
+        except Exception as db_error:
+            logger.error(f"Failed to log translation to database: {db_error}")
+            # Continue with translation even if logging fails
         
         return TranslationResponse(
             original_text=result.original_text,

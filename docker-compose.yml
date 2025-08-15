@@ -11,6 +11,7 @@ services:
       POSTGRES_DB: transcription_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -18,6 +19,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - transcription_network
 
   # Redis Cache
   redis:
@@ -33,6 +36,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - transcription_network
 
   # MinIO Object Storage
   minio:
@@ -52,24 +57,58 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    networks:
+      - transcription_network
 
-  # API Backend
-  api:
+  # Main Streamlit App
+  streamlit:
     build:
       context: .
-      dockerfile: api/Dockerfile
-    container_name: transcription_api
+      dockerfile: Dockerfile.streamlit
+    container_name: transcription_streamlit
     environment:
       DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
       REDIS_URL: redis://redis:6379/0
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-test-key}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-test-key}
+      ENVIRONMENT: development
+      LOG_LEVEL: INFO
+    volumes:
+      - .:/app
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./reports:/app/reports
+    ports:
+      - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - transcription_network
+    restart: unless-stopped
+
+  # API Backend (FastAPI)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: transcription_api
+    environment:
+      DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
+      REDIS_URL: redis://redis:6379/1
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-change-in-production-minimum-32-chars}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin123
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-test-key}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-test-key}
     volumes:
-      - ./api:/app/api:ro
-      - ./database:/app/database:ro
+      - .:/app
+      - ./uploads:/app/uploads
+      - ./models:/app/models
     ports:
       - "8000:8000"
     depends_on:
@@ -79,10 +118,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    networks:
+      - transcription_network
+    restart: unless-stopped
     command: >
       sh -c "
-        python -m alembic upgrade head &&
-        python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+        python run_api.py
       "
 
   # Desktop App (Electron)
@@ -152,11 +193,111 @@ services:
       - api
       - desktop
 
+  # Analytics Dashboard
+  analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile.analytics
+    container_name: transcription_analytics
+    environment:
+      DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
+      REDIS_URL: redis://redis:6379/2
+    ports:
+      - "8502:8502"
+    volumes:
+      - .:/app
+      - ./reports:/app/reports
+    depends_on:
+      - db
+      - redis
+    networks:
+      - transcription_network
+    restart: unless-stopped
+
+  # AI Model Management Service
+  model_manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.models
+    container_name: transcription_models
+    environment:
+      DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
+      REDIS_URL: redis://redis:6379/3
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-models}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin123}
+    volumes:
+      - ./models:/app/models
+      - ./model_cache:/app/model_cache
+    depends_on:
+      - db
+      - redis
+      - minio
+    networks:
+      - transcription_network
+    restart: unless-stopped
+
+  # Performance Monitor
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    container_name: transcription_monitor
+    environment:
+      DATABASE_URL: postgresql://transcription_user:transcription_pass@db:5432/transcription_db
+      REDIS_URL: redis://redis:6379/4
+    volumes:
+      - ./monitoring:/app/monitoring
+    depends_on:
+      - db
+      - redis
+    networks:
+      - transcription_network
+    restart: unless-stopped
+
+  # Prometheus for Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: transcription_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - transcription_network
+    restart: unless-stopped
+
+  # Grafana for Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: transcription_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - transcription_network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
-  default:
-    name: transcription_network
+  transcription_network:
+    driver: bridge

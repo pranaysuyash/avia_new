@@ -68,9 +68,34 @@ async def transcribe_with_cache(
     service = CachedTranscriptionService(db)
     
     try:
-        # Download file from S3
-        # TODO: Implement S3 download using presigned URLs
+        # Download file from S3 using presigned URLs
         local_file_path = f"/tmp/{request.file_key}"
+        
+        # Implement S3 download using presigned URLs
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+            import os
+            
+            # Get S3 client
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+                region_name=os.getenv('AWS_REGION', 'us-east-1')
+            )
+            
+            # Download file using presigned URL
+            bucket_name = os.getenv('S3_BUCKET_NAME', 'transcription-files')
+            s3_client.download_file(bucket_name, request.file_key, local_file_path)
+            
+            logger.info(f"Downloaded file {request.file_key} from S3 to {local_file_path}")
+            
+        except ClientError as e:
+            logger.error(f"S3 download failed for {request.file_key}: {e}")
+            # Fallback to local file if it exists
+            if not os.path.exists(local_file_path):
+                raise HTTPException(status_code=404, detail=f"File {request.file_key} not found")
         
         # Transcribe with caching
         result = await service.transcribe_file(
@@ -175,11 +200,52 @@ async def warm_cache(
     
     Useful for pre-loading frequently accessed transcripts.
     """
-    # TODO: Implement cache warming
-    return {
-        "success": True,
-        "message": f"Warmed cache with {len(transcript_ids)} transcripts"
-    }
+    # Implement cache warming
+    try:
+        service = CachedTranscriptionService(db)
+        
+        warmed_count = 0
+        failed_count = 0
+        
+        # Warm cache for each transcript
+        for transcript_id in transcript_ids:
+            try:
+                # Get transcript from database
+                transcript = db.query(Transcript).filter(Transcript.id == transcript_id).first()
+                if not transcript:
+                    failed_count += 1
+                    continue
+                
+                # Warm the cache by loading the transcript
+                cache_key = f"transcript_{transcript_id}"
+                service.cache.set(cache_key, {
+                    "transcript": transcript.transcript,
+                    "entities": transcript.entities,
+                    "summary": transcript.summary,
+                    "created_at": transcript.created_at.isoformat() if transcript.created_at else None
+                })
+                
+                warmed_count += 1
+                
+            except Exception as e:
+                logger.error(f"Failed to warm cache for transcript {transcript_id}: {e}")
+                failed_count += 1
+        
+        return {
+            "success": True,
+            "message": f"Warmed cache with {warmed_count} transcripts ({failed_count} failed)",
+            "warmed_count": warmed_count,
+            "failed_count": failed_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Cache warming failed: {e}")
+        return {
+            "success": False,
+            "message": f"Cache warming failed: {str(e)}",
+            "warmed_count": 0,
+            "failed_count": len(transcript_ids)
+        }
 
 
 def cleanup_file(file_path: str):

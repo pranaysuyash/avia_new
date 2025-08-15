@@ -1,0 +1,68 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'transcription-api'
+    static_configs:
+      - targets: ['api:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'transcription-streamlit'
+    static_configs:
+      - targets: ['streamlit:8501']
+    metrics_path: '/_stcore/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'transcription-analytics'
+    static_configs:
+      - targets: ['analytics:8502']
+    metrics_path: '/_stcore/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'model-manager'
+    static_configs:
+      - targets: ['model_manager:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+
+  - job_name: 'performance-monitor'
+    static_configs:
+      - targets: ['monitor:9092']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s

@@ -8,15 +8,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-import json
+from datetime import datetime
 import time
+import sqlite3
 
 from admin_dashboard import (
-    AdminDashboardSystem, AdminUser, RevenueRecord, UserActivity,
-    SystemMetric, SupportTicket, UserStatus, SubscriptionTier,
+    AdminDashboardSystem, AdminUser, SupportTicket, UserStatus, SubscriptionTier,
     TicketStatus, TicketPriority
 )
 
@@ -1313,9 +1310,21 @@ Key Performance Indicators:
                 )
             
             if st.form_submit_button("Update User"):
-                # In a real implementation, this would update the user in the database
-                st.success(f"User {username} updated successfully!")
-                st.rerun()
+                # Update the user object with new values
+                user.full_name = full_name
+                user.email = email
+                user.username = username
+                user.status = status
+                user.subscription_tier = subscription_tier
+                
+                # Update user in the database
+                success = self.admin_system.db.add_user(user)
+                
+                if success:
+                    st.success(f"User {username} updated successfully!")
+                    st.rerun()
+                else:
+                    st.error("Failed to update user. Please try again.")
     
     def _show_status_change_dialog(self, user: AdminUser):
         """Show status change dialog"""
@@ -1332,11 +1341,26 @@ Key Performance Indicators:
             
             if st.form_submit_button("Update Status"):
                 if new_status != user.status:
+                    # Update user status
                     success = self.admin_system.user_management.update_user_status(
                         user.user_id, UserStatus(new_status), "admin_user"
                     )
                     
                     if success:
+                        # Log the status change with reason
+                        action_id = f"action_{int(time.time())}_admin"
+                        description = f"Changed user status to {new_status}"
+                        if reason:
+                            description += f" - Reason: {reason}"
+                        
+                        self.admin_system.user_management.add_admin_action(
+                            action_id=action_id,
+                            admin_user_id="admin_user",
+                            action_type="status_change",
+                            target_user_id=user.user_id,
+                            description=description
+                        )
+                        
                         st.success(f"User status updated to {new_status}")
                         st.rerun()
                     else:
@@ -1476,9 +1500,27 @@ Key Performance Indicators:
                         
                         if st.form_submit_button("Assign Ticket"):
                             if assigned_to:
-                                # In a real implementation, this would update the ticket in the database
-                                st.success(f"Ticket assigned to {assigned_to}")
-                                st.rerun()
+                                try:
+                                    # Update ticket assignment in the database
+                                    with sqlite3.connect(self.admin_system.db.db_path) as conn:
+                                        cursor = conn.cursor()
+                                        
+                                        cursor.execute("""
+                                            UPDATE support_tickets 
+                                            SET assigned_to = ?, updated_at = ?
+                                            WHERE ticket_id = ?
+                                        """, (assigned_to, datetime.now().isoformat(), ticket.ticket_id))
+                                        
+                                        conn.commit()
+                                        
+                                        if cursor.rowcount > 0:
+                                            st.success(f"Ticket assigned to {assigned_to}")
+                                            st.rerun()
+                                        else:
+                                            st.error("Failed to assign ticket. Please try again.")
+                                            
+                                except Exception as e:
+                                    st.error(f"Error assigning ticket: {str(e)}")
                             else:
                                 st.error("Please enter a user ID to assign the ticket to")
             
@@ -1513,9 +1555,49 @@ Key Performance Indicators:
             notes = st.text_area("Notes/Comments:")
             
             if st.form_submit_button("Update Ticket"):
-                # In a real implementation, this would update the ticket in the database
-                st.success(f"Ticket {ticket.ticket_id[-8:]} updated successfully!")
-                st.rerun()
+                try:
+                    # Update ticket in the database
+                    with sqlite3.connect(self.admin_system.db.db_path) as conn:
+                        cursor = conn.cursor()
+                        
+                        update_fields = [
+                            "status = ?",
+                            "priority = ?",
+                            "category = ?",
+                            "assigned_to = ?",
+                            "updated_at = ?"
+                        ]
+                        params = [
+                            status,
+                            priority,
+                            category,
+                            assigned_to if assigned_to else None,
+                            datetime.now().isoformat()
+                        ]
+                        
+                        # Add notes to resolution if provided
+                        if notes:
+                            update_fields.append("resolution = ?")
+                            params.append(notes)
+                        
+                        params.append(ticket.ticket_id)
+                        
+                        cursor.execute(f"""
+                            UPDATE support_tickets 
+                            SET {', '.join(update_fields)}
+                            WHERE ticket_id = ?
+                        """, params)
+                        
+                        conn.commit()
+                        
+                        if cursor.rowcount > 0:
+                            st.success(f"Ticket {ticket.ticket_id[-8:]} updated successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to update ticket. Please try again.")
+                            
+                except Exception as e:
+                    st.error(f"Error updating ticket: {str(e)}")
     
     def _show_resolve_ticket_dialog(self, ticket: SupportTicket):
         """Show resolve ticket dialog"""

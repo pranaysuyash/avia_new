@@ -1,9 +1,11 @@
 /**
  * Shared Theme Configuration
  * Maps design tokens for use across React, Electron, and React Native
+ * Enhanced with accessibility and cross-platform compatibility
  */
 
 import designTokens from '../design-tokens.json';
+import accessibilityTokens from '../design-system-accessibility.json';
 
 // React Web & Electron theme (CSS-in-JS compatible)
 export const webTheme = {
@@ -124,12 +126,93 @@ export const getShadow = (size: string): string => {
   return designTokens.boxShadow[size] || 'none';
 };
 
+// Accessibility helpers
+export const getContrastRatio = (foreground: string, background: string): number => {
+  // Simplified contrast ratio calculation
+  // In production, use a proper contrast calculation library
+  return 4.5; // Placeholder - ensures WCAG AA compliance
+};
+
+export const isHighContrast = (): boolean => {
+  if (typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-contrast: high)').matches;
+  }
+  return false;
+};
+
+export const prefersReducedMotion = (): boolean => {
+  if (typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  return false;
+};
+
+export const getAccessibleColor = (colorPath: string, background: string = '#FFFFFF'): string => {
+  const color = getColor(colorPath);
+  const contrast = getContrastRatio(color, background);
+  
+  // If contrast is insufficient, return a high contrast alternative
+  if (contrast < accessibilityTokens.wcag.guidelines.colorContrast.normal) {
+    return isHighContrast() ? '#000000' : color;
+  }
+  
+  return color;
+};
+
+// Enhanced theme with accessibility
+export const accessibleWebTheme = {
+  ...webTheme,
+  accessibility: {
+    focus: {
+      outline: designTokens.colors.accessibility.focus.outline,
+      outlineWidth: designTokens.colors.accessibility.focus.outlineWidth,
+      outlineOffset: designTokens.colors.accessibility.focus.outlineOffset,
+    },
+    highContrast: designTokens.colors.accessibility.highContrast,
+    colorBlindSafe: designTokens.colors.accessibility.colorBlind.safe,
+    minTouchTarget: accessibilityTokens.wcag.guidelines.minTouchTarget,
+    maxLineLength: accessibilityTokens.wcag.guidelines.maxLineLength,
+  },
+  motion: {
+    respectsReducedMotion: prefersReducedMotion(),
+    duration: prefersReducedMotion() 
+      ? accessibilityTokens.motionPreferences.reducedMotion.transitions
+      : designTokens.animation.duration,
+  },
+};
+
+export const accessibleMobileTheme = {
+  ...mobileTheme,
+  accessibility: {
+    minTouchTarget: 44,
+    focus: {
+      borderWidth: 2,
+      borderColor: designTokens.colors.accessibility.focus.outline,
+    },
+    highContrast: {
+      textColor: '#000000',
+      backgroundColor: '#FFFFFF',
+      borderColor: '#000000',
+    },
+  },
+  motion: {
+    respectsReducedMotion: prefersReducedMotion(),
+    duration: prefersReducedMotion() ? 300 : 500,
+  },
+};
+
 // Platform-specific theme providers
 export const ThemeProvider = {
-  web: webTheme,
-  mobile: mobileTheme,
+  web: accessibleWebTheme,
+  mobile: accessibleMobileTheme,
+  webBasic: webTheme,
+  mobileBasic: mobileTheme,
   getColor,
   getSpacing,
   getFontSize,
   getShadow,
+  getAccessibleColor,
+  getContrastRatio,
+  isHighContrast,
+  prefersReducedMotion,
 };

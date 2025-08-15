@@ -1,36 +1,38 @@
 """
 Real-time Collaboration API Endpoints
-Provides REST API for operational transforms and collaborative editing
+RESTful and WebSocket APIs for managing real-time collaborative editing
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
-from datetime import datetime
-import json
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, WebSocket, WebSocketDisconnect, status
+from fastapi.responses import StreamingResponse, JSONResponse
+from typing import List, Dict, Any, Optional, Union, Set
+from datetime import datetime, timedelta
 import asyncio
+import json
+import uuid
 import logging
+from pydantic import BaseModel, Field, validator
+from enum import Enum
+import redis.asyncio as redis
+from collections import defaultdict, deque
+import hashlib
+import time
 
-from api.database import get_db, User, Transcript
-from api.auth import get_current_active_user
-from services.operational_transforms_service import (
-    ot_service,
-    Operation,
-    OperationType,
-    CollaborationSession,
-    DocumentState
-)
-from services.audit_logging_service import audit_service, AuditEventType
+# Import collaboration systems
+from enhanced_collaboration_engine import ComprehensiveCollaborationEngine, ConflictResolutionStrategy, DocumentType
+from realtime_collaboration_system import RealtimeCollaborationSystem, User, UserRole, CollaborationType, Comment
+from comprehensive_medical_schema import MedicalSchemaIntegrator
+from api.auth import get_current_user, get_admin_user, verify_collaboration_access
+from api.database import get_db, get_redis_client
+from api.models import User as DBUser
+from api.rate_limiting import collaboration_rate_limit
+from api.audit_logging import log_collaboration_event
+from api.websocket_manager import WebSocketConnectionManager
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(
-    prefix="/api/v1/collaboration",
-    tags=["collaboration"],
-    responses={404: {"description": "Not found"}},
-)
+# Create router
+router = APIRouter(prefix="/api/v1/collaboration", tags=["Real-time Collaboration"])
 
 
 # Pydantic models

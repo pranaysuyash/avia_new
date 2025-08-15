@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const os = require('os');
 const { spawn } = require('child_process');
+const safeLogger = require('./safe-logger');
 
 class NativeIntegrations {
   constructor(mainWindow) {
@@ -322,7 +323,7 @@ class NativeIntegrations {
       };
 
     } catch (error) {
-      console.error('File selection failed:', error);
+      safeLogger.error('File selection failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -353,7 +354,7 @@ class NativeIntegrations {
       };
 
     } catch (error) {
-      console.error('File save failed:', error);
+      safeLogger.error('File save failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -363,7 +364,7 @@ class NativeIntegrations {
       await shell.showItemInFolder(filePath);
       return { success: true };
     } catch (error) {
-      console.error('Failed to open file location:', error);
+      safeLogger.error('Failed to open file location:', error);
       return { success: false, error: error.message };
     }
   }
@@ -395,7 +396,7 @@ class NativeIntegrations {
         tmpdir: os.tmpdir()
       };
     } catch (error) {
-      console.error('Failed to get system info:', error);
+      safeLogger.error('Failed to get system info:', error);
       return { error: error.message };
     }
   }
@@ -442,7 +443,7 @@ X-GNOME-Autostart-enabled=true`;
 
       return { success: true, enabled };
     } catch (error) {
-      console.error('Failed to set startup behavior:', error);
+      safeLogger.error('Failed to set startup behavior:', error);
       return { success: false, error: error.message };
     }
   }
@@ -484,7 +485,7 @@ X-GNOME-Autostart-enabled=true`;
 
       return { success: true };
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      safeLogger.error('Failed to show notification:', error);
       return { success: false, error: error.message };
     }
   }
@@ -501,7 +502,7 @@ X-GNOME-Autostart-enabled=true`;
         ]
       };
     } catch (error) {
-      console.error('Failed to get audio devices:', error);
+      safeLogger.error('Failed to get audio devices:', error);
       return { success: false, error: error.message };
     }
   }
@@ -509,10 +510,10 @@ X-GNOME-Autostart-enabled=true`;
   async setAudioDevice(deviceId) {
     try {
       // Audio device setting would require platform-specific implementation
-      console.log('Setting audio device:', deviceId);
+      safeLogger.info('Setting audio device:', deviceId);
       return { success: true, deviceId };
     } catch (error) {
-      console.error('Failed to set audio device:', error);
+      safeLogger.error('Failed to set audio device:', error);
       return { success: false, error: error.message };
     }
   }
@@ -541,7 +542,7 @@ X-GNOME-Autostart-enabled=true`;
       
       return { success: true, registered };
     } catch (error) {
-      console.error('Failed to register shortcuts:', error);
+      safeLogger.error('Failed to register shortcuts:', error);
       return { success: false, error: error.message };
     }
   }
@@ -552,7 +553,7 @@ X-GNOME-Autostart-enabled=true`;
       globalShortcut.unregisterAll();
       return { success: true };
     } catch (error) {
-      console.error('Failed to unregister shortcuts:', error);
+      safeLogger.error('Failed to unregister shortcuts:', error);
       return { success: false, error: error.message };
     }
   }
@@ -563,7 +564,7 @@ X-GNOME-Autostart-enabled=true`;
       const id = powerSaveBlocker.start('prevent-display-sleep');
       return { success: true, blockerId: id };
     } catch (error) {
-      console.error('Failed to prevent system sleep:', error);
+      safeLogger.error('Failed to prevent system sleep:', error);
       return { success: false, error: error.message };
     }
   }
@@ -575,7 +576,7 @@ X-GNOME-Autostart-enabled=true`;
       // For now, just stop all blockers
       return { success: true };
     } catch (error) {
-      console.error('Failed to allow system sleep:', error);
+      safeLogger.error('Failed to allow system sleep:', error);
       return { success: false, error: error.message };
     }
   }

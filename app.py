@@ -2815,7 +2815,8 @@ def render_advanced_entities_display_enhanced(results, preferences):
                 "value": sentiment_label,
                 "delta": f"Score: {sentiment_score:.2f}",
                 "icon": "😊" if sentiment_score > 0.1 else "😔" if sentiment_score < -0.1 else "😐",
-                "help": "Overall emotional tone"
+                "help": "Overall emotional tone",
+                "color": sentiment_color
             },
             {
                 "title": "Positive",
@@ -2845,16 +2846,21 @@ def render_download_options_enhanced(results, file_info, analysis_mode):
     timestamp = utils.get_timestamp()
     base_filename = file_info.name.split('.')[0] if file_info.name else "transcript"
     
+    # Core Downloads Section
+    st.markdown("### 📄 Core Downloads")
+    st.caption("Essential files for most use cases")
+    
     col1, col2 = st.columns(2)
     
     with col1:
         # Transcript download
         st.download_button(
-            label="📝 Download Transcript (.txt)",
+            label="📝 Transcript (.txt)",
             data=results.transcript,
             file_name=f"{base_filename}_transcript_{timestamp}.txt",
             mime="text/plain",
-            help="Download the full transcript as a text file"
+            help="The full transcription text - most commonly used format",
+            use_container_width=True
         )
         
         # Entities download (JSON)
@@ -2862,16 +2868,49 @@ def render_download_options_enhanced(results, file_info, analysis_mode):
             import json
             entities_json = json.dumps(results.entities, indent=2)
             st.download_button(
-                label="📋 Download Entities (.json)",
+                label="📋 Entities (.json)",
                 data=entities_json,
                 file_name=f"{base_filename}_entities_{timestamp}.json",
                 mime="application/json",
-                help="Download extracted entities as JSON data"
+                help="Extracted entities in structured JSON format for analysis",
+                use_container_width=True
             )
     
     with col2:
+        # Processing metadata
+        metadata = {
+            "file_info": {
+                "name": file_info.name,
+                "size_mb": file_info.size_mb,
+                "duration": file_info.duration
+            },
+            "processing_info": {
+                "model_used": results.model_used,
+                "processing_time": results.processing_time,
+                "confidence": results.confidence,
+                "word_count": results.word_count,
+                "analysis_mode": analysis_mode
+            }
+        }
+        
+        import json
+        metadata_json = json.dumps(metadata, indent=2, default=str)
+        st.download_button(
+            label="⚙️ Metadata (.json)",
+            data=metadata_json,
+            file_name=f"{base_filename}_metadata_{timestamp}.json",
+            mime="application/json",
+            help="Technical details about the processing - useful for troubleshooting",
+            use_container_width=True
+        )
+    
+    # Advanced Downloads Section (only show if Advanced mode was used)
+    if "Advanced" in analysis_mode and (results.summary or results.entities):
+        st.markdown("### 🎯 Advanced Downloads")
+        st.caption("Comprehensive reports for detailed analysis")
+        
         # Combined report
-        if "Advanced" in analysis_mode and results.summary:
+        if results.summary:
             report_content = f"""# Analysis Report
 Generated: {timestamp}
 File: {file_info.name}
@@ -2892,38 +2931,13 @@ Analysis Mode: {analysis_mode}
                         report_content += f"- {entity}\n"
             
             st.download_button(
-                label="📊 Download Full Report (.md)",
+                label="📊 Full Report (.md)",
                 data=report_content,
                 file_name=f"{base_filename}_report_{timestamp}.md",
                 mime="text/markdown",
-                help="Download complete analysis report in Markdown format"
+                help="Complete analysis report in Markdown format - includes summary, transcript, and entities",
+                use_container_width=True
             )
-        
-        # Processing metadata
-        metadata = {
-            "file_info": {
-                "name": file_info.name,
-                "size_mb": file_info.size_mb,
-                "duration": file_info.duration
-            },
-            "processing_info": {
-                "model_used": results.model_used,
-                "processing_time": results.processing_time,
-                "confidence": results.confidence,
-                "word_count": results.word_count,
-                "analysis_mode": analysis_mode
-            }
-        }
-        
-        import json
-        metadata_json = json.dumps(metadata, indent=2, default=str)
-        st.download_button(
-            label="⚙️ Download Metadata (.json)",
-            data=metadata_json,
-            file_name=f"{base_filename}_metadata_{timestamp}.json",
-            mime="application/json",
-            help="Download processing metadata and file information"
-        )
 
 def render_enhanced_analysis(results, analysis_mode: str):
     """Render enhanced analysis features"""

@@ -4,10 +4,9 @@ NLP Model Configurations - Advanced Configuration Management
 Provides comprehensive model configurations for different spaCy model sizes and use cases
 """
 
-import os
 import json
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict, field
 from enum import Enum
 from pathlib import Path

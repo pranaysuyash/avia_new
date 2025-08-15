@@ -123,14 +123,34 @@ def enhanced_metric_display(
             delta = metric.get('delta', None) if show_delta else None
             help_text = metric.get('help', None)
             icon = metric.get('icon', '📊')
+            color = metric.get('color', None)  # Support for custom colors
             
             # Use native Streamlit metric with icon in label
-            st.metric(
-                label=f"{icon} {title}",
-                value=value,
-                delta=delta,
-                help=help_text
-            )
+            if color:
+                # Display color indicator using HTML for better visual feedback
+                st.markdown(f"""
+                    <div style="
+                        color: {color}; 
+                        font-weight: bold; 
+                        font-size: 1.1em;
+                        margin-bottom: 0.2rem;
+                        border-left: 4px solid {color};
+                        padding-left: 0.5rem;
+                    ">{icon} {title}</div>
+                """, unsafe_allow_html=True)
+                st.metric(
+                    label="",  # Already displayed above with color
+                    value=value,
+                    delta=delta,
+                    help=help_text
+                )
+            else:
+                st.metric(
+                    label=f"{icon} {title}",
+                    value=value,
+                    delta=delta,
+                    help=help_text
+                )
 
 def enhanced_entity_display(
     entities: Dict[str, List[str]],

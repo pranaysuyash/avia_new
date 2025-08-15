@@ -182,30 +182,100 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     if (!window.electronAPI) return;
 
     try {
-      // TODO: Implement context menu functionality
-      // The showContextMenu method is not currently available in preload.js
-      // Will need to add this to the preload.js if needed
-      console.log('Context menu requested at:', event.clientX, event.clientY);
-      
-      /*
-      const result = await window.electronAPI.showContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        items: [
-          { id: 'cut', label: 'Cut' },
-          { id: 'copy', label: 'Copy' },
-          { id: 'paste', label: 'Paste' },
+      // Check if showContextMenu is available
+      if (typeof window.electronAPI.showContextMenu === 'function') {
+        event.preventDefault();
+        
+        // Prepare context menu items
+        const menuItems = [
+          { 
+            id: 'cut', 
+            label: 'Cut',
+            enabled: true,
+            accelerator: 'CmdOrCtrl+X'
+          },
+          { 
+            id: 'copy', 
+            label: 'Copy',
+            enabled: true,
+            accelerator: 'CmdOrCtrl+C'
+          },
+          { 
+            id: 'paste', 
+            label: 'Paste',
+            enabled: true,
+            accelerator: 'CmdOrCtrl+V'
+          },
           { type: 'separator' },
-          { id: 'save', label: 'Save Document' }
-        ]
-      });
-      
-      console.log('Context menu result:', result);
-      */
-    } catch (error) {
-      console.error('Failed to show context menu:', error);
+          { 
+            id: 'select-all', 
+            label: 'Select All',
+            enabled: true,
+            accelerator: 'CmdOrCtrl+A'
+          },
+          { type: 'separator' },
+          { 
+            id: 'save', 
+            label: 'Save Document',
+            enabled: hasUnsavedChanges,
+            accelerator: 'CmdOrCtrl+S'
+          },
+          { 
+            id: 'save-as', 
+            label: 'Save As...',
+            enabled: true,
+            accelerator: 'CmdOrCtrl+Shift+S'
+          }
+        ];
+
+        // Show context menu at mouse position
+        const result = await window.electronAPI.showContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          items: menuItems
+        });
+
+        // Handle menu item selection
+        if (result && result.itemId) {
+          switch (result.itemId) {
+            case 'cut':
+              document.execCommand('cut');
+              break;
+            case 'copy':
+              document.execCommand('copy');
+              break;
+            case 'paste':
+              document.execCommand('paste');
+              break;
+            case 'select-all':
+              if (editorRef.current) {
+                editorRef.current.select();
+              }
+              break;
+            case 'save':
+              if (onSave) {
+                await onSave(content);
+                setLastSaved(new Date());
+                setHasUnsavedChanges(false);
+                showDesktopNotification('Document Saved', 'Document saved successfully');
+              }
+              break;
+            case 'save-as':
+              await saveToDesktop();
+              break;
+            default:
+              console.log('Unknown menu item selected:', result.itemId);
+          }
+        }
+      } else {
+        // Fallback to browser context menu
+        console.log('Native context menu not available, using browser default');
+      }
+    } catch (err) {
+      console.error('Context menu error:', err);
+      // Fallback to browser context menu on error
     }
-  }, []);
+  }, [content, hasUnsavedChanges, onSave, saveToDesktop, showDesktopNotification]);
 
   // Initialize collaborative session
   const initializeSession = useCallback(async () => {
@@ -837,17 +907,82 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
                     onSelect={handleCursorChange}
                     onKeyUp={handleCursorChange}
                     onClick={handleCursorChange}
-                    onContextMenu={showContextMenu}
+                    onContextMenu={showDesktopContextMenu}
+                    onFocus={() => setIsTyping(true)}
+                    onBlur={() => setIsTyping(false)}
                     placeholder={readOnly ? "Content is read-only" : "Start typing to collaborate..."}
                     readOnly={readOnly}
                     className="w-full h-96 p-4 border-0 resize-none focus:outline-none focus:ring-0 font-mono text-sm"
                     style={{
                       background: 'transparent',
-                      lineHeight: '1.5'
+                      lineHeight: '1.5',
+                      caretColor: '#3B82F6' // Blue caret for better visibility
                     }}
+                    aria-label="Collaborative document editor"
+                    aria-describedby="editor-help"
                   />
                   
-                  {/* Cursor indicators for other users */}
+                  {/* Placeholder text overlay */}
+                  {!content && !readOnly && (
+                    <div 
+                      className="absolute top-4 left-4 text-gray-400 pointer-events-none font-mono text-sm"
+                      style={{ lineHeight: '1.5' }}
+                    >
+                      Start typing your document here...
+                      <br />
+                      <span className="text-xs text-gray-500">
+                        Collaborate in real-time with your team members
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Editor help text */}
+                  <div id="editor-help" className="px-4 pb-2 text-xs text-gray-500 dark:text-gray-400">
+                    {readOnly ? (
+                      <span>Read-only mode - Contact the document owner for edit access</span>
+                    ) : (
+                      <span>Start typing to collaborate. Other users will see your changes in real-time.</span>
+                    )}
+                  </div>
+                  
+                  {/* Connection status indicator */}
+                  <div className="absolute top-2 right-2 flex items-center space-x-2">
+                    {connectionStatus === 'connected' ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Wifi className="h-4 w-4 text-green-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Connected to collaboration server</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : connectionStatus === 'connecting' ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Connecting to collaboration server...</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <WifiOff className="h-4 w-4 text-red-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Disconnected from collaboration server</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
+                </div>
                   <div className="absolute inset-0 pointer-events-none">
                     {Object.values(collaborativeUsers).map((user) => {
                       if (user.user_id === 1 || !user.cursor_position) return null; // Skip current user

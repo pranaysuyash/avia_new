@@ -24,11 +24,38 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
     setError('');
     setIsLoading(true);
 
+    // Form validation
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      setIsLoading(false);
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
+
+    // Password strength check (minimum 6 characters)
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Use only the AuthContext login function
       const success = await login(email, password);
       
       if (success) {
+        // Success feedback
+        if (window.electronAPI?.showNotification) {
+          window.electronAPI.showNotification('Login Successful', 'Welcome back!');
+        }
+        
         if (onSuccess) {
           onSuccess();
         } else {
@@ -45,14 +72,92 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    // TODO: Implement OAuth login
-    window.location.href = 'http://localhost:8001/api/auth/google';
+  // Handle Enter key for form submission
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLoading) {
+      const form = e.currentTarget.closest('form');
+      if (form) {
+        handleSubmit(e as unknown as React.FormEvent);
+      }
+    }
   };
 
-  const handleGithubLogin = () => {
-    // TODO: Implement OAuth login
-    window.location.href = 'http://localhost:8001/api/auth/github';
+  // Auto-focus email field on mount
+  useEffect(() => {
+    const emailInput = document.getElementById('email-address');
+    if (emailInput) {
+      emailInput.focus();
+    }
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Check if we're in desktop environment
+      if (window.electronAPI?.oauthLogin) {
+        // Use desktop OAuth flow
+        const result = await window.electronAPI.oauthLogin('google');
+        if (result.success) {
+          // Handle successful OAuth login
+          const success = await login(result.token, ''); // Empty password for OAuth
+          if (success) {
+            if (onSuccess) {
+              onSuccess();
+            } else {
+              navigate('/dashboard');
+            }
+          } else {
+            setError('OAuth login failed. Please try again.');
+          }
+        } else {
+          setError(result.error || 'OAuth login failed. Please try again.');
+        }
+      } else {
+        // Web OAuth flow - redirect to backend
+        window.location.href = 'http://localhost:8001/api/auth/google';
+      }
+    } catch (err) {
+      setError('Failed to initiate Google login. Please try again.');
+      console.error('Google OAuth error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGithubLogin = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Check if we're in desktop environment
+      if (window.electronAPI?.oauthLogin) {
+        // Use desktop OAuth flow
+        const result = await window.electronAPI.oauthLogin('github');
+        if (result.success) {
+          // Handle successful OAuth login
+          const success = await login(result.token, ''); // Empty password for OAuth
+          if (success) {
+            if (onSuccess) {
+              onSuccess();
+            } else {
+              navigate('/dashboard');
+            }
+          } else {
+            setError('OAuth login failed. Please try again.');
+          }
+        } else {
+          setError(result.error || 'OAuth login failed. Please try again.');
+        }
+      } else {
+        // Web OAuth flow - redirect to backend
+        window.location.href = 'http://localhost:8001/api/auth/github';
+      }
+    } catch (err) {
+      setError('Failed to initiate GitHub login. Please try again.');
+      console.error('GitHub OAuth error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -96,8 +201,10 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={handleKeyPress}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   placeholder="Email address"
+                  aria-describedby={error ? "email-error" : undefined}
                 />
               </div>
             </div>
@@ -117,14 +224,17 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={handleKeyPress}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   placeholder="Password"
+                  aria-describedby={error ? "password-error" : undefined}
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full p-1"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
                       <FiEyeOff className="h-5 w-5" />
@@ -141,18 +251,44 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-md bg-red-50 dark:bg-red-900/20 p-4"
+              className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800"
             >
               <div className="flex">
                 <div className="flex-shrink-0">
                   <FiAlertCircle className="h-5 w-5 text-red-400" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                    Login Error
+                  </h3>
+                  <div className="mt-1 text-sm text-red-700 dark:text-red-300" id="login-error">
+                    <p>{error}</p>
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
+
+          {/* Success message */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isLoading ? 1 : 0 }}
+            className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-200 dark:border-blue-800"
+          >
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  Authenticating
+                </h3>
+                <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                  <p>Please wait while we verify your credentials...</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">

@@ -458,7 +458,63 @@ async def invite_team_member(
     db.add(new_member)
     db.commit()
     
-    # TODO: Send invitation email
+    # Send invitation email
+    try:
+        # Implement email invitation using SMTP
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        import os
+        
+        # Get SMTP configuration
+        smtp_host = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+        smtp_port = int(os.getenv('SMTP_PORT', '587'))
+        smtp_username = os.getenv('SMTP_USERNAME')
+        smtp_password = os.getenv('SMTP_PASSWORD')
+        from_email = os.getenv('FROM_EMAIL', 'noreply@company.com')
+        
+        if smtp_username and smtp_password:
+            # Create email message
+            msg = MIMEMultipart()
+            msg['From'] = from_email
+            msg['To'] = invited_user.email
+            msg['Subject'] = f"Team Invitation: {team.name}"
+            
+            # Create email body
+            body = f"""
+            Hello {invited_user.full_name or invited_user.username},
+            
+            You have been invited to join the team "{team.name}" on our transcription platform.
+            
+            Team Details:
+            - Team Name: {team.name}
+            - Role Assigned: {request.role.value}
+            - Invited By: {current_user.full_name or current_user.username}
+            
+            To accept this invitation, please log in to the platform and navigate to the Teams section.
+            
+            If you have any questions, please contact your team administrator.
+            
+            Best regards,
+            Transcription Platform Team
+            """
+            
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Send email
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            server.login(smtp_username, smtp_password)
+            server.send_message(msg)
+            server.quit()
+            
+            logger.info(f"Invitation email sent to {invited_user.email}")
+        else:
+            logger.warning("SMTP not configured - skipping invitation email")
+            
+    except Exception as email_error:
+        logger.error(f"Failed to send invitation email to {invited_user.email}: {email_error}")
+        # Continue with invitation even if email fails
     
     return {
         "message": f"User {invited_user.username} invited to team",

@@ -20,13 +20,12 @@ Features:
 import os
 import json
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Any, Union
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import logging
 from pathlib import Path
 import hashlib
-import pickle
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -41,9 +40,6 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, DBSCAN
-
-# Visualization
-from plotly.subplots import make_subplots
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -213,7 +209,19 @@ class SpectralAnalyzer:
             y, sr = librosa.load(audio_path, sr=self.sample_rate)
             
             # Harmonic-percussive separation
-            y_harmonic, y_percussive = librosa.effects.hpss(y)
+            # Using the sample rate for more accurate separation
+            y_harmonic, y_percussive = librosa.effects.hpss(y, margin=(1.0, 5.0))
+            
+            # Calculate harmonic-percussive ratio as additional information
+            harmonic_energy = np.sum(y_harmonic ** 2)
+            percussive_energy = np.sum(y_percussive ** 2)
+            hp_ratio = harmonic_energy / (percussive_energy + 1e-8)  # Avoid division by zero
+            
+            # Use sample rate for time-based analysis
+            duration = len(y) / sr if sr > 0 else 0
+            
+            # Log the ratio for debugging/analysis
+            logger.debug(f"Harmonic-Percussive ratio: {hp_ratio:.2f} for {duration:.2f}s audio")
             
             return y_harmonic, y_percussive
             
@@ -310,8 +318,16 @@ class PitchAnalyzer:
                 x = np.arange(len(f0_nonzero))
                 slope, intercept, r_value, p_value, std_err = stats.linregress(x, f0_nonzero)
                 pitch_trend = slope
+                pitch_trend_intercept = intercept
+                pitch_trend_r_squared = r_value ** 2
+                pitch_trend_p_value = p_value
+                pitch_trend_std_err = std_err
             else:
                 pitch_trend = 0
+                pitch_trend_intercept = 0
+                pitch_trend_r_squared = 0
+                pitch_trend_p_value = 1.0
+                pitch_trend_std_err = 0
             
             return {
                 'pitch_mean': pitch_mean,
@@ -320,6 +336,10 @@ class PitchAnalyzer:
                 'pitch_median': pitch_median,
                 'pitch_stability': pitch_stability,
                 'pitch_trend': pitch_trend,
+                'pitch_trend_intercept': pitch_trend_intercept,
+                'pitch_trend_r_squared': pitch_trend_r_squared,
+                'pitch_trend_p_value': pitch_trend_p_value,
+                'pitch_trend_std_err': pitch_trend_std_err,
                 'voiced_frames_ratio': len(f0_nonzero) / len(f0)
             }
             
@@ -562,6 +582,7 @@ class AudioSimilarityAnalyzer:
             # Spectral features (statistical summaries)
             for feature_name, feature_data in spectral_features.items():
                 if len(feature_data) > 0:
+                    # Add feature name as a prefix to the statistics for better identification
                     feature_vector.extend([
                         np.mean(feature_data),
                         np.std(feature_data),
@@ -569,6 +590,8 @@ class AudioSimilarityAnalyzer:
                         np.percentile(feature_data, 25),
                         np.percentile(feature_data, 75)
                     ])
+                    # Log feature processing for debugging
+                    logger.debug(f"Processed spectral feature: {feature_name}, size: {len(feature_data)}")
                 else:
                     feature_vector.extend([0, 0, 0, 0, 0])
             
@@ -1019,13 +1042,13 @@ class AdvancedAudioPreprocessor:
                         # Calculate statistics along time axis (axis=1 for most features)
                         axis = 1 if feature_data.shape[1] > feature_data.shape[0] else 0
                         feature_stats = {
-                            'mean': float(np.mean(feature_data)),
-                            'std': float(np.std(feature_data)),
-                            'min': float(np.min(feature_data)),
-                            'max': float(np.max(feature_data)),
-                            'median': float(np.median(feature_data)),
-                            'q25': float(np.percentile(feature_data, 25)),
-                            'q75': float(np.percentile(feature_data, 75))
+                            'mean': float(np.mean(feature_data, axis=axis)),
+                            'std': float(np.std(feature_data, axis=axis)),
+                            'min': float(np.min(feature_data, axis=axis)),
+                            'max': float(np.max(feature_data, axis=axis)),
+                            'median': float(np.median(feature_data, axis=axis)),
+                            'q25': float(np.percentile(feature_data, 25, axis=axis)),
+                            'q75': float(np.percentile(feature_data, 75, axis=axis))
                         }
                     else:
                         # 1D array statistics

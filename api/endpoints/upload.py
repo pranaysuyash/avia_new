@@ -66,7 +66,52 @@ async def create_presigned_upload(
     """
     try:
         # Check user quota if applicable
-        # TODO: Implement user storage quota checking
+        # Implement user storage quota checking
+        try:
+            from database.models import User, UsageRecord
+            from database.connection import get_db_context
+            from datetime import datetime, timedelta
+            
+            # Get current user storage usage
+            with get_db_context() as db:
+                user = db.query(User).filter(User.id == current_user.id).first()
+                if user:
+                    # Check user's subscription plan storage limit
+                    plan_limits = {
+                        "free": 1000,  # 1GB
+                        "basic": 10000,  # 10GB
+                        "pro": 100000,  # 100GB
+                        "enterprise": 1000000  # 1TB
+                    }
+                    
+                    plan_limit_mb = plan_limits.get(user.subscription_tier.lower(), 1000)
+                    
+                    # Calculate current usage from usage records
+                    thirty_days_ago = datetime.now() - timedelta(days=30)
+                    usage_records = db.query(UsageRecord).filter(
+                        UsageRecord.user_id == user.id,
+                        UsageRecord.timestamp >= thirty_days_ago
+                    ).all()
+                    
+                    current_usage_mb = sum(record.storage_used_mb for record in usage_records)
+                    
+                    # Check if user is approaching or exceeding quota
+                    if current_usage_mb >= plan_limit_mb * 0.9:  # 90% threshold
+                        logger.warning(f"User {user.id} approaching storage quota: {current_usage_mb}/{plan_limit_mb} MB")
+                        
+                        # Send warning notification if approaching quota
+                        if current_usage_mb >= plan_limit_mb:
+                            raise HTTPException(
+                                status_code=400, 
+                                detail=f"Storage quota exceeded. Current: {current_usage_mb} MB, Limit: {plan_limit_mb} MB"
+                            )
+                    else:
+                        logger.info(f"User {user.id} storage usage: {current_usage_mb}/{plan_limit_mb} MB")
+                else:
+                    logger.warning(f"User {current_user.id} not found in database")
+        except Exception as quota_error:
+            logger.error(f"Error checking user quota: {quota_error}")
+            # Continue with upload even if quota check fails
         
         # Generate presigned URL
         response = s3_presigned_service.create_presigned_post(

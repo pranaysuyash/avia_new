@@ -483,8 +483,57 @@ async def websocket_endpoint(
 ):
     """WebSocket endpoint for real-time collaboration"""
     try:
-        # Verify token
-        # TODO: Implement proper WebSocket authentication
+        # Verify token with proper WebSocket authentication
+        try:
+            # Extract token from query parameters or headers
+            token = websocket.query_params.get("token") or \
+                   websocket.headers.get("Authorization", "").replace("Bearer ", "") or \
+                   websocket.headers.get("Sec-WebSocket-Protocol", "")
+            
+            if not token:
+                await websocket.close(code=4000, reason="Authentication token required")
+                return
+            
+            # Validate token using existing auth system
+            from api.auth_middleware import auth_middleware
+            
+            # Extract user from token
+            user = auth_middleware._decode_token(token)
+            if not user:
+                await websocket.close(code=4001, reason="Invalid authentication token")
+                return
+            
+            # Check user permissions
+            from database.connection import get_db_context
+            from database.models import User, TeamMember, Team
+            
+            with get_db_context() as db:
+                # Get user
+                db_user = db.query(User).filter(User.id == user.get("user_id")).first()
+                if not db_user:
+                    await websocket.close(code=4002, reason="User not found")
+                    return
+                
+                # Check team membership if this is a team transcript
+                team_id = db.query(TeamMember).filter(
+                    TeamMember.user_id == db_user.id
+                ).first()
+                
+                if team_id:
+                    # Verify team access
+                    team_member = db.query(TeamMember).filter(
+                        TeamMember.user_id == db_user.id,
+                        TeamMember.team_id == team_id
+                    ).first()
+                    
+                    if not team_member:
+                        await websocket.close(code=4003, reason="Team access denied")
+                        return
+        
+        except Exception as auth_error:
+            logger.error(f"WebSocket authentication error: {auth_error}")
+            await websocket.close(code=4004, reason=f"Authentication failed: {str(auth_error)}")
+            return
         
         await manager.connect(websocket, transcript_id)
         

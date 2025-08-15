@@ -5,7 +5,7 @@ Provides REST API interface for the Image Entity Extraction System
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks, Query
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List
 import base64
 import io
 import logging
@@ -18,12 +18,12 @@ import tempfile
 import numpy as np
 import cv2
 from PIL import Image
+import matplotlib.pyplot as plt
 
 from api.auth_middleware import get_current_user
 from api.middleware.quota_enforcement import require_quota, track_api_call
 from api.middleware.audit_logging import audit_log
 from database.connection import get_db
-from sqlalchemy.orm import Session
 
 # Import the entity extraction system
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -367,14 +367,104 @@ async def create_visualization(
     if task.get("status") != "completed":
         raise HTTPException(status_code=400, detail="Task not completed")
     
-    # TODO: Implement visualization generation
-    # This would create an annotated image showing detected entities
-    
-    return {
-        "task_id": task_id,
-        "visualization_url": f"/api/v1/entity-extraction/visualization/{task_id}.png",
-        "message": "Visualization created"
-    }
+    try:
+        # Generate visualization showing detected entities
+        import matplotlib.pyplot as plt
+        from io import BytesIO
+        import base64
+        import numpy as np
+        
+        # Get entities from task
+        entities = task.get("entities", [])
+        
+        # Create visualization figure
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Extract entity types and confidence scores for visualization
+        entity_types = [entity.get("type", "Unknown") for entity in entities]
+        
+        # Count entity types
+        type_counts = {}
+        type_confidences = {}
+        for entity_type in set(entity_types):  # Use set to avoid duplicates
+            count = entity_types.count(entity_type)
+            type_counts[entity_type] = count
+            # Store confidence scores for this type
+            type_confidences[entity_type] = []
+        
+        # Add confidence scores to each type
+        for entity in entities:
+            entity_type = entity.get("type", "Unknown")
+            confidence = entity.get("confidence", 0)
+            if entity_type in type_confidences:
+                type_confidences[entity_type].append(confidence)
+        
+        # Calculate average confidence per type
+        avg_confidences = {}
+        for entity_type, confidences in type_confidences.items():
+            if confidences:
+                avg_confidences[entity_type] = np.mean(confidences)
+            else:
+                avg_confidences[entity_type] = 0
+        
+        # Create bar chart of entity types with confidence coloring
+        entity_types_unique = list(type_counts.keys())
+        counts = [type_counts[etype] for etype in entity_types_unique]
+        confidences = [avg_confidences.get(etype, 0) for etype in entity_types_unique]
+        
+        # Create color map based on confidence
+        colors = plt.cm.viridis([conf for conf in confidences])
+        
+        bars = ax.bar(range(len(entity_types_unique)), counts, color=colors)
+        ax.set_xlabel('Entity Types')
+        ax.set_ylabel('Count')
+        ax.set_title('Extracted Entity Distribution with Confidence Levels')
+        
+        # Add type labels
+        ax.set_xticks(range(len(entity_types_unique)))
+        ax.set_xticklabels(entity_types_unique, rotation=45, ha='right')
+        
+        # Add value labels on bars
+        for bar, count, conf in zip(bars, counts, confidences):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height,
+                    f'{count}\n({conf:.2f})',
+                    ha='center', va='bottom')
+        
+        plt.tight_layout()
+        
+        # Save to buffer
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight')
+        buffer.seek(0)
+        plt.close()
+        
+        # Convert to base64 for embedding
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        # Generate visualization URL
+        visualization_url = f"data:image/png;base64,{image_base64}"
+        
+        # Update task with visualization URL
+        extraction_tasks[task_id]["visualization_url"] = visualization_url
+        
+        return {
+            "task_id": task_id,
+            "visualization_url": visualization_url,
+            "message": "Visualization created successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating visualization for task {task_id}: {e}")
+        # Return a default visualization URL even on error
+        default_url = f"/api/v1/entity-extraction/visualization/{task_id}.png"
+        extraction_tasks[task_id]["visualization_url"] = default_url
+        
+        return {
+            "task_id": task_id,
+            "visualization_url": default_url,
+            "message": "Visualization generation failed - using default URL"
+        }
 
 @router.delete("/task/{task_id}")
 async def delete_task(
@@ -506,8 +596,54 @@ async def process_entity_extraction(
         # Generate visualization if requested
         visualization_url = None
         if include_visualization:
-            # TODO: Implement visualization generation
-            visualization_url = f"/api/v1/entity-extraction/visualization/{task_id}.png"
+            try:
+                # Create visualization showing detected entities
+                import matplotlib.pyplot as plt
+                from io import BytesIO
+                import base64
+                import numpy as np
+                
+                # Create visualization figure
+                fig, ax = plt.subplots(figsize=(10, 6))
+                
+                # Extract entity types for visualization
+                entity_types = [entity.get("type", "Unknown") for entity in entities]
+                
+                # Count entity types
+                type_counts = {}
+                for entity_type in set(entity_types):  # Use set to avoid duplicates
+                    count = entity_types.count(entity_type)
+                    type_counts[entity_type] = count
+                
+                # Create pie chart of entity distribution
+                if type_counts:
+                    labels = list(type_counts.keys())
+                    sizes = list(type_counts.values())
+                    colors = plt.cm.Set3(np.linspace(0, 1, len(labels)))
+                    
+                    ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90)
+                    ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
+                    ax.set_title('Entity Type Distribution')
+                else:
+                    ax.text(0.5, 0.5, 'No entities detected', horizontalalignment='center', 
+                            verticalalignment='center', transform=ax.transAxes)
+                    ax.set_title('Entity Type Distribution')
+                
+                plt.tight_layout()
+                
+                # Save to buffer
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight')
+                buffer.seek(0)
+                plt.close()
+                
+                # Convert to base64 for embedding
+                image_base64 = base64.b64encode(buffer.getvalue()).decode()
+                visualization_url = f"data:image/png;base64,{image_base64}"
+                
+            except Exception as viz_error:
+                logger.warning(f"Visualization generation failed: {viz_error}")
+                visualization_url = f"/api/v1/entity-extraction/visualization/{task_id}.png"
         
         # Update task with results
         extraction_tasks[task_id].update({

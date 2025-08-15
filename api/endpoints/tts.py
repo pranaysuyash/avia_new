@@ -296,28 +296,73 @@ async def get_tts_usage_stats(
     
     Admin endpoint for monitoring usage
     """
+    """
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
-        # TODO: Implement actual usage tracking
-        # For now, return mock data
-        return {
-            "total_requests": 1234,
-            "total_characters": 567890,
-            "total_duration_seconds": 4567.8,
-            "average_request_size": 460,
-            "popular_voices": [
-                {"voice": "emily", "count": 456},
-                {"voice": "john", "count": 345},
-                {"voice": "sarah", "count": 234}
-            ],
-            "languages": [
-                {"language": "en", "count": 890},
-                {"language": "es", "count": 234},
-                {"language": "fr", "count": 110}
-            ]
-        }
+        # Implement actual usage tracking
+        from database.connection import get_db_context
+        from database.models import UsageRecord
+        
+        with get_db_context() as db:
+            # Get TTS usage statistics
+            thirty_days_ago = datetime.now() - timedelta(days=30)
+            
+            # Query usage records for TTS
+            tts_usage_records = db.query(UsageRecord).filter(
+                UsageRecord.service_type == "tts",
+                UsageRecord.timestamp >= thirty_days_ago
+            ).all()
+            
+            # Calculate statistics
+            total_requests = len(tts_usage_records)
+            total_characters = sum(record.characters_processed or 0 for record in tts_usage_records)
+            total_duration_seconds = sum(record.processing_time or 0 for record in tts_usage_records)
+            
+            # Calculate daily averages
+            daily_requests = total_requests / 30 if total_requests > 0 else 0
+            daily_characters = total_characters / 30 if total_characters > 0 else 0
+            daily_duration = total_duration_seconds / 30 if total_duration_seconds > 0 else 0
+            
+            # Get top users
+            user_usage = {}
+            for record in tts_usage_records:
+                user_id = record.user_id
+                if user_id not in user_usage:
+                    user_usage[user_id] = {
+                        'requests': 0,
+                        'characters': 0,
+                        'duration': 0
+                    }
+                user_usage[user_id]['requests'] += 1
+                user_usage[user_id]['characters'] += record.characters_processed or 0
+                user_usage[user_id]['duration'] += record.processing_time or 0
+            
+            # Sort by requests
+            top_users = sorted(user_usage.items(), key=lambda x: x[1]['requests'], reverse=True)[:10]
+            
+            return {
+                "total_requests": total_requests,
+                "total_characters": total_characters,
+                "total_duration_seconds": total_duration_seconds,
+                "daily_average": {
+                    "requests": round(daily_requests, 2),
+                    "characters": round(daily_characters, 2),
+                    "duration_seconds": round(daily_duration, 2)
+                },
+                "top_users": [
+                    {
+                        "user_id": user_id,
+                        "requests": usage['requests'],
+                        "characters": usage['characters'],
+                        "duration_seconds": usage['duration']
+                    }
+                    for user_id, usage in top_users
+                ],
+                "period_days": 30,
+                "generated_at": datetime.now().isoformat()
+            }
         
     except Exception as e:
         logger.error(f"Error getting TTS stats: {str(e)}")
@@ -528,5 +573,7 @@ async def get_synthesis_history(
         logger.error(f"History retrieval error: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to get synthesis history: {str(e)}"
-        )
+
+
+# Export the router
+__all__ = ['router']

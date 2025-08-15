@@ -114,12 +114,34 @@ def create_app() -> FastAPI:
     )
     
     # Add middlewares
+    # Enhanced CORS configuration with specific origins for different environments
+    origins = [
+        "http://localhost:3000",      # React development
+        "http://localhost:3001",      # React development alt
+        "http://localhost:8000",      # FastAPI
+        "http://localhost:5173",      # Vite development
+        "http://127.0.0.1:3000",      # Alternative localhost
+        "http://127.0.0.1:8000",      # Alternative API
+        "file://",                    # Electron file protocol
+        "capacitor://localhost",       # Capacitor for mobile
+        "ionic://localhost",          # Ionic for mobile
+        "http://localhost",           # Generic localhost
+    ]
+    
+    # Add production origins if in production environment
+    if os.getenv("ENVIRONMENT") == "production":
+        origins.extend([
+            "https://yourdomain.com",  # Replace with actual domain
+            "https://www.yourdomain.com",
+        ])
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure based on environment
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["Access-Control-Allow-Origin"],
     )
     
     app.add_middleware(

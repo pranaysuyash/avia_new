@@ -4,6 +4,7 @@ API Monitoring and Analytics System
 Tracks API usage, performance metrics, and provides detailed analytics
 """
 
+import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta, date
 from enum import Enum
@@ -11,6 +12,10 @@ from pydantic import BaseModel, Field
 import statistics
 from collections import defaultdict, Counter
 import json
+import smtplib
+import requests
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 class MetricType(str, Enum):
     """Types of metrics tracked"""
@@ -705,7 +710,167 @@ class APIMonitor:
         
         self.alerts.append(alert)
         
-        # TODO: Send notifications via configured channels
+        # Send notifications via configured channels
+        self._send_alert_notifications(alert)
+    
+    def _send_alert_notifications(self, alert: Alert):
+        """Send alert notifications via configured channels"""
+        try:
+            # Send email notification if email channel is configured
+            if hasattr(self, 'email_config') and self.email_config:
+                self._send_email_notification(alert)
+            
+            # Send Slack notification if webhook URL is configured
+            if hasattr(self, 'slack_webhook_url') and self.slack_webhook_url:
+                self._send_slack_notification(alert)
+            
+            # Send SMS notification if Twilio is configured
+            if hasattr(self, 'twilio_config') and self.twilio_config:
+                self._send_sms_notification(alert)
+            
+            logger.info(f"Sent notifications for alert: {alert.alert_id}")
+            
+        except Exception as e:
+            logger.error(f"Error sending alert notifications: {e}")
+    
+    def _send_email_notification(self, alert: Alert):
+        """Send email notification for alert"""
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = self.email_config.get('from_address', 'alerts@company.com')
+            msg['To'] = self.email_config.get('to_address', 'admin@company.com')
+            msg['Subject'] = f"API Alert: {alert.severity.value.upper()} - {alert.alert_type}"
+            
+            # Create email body
+            body = f"""
+            API Monitoring Alert
+            
+            Alert ID: {alert.alert_id}
+            Severity: {alert.severity.value}
+            Type: {alert.alert_type}
+            Message: {alert.message}
+            Metric: {alert.metric_name}
+            Current Value: {alert.current_value}
+            Threshold: {alert.threshold_value}
+            Organization: {alert.organization_id}
+            Timestamp: {alert.timestamp}
+            
+            Please investigate this alert and take appropriate action.
+            """
+            
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Send email
+            server = smtplib.SMTP(self.email_config.get('smtp_server', 'localhost'))
+            server.starttls()
+            server.login(
+                self.email_config.get('username', ''), 
+                self.email_config.get('password', '')
+            )
+            server.send_message(msg)
+            server.quit()
+            
+            logger.info(f"Sent email notification for alert: {alert.alert_id}")
+            
+        except Exception as e:
+            logger.error(f"Error sending email notification: {e}")
+    
+    def _send_slack_notification(self, alert: Alert):
+        """Send Slack notification for alert"""
+        try:
+            import requests
+            import json
+            
+            # Create Slack message payload
+            payload = {
+                "text": f"API Alert: {alert.severity.value.upper()} - {alert.alert_type}",
+                "attachments": [
+                    {
+                        "color": "danger" if alert.severity == AlertSeverity.CRITICAL else 
+                                "warning" if alert.severity == AlertSeverity.WARNING else "good",
+                        "fields": [
+                            {
+                                "title": "Alert ID",
+                                "value": alert.alert_id,
+                                "short": True
+                            },
+                            {
+                                "title": "Severity",
+                                "value": alert.severity.value,
+                                "short": True
+                            },
+                            {
+                                "title": "Type",
+                                "value": alert.alert_type,
+                                "short": True
+                            },
+                            {
+                                "title": "Organization",
+                                "value": alert.organization_id,
+                                "short": True
+                            },
+                            {
+                                "title": "Message",
+                                "value": alert.message,
+                                "short": False
+                            },
+                            {
+                                "title": "Metric",
+                                "value": f"{alert.metric_name}: {alert.current_value} (threshold: {alert.threshold_value})",
+                                "short": False
+                            }
+                        ],
+                        "footer": "API Monitoring System",
+                        "ts": int(alert.timestamp.timestamp())
+                    }
+                ]
+            }
+            
+            # Send to Slack webhook
+            response = requests.post(
+                self.slack_webhook_url,
+                data=json.dumps(payload),
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Slack notification failed: {response.text}")
+            else:
+                logger.info(f"Sent Slack notification for alert: {alert.alert_id}")
+                
+        except Exception as e:
+            logger.error(f"Error sending Slack notification: {e}")
+    
+    def _send_sms_notification(self, alert: Alert):
+        """Send SMS notification for alert using Twilio"""
+        try:
+            from twilio.rest import Client
+            
+            # Create Twilio client
+            client = Client(
+                self.twilio_config.get('account_sid'),
+                self.twilio_config.get('auth_token')
+            )
+            
+            # Create message content
+            message_body = f"API ALERT [{alert.severity.value.upper()}]: {alert.message[:100]}..."
+            
+            # Send SMS
+            message = client.messages.create(
+                body=message_body,
+                from_=self.twilio_config.get('from_number'),
+                to=self.twilio_config.get('to_number')
+            )
+            
+            logger.info(f"Sent SMS notification for alert: {alert.alert_id}, SID: {message.sid}")
+            
+        except Exception as e:
+            logger.error(f"Error sending SMS notification: {e}")
     
     def _create_quota_alert(self, quota: UsageQuota, severity: AlertSeverity, threshold: int):
         """Create quota alert"""

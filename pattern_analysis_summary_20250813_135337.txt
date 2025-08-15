@@ -1,0 +1,53 @@
+FEEDBACK PATTERN ANALYSIS SUMMARY REPORT
+==================================================
+
+Analysis Date: 2025-08-13T13:53:37.144931
+Time Window: 50 days
+Total Feedback: 469
+Unique Users: 5
+Patterns Detected: 30
+High-Confidence Patterns: 29
+User Preferences: 25
+
+TOP PATTERNS:
+--------------------
+1. Frequent grammar corrections detected
+   Confidence: 0.90
+   Frequency: 20
+
+2. Frequent spelling corrections detected
+   Confidence: 0.90
+   Frequency: 40
+
+3. Frequent punctuation corrections detected
+   Confidence: 0.90
+   Frequency: 20
+
+4. Frequent correction: 'example text 38' → 'Example Text 38'
+   Confidence: 0.80
+   Frequency: 4
+
+5. Frequent correction: 'example text 36' → 'Example Text 36'
+   Confidence: 0.80
+   Frequency: 5
+
+6. Frequent correction: 'example text 34' → 'Example Text 34'
+   Confidence: 0.80
+   Frequency: 4
+
+7. Frequent correction: 'example text 32' → 'Example Text 32'
+   Confidence: 0.80
+   Frequency: 4
+
+8. Frequent correction: 'example text 30' → 'Example Text 30'
+   Confidence: 0.80
+   Frequency: 5
+
+9. Frequent correction: 'example text 28' → 'Example Text 28'
+   Confidence: 0.80
+   Frequency: 4
+
+10. Frequent correction: 'example text 26' → 'Example Text 26'
+   Confidence: 0.80
+   Frequency: 4
+

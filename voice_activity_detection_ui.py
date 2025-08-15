@@ -11,16 +11,11 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import librosa
-import soundfile as sf
 import tempfile
 import os
 from datetime import datetime
-import json
-import sqlite3
-from voice_activity_detection import (
-    VoiceActivityDetector, VADMethod, VADMode, 
-    VADResult, AudioQualityMetrics
-)
+import logging
+from dataclasses import asdict
 
 # Page configuration
 st.set_page_config(
@@ -74,7 +69,8 @@ st.markdown("""
 def initialize_session_state():
     """Initialize session state variables"""
     if 'vad_detector' not in st.session_state:
-        st.session_state.vad_detector = VoiceActivityDetector()
+        # Initialize with default WebRTC VAD mode
+        st.session_state.vad_detector = VoiceActivityDetector(webrtc_vad_mode=2)
     if 'vad_results' not in st.session_state:
         st.session_state.vad_results = {}
     if 'processed_files' not in st.session_state:
@@ -83,6 +79,7 @@ def initialize_session_state():
 def display_audio_player(audio_file, label="Audio"):
     """Display audio player with waveform"""
     try:
+        st.subheader(f"🔊 {label}")
         audio_bytes = open(audio_file, 'rb').read()
         st.audio(audio_bytes, format='audio/wav')
         
@@ -132,7 +129,7 @@ def create_vad_visualization(audio_file, vad_result):
         )
         
         # Add VAD segments to waveform
-        for i, segment in enumerate(vad_result.segments):
+        for _, segment in enumerate(vad_result.segments):
             color = 'green' if segment.is_speech else 'red'
             opacity = segment.confidence if segment.confidence else 0.3
             
@@ -376,12 +373,13 @@ def main():
     )
     
     # WebRTC VAD mode (if WebRTC is selected)
+    vad_mode = None
     if vad_method == VADMethod.WEBRTC.value:
         vad_mode = st.sidebar.selectbox(
             "WebRTC VAD Mode",
             options=[mode.value for mode in VADMode],
             index=2,  # Default to normal
-            help="WebRTC VAD aggressiveness mode"
+            help="WebRTC VAD aggressiveness mode (0=quality, 1=low bitrate, 2=normal, 3=very aggressive)"
         )
     
     # Processing options
@@ -428,6 +426,10 @@ def main():
                     try:
                         # Convert VAD method string to enum
                         method_enum = VADMethod(vad_method)
+                        
+                        # Set WebRTC VAD mode if selected
+                        if vad_mode is not None:
+                            st.session_state.vad_detector.set_webrtc_vad_mode(vad_mode)
                         
                         # Perform VAD
                         vad_result = st.session_state.vad_detector.detect_voice_activity(

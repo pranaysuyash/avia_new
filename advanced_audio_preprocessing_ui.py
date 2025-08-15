@@ -17,15 +17,13 @@ import librosa.display
 from datetime import datetime
 import tempfile
 import os
-import json
 import logging
+from dataclasses import asdict
 
 # Import the main preprocessing system
 try:
     from advanced_audio_preprocessing import (
-        AdvancedAudioPreprocessor, AudioFeatures, AudioSimilarity,
-        AudioCluster, SpectralAnalyzer, PitchAnalyzer, RhythmAnalyzer,
-        AudioFingerprinter, AudioSimilarityAnalyzer, AudioClusteringEngine
+        AdvancedAudioPreprocessor, AudioFeatures
     )
 except ImportError:
     st.error("Could not import advanced_audio_preprocessing module. Please ensure it's available.")
@@ -615,8 +613,20 @@ def main():
                             temp_paths.append(tmp_file.name)
                     
                     with st.spinner("Processing audio files..."):
+                        # Process audio files with user-selected options
                         results = st.session_state.preprocessor.batch_process_audio(temp_paths)
                         st.session_state.batch_results = results
+                        
+                        # Additional processing based on user selections
+                        if include_duplicates and len(temp_paths) > 1:
+                            with st.spinner("Finding duplicate audio files..."):
+                                duplicates = st.session_state.preprocessor.find_duplicate_audio(temp_paths)
+                                results['duplicates'] = duplicates
+                        
+                        if include_clustering and len(temp_paths) > 2:
+                            with st.spinner("Clustering similar audio files..."):
+                                clusters = st.session_state.preprocessor.cluster_similar_audio(temp_paths)
+                                results['clusters'] = [asdict(cluster) for cluster in clusters]
                     
                     st.success("✅ Batch processing completed!")
                 

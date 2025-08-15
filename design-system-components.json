@@ -1,0 +1,436 @@
+{
+  "componentLibrary": {
+    "version": "1.0.0",
+    "platforms": {
+      "react": "^18.2.0",
+      "reactNative": "^0.72.0",
+      "electron": "^25.0.0",
+      "streamlit": "^1.28.0"
+    },
+    "components": {
+      "authentication": {
+        "LoginForm": {
+          "description": "User login form with email/password",
+          "props": {
+            "onSubmit": "function",
+            "loading": "boolean",
+            "error": "string",
+            "socialLogin": "boolean"
+          },
+          "accessibility": {
+            "role": "form",
+            "aria-label": "User login form",
+            "keyboard": "full keyboard navigation",
+            "screenReader": "field labels and validation messages"
+          },
+          "variants": ["standard", "modal", "inline"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "RegisterForm": {
+          "description": "User registration form",
+          "props": {
+            "onSubmit": "function",
+            "loading": "boolean",
+            "error": "string",
+            "requirements": "object"
+          },
+          "accessibility": {
+            "role": "form",
+            "aria-label": "User registration form",
+            "validation": "real-time validation feedback"
+          },
+          "variants": ["standard", "wizard", "compact"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "PasswordReset": {
+          "description": "Password reset request form",
+          "props": {
+            "onSubmit": "function",
+            "loading": "boolean",
+            "success": "boolean"
+          },
+          "accessibility": {
+            "role": "form",
+            "aria-label": "Password reset form"
+          },
+          "variants": ["email", "sms", "security-questions"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        }
+      },
+      "navigation": {
+        "Header": {
+          "description": "Main application header with navigation",
+          "props": {
+            "user": "object",
+            "navigation": "array",
+            "logo": "string",
+            "searchEnabled": "boolean"
+          },
+          "accessibility": {
+            "role": "banner",
+            "landmark": "header",
+            "skipLink": "skip to main content"
+          },
+          "variants": ["full", "minimal", "transparent"],
+          "platforms": ["react", "electron", "streamlit"]
+        },
+        "Sidebar": {
+          "description": "Collapsible sidebar navigation",
+          "props": {
+            "items": "array",
+            "collapsed": "boolean",
+            "position": "left|right"
+          },
+          "accessibility": {
+            "role": "navigation",
+            "aria-label": "Main navigation",
+            "keyboard": "arrow key navigation"
+          },
+          "variants": ["fixed", "overlay", "push"],
+          "platforms": ["react", "electron", "streamlit"]
+        },
+        "Breadcrumbs": {
+          "description": "Hierarchical navigation breadcrumbs",
+          "props": {
+            "items": "array",
+            "separator": "string",
+            "maxItems": "number"
+          },
+          "accessibility": {
+            "role": "navigation",
+            "aria-label": "Breadcrumb navigation"
+          },
+          "variants": ["standard", "compact", "dropdown"],
+          "platforms": ["react", "electron", "streamlit"]
+        }
+      },
+      "forms": {
+        "Button": {
+          "description": "Interactive button component",
+          "props": {
+            "variant": "primary|secondary|ghost|danger",
+            "size": "sm|md|lg",
+            "loading": "boolean",
+            "disabled": "boolean",
+            "icon": "string",
+            "fullWidth": "boolean"
+          },
+          "accessibility": {
+            "role": "button",
+            "minSize": "44x44px",
+            "focusVisible": "outline indicator"
+          },
+          "variants": ["primary", "secondary", "ghost", "danger", "success"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "Input": {
+          "description": "Text input field with validation",
+          "props": {
+            "type": "text|email|password|number",
+            "label": "string",
+            "placeholder": "string",
+            "error": "string",
+            "required": "boolean",
+            "disabled": "boolean"
+          },
+          "accessibility": {
+            "role": "textbox",
+            "aria-label": "field purpose",
+            "aria-describedby": "error messages",
+            "aria-required": "required state"
+          },
+          "variants": ["standard", "outlined", "filled"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "Select": {
+          "description": "Dropdown selection component",
+          "props": {
+            "options": "array",
+            "value": "string|array",
+            "multiple": "boolean",
+            "searchable": "boolean",
+            "placeholder": "string"
+          },
+          "accessibility": {
+            "role": "combobox",
+            "aria-expanded": "dropdown state",
+            "aria-haspopup": "listbox",
+            "keyboard": "arrow key navigation"
+          },
+          "variants": ["single", "multiple", "searchable"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "FileUpload": {
+          "description": "File upload with drag and drop",
+          "props": {
+            "accept": "string",
+            "multiple": "boolean",
+            "maxSize": "number",
+            "onUpload": "function",
+            "progress": "number"
+          },
+          "accessibility": {
+            "role": "button",
+            "aria-label": "Upload files",
+            "keyboard": "keyboard accessible"
+          },
+          "variants": ["dropzone", "button", "inline"],
+          "platforms": ["react", "electron", "streamlit"]
+        }
+      },
+      "feedback": {
+        "Alert": {
+          "description": "System alerts and notifications",
+          "props": {
+            "type": "info|success|warning|error",
+            "title": "string",
+            "message": "string",
+            "dismissible": "boolean",
+            "action": "object"
+          },
+          "accessibility": {
+            "role": "alert",
+            "aria-live": "polite|assertive",
+            "focus": "focus management"
+          },
+          "variants": ["banner", "toast", "inline"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "Modal": {
+          "description": "Modal dialog overlay",
+          "props": {
+            "open": "boolean",
+            "title": "string",
+            "onClose": "function",
+            "size": "sm|md|lg|xl",
+            "closeOnBackdrop": "boolean"
+          },
+          "accessibility": {
+            "role": "dialog",
+            "aria-modal": "true",
+            "focusTrap": "focus management",
+            "escape": "close on escape key"
+          },
+          "variants": ["dialog", "fullscreen", "drawer"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "Toast": {
+          "description": "Temporary notification messages",
+          "props": {
+            "type": "info|success|warning|error",
+            "message": "string",
+            "duration": "number",
+            "position": "string"
+          },
+          "accessibility": {
+            "role": "status",
+            "aria-live": "polite",
+            "screenReader": "announced to screen readers"
+          },
+          "variants": ["standard", "action", "persistent"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "ProgressBar": {
+          "description": "Progress indicator for operations",
+          "props": {
+            "value": "number",
+            "max": "number",
+            "label": "string",
+            "indeterminate": "boolean"
+          },
+          "accessibility": {
+            "role": "progressbar",
+            "aria-valuenow": "current value",
+            "aria-valuemax": "maximum value",
+            "aria-label": "progress description"
+          },
+          "variants": ["linear", "circular", "stepped"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        }
+      },
+      "layout": {
+        "Card": {
+          "description": "Content container with styling",
+          "props": {
+            "title": "string",
+            "subtitle": "string",
+            "image": "string",
+            "actions": "array",
+            "elevation": "number"
+          },
+          "accessibility": {
+            "role": "article",
+            "aria-label": "card content",
+            "focusable": "interactive cards"
+          },
+          "variants": ["basic", "media", "action", "outlined"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "Table": {
+          "description": "Data table with sorting and filtering",
+          "props": {
+            "data": "array",
+            "columns": "array",
+            "sortable": "boolean",
+            "filterable": "boolean",
+            "pagination": "object"
+          },
+          "accessibility": {
+            "role": "table",
+            "caption": "table description",
+            "headers": "column headers with scope",
+            "keyboard": "cell navigation"
+          },
+          "variants": ["basic", "striped", "bordered", "compact"],
+          "platforms": ["react", "electron", "streamlit"]
+        },
+        "Tabs": {
+          "description": "Tabbed content navigation",
+          "props": {
+            "tabs": "array",
+            "activeTab": "string",
+            "onChange": "function",
+            "orientation": "horizontal|vertical"
+          },
+          "accessibility": {
+            "role": "tablist",
+            "aria-orientation": "tab orientation",
+            "keyboard": "arrow key navigation",
+            "tabpanel": "associated content"
+          },
+          "variants": ["standard", "pills", "underlined"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        }
+      },
+      "media": {
+        "AudioPlayer": {
+          "description": "Audio playback with controls",
+          "props": {
+            "src": "string",
+            "autoplay": "boolean",
+            "controls": "boolean",
+            "waveform": "boolean",
+            "transcript": "string"
+          },
+          "accessibility": {
+            "role": "application",
+            "aria-label": "Audio player",
+            "keyboard": "playback controls",
+            "captions": "transcript support"
+          },
+          "variants": ["minimal", "full", "waveform"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        },
+        "VideoPlayer": {
+          "description": "Video playback with controls",
+          "props": {
+            "src": "string",
+            "poster": "string",
+            "subtitles": "array",
+            "controls": "boolean",
+            "autoplay": "boolean"
+          },
+          "accessibility": {
+            "role": "application",
+            "aria-label": "Video player",
+            "keyboard": "playback controls",
+            "captions": "subtitle support"
+          },
+          "variants": ["responsive", "fixed", "inline"],
+          "platforms": ["react", "electron", "streamlit"]
+        },
+        "ImageGallery": {
+          "description": "Image gallery with preview",
+          "props": {
+            "images": "array",
+            "thumbnails": "boolean",
+            "lightbox": "boolean",
+            "lazy": "boolean"
+          },
+          "accessibility": {
+            "role": "img",
+            "aria-label": "image descriptions",
+            "keyboard": "navigation controls",
+            "alt": "alternative text"
+          },
+          "variants": ["grid", "carousel", "masonry"],
+          "platforms": ["react", "reactNative", "electron", "streamlit"]
+        }
+      },
+      "transcription": {
+        "TranscriptViewer": {
+          "description": "Interactive transcript display",
+          "props": {
+            "transcript": "array",
+            "timestamps": "boolean",
+            "speakers": "boolean",
+            "editable": "boolean",
+            "search": "boolean"
+          },
+          "accessibility": {
+            "role": "document",
+            "aria-label": "Transcript content",
+            "keyboard": "navigation and editing",
+            "screenReader": "speaker identification"
+          },
+          "variants": ["readonly", "editable", "collaborative"],
+          "platforms": ["react", "electron", "streamlit"]
+        },
+        "WaveformVisualizer": {
+          "description": "Audio waveform visualization",
+          "props": {
+            "audioData": "array",
+            "progress": "number",
+            "interactive": "boolean",
+            "regions": "array"
+          },
+          "accessibility": {
+            "role": "img",
+            "aria-label": "Audio waveform visualization",
+            "keyboard": "seek controls",
+            "alternative": "text-based progress"
+          },
+          "variants": ["static", "interactive", "annotated"],
+          "platforms": ["react", "electron", "streamlit"]
+        },
+        "SpeakerDiarization": {
+          "description": "Speaker identification display",
+          "props": {
+            "speakers": "array",
+            "segments": "array",
+            "colors": "array",
+            "editable": "boolean"
+          },
+          "accessibility": {
+            "role": "list",
+            "aria-label": "Speaker segments",
+            "keyboard": "segment navigation",
+            "screenReader": "speaker announcements"
+          },
+          "variants": ["timeline", "list", "compact"],
+          "platforms": ["react", "electron", "streamlit"]
+        }
+      }
+    },
+    "patterns": {
+      "authentication": {
+        "loginFlow": "Login -> Dashboard",
+        "registrationFlow": "Register -> Verification -> Onboarding",
+        "passwordResetFlow": "Request -> Email -> Reset -> Login"
+      },
+      "fileProcessing": {
+        "uploadFlow": "Select -> Validate -> Upload -> Process -> Results",
+        "batchFlow": "Multiple Select -> Queue -> Batch Process -> Results"
+      },
+      "transcription": {
+        "workspaceFlow": "Upload -> Configure -> Process -> Review -> Export"
+      }
+    },
+    "performance": {
+      "lazyLoading": "Components load on demand",
+      "codesplitting": "Platform-specific bundles",
+      "treeshaking": "Remove unused code",
+      "caching": "Component and asset caching"
+    }
+  }
+}

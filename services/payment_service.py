@@ -737,8 +737,54 @@ class PaymentService:
         tier = SubscriptionTier(subscription.tier)
         features = self.TIER_PRICING[tier]["features"].copy()
         
-        # TODO: Add actual usage tracking from database
-        # This would query actual usage tables
+        # Add actual usage tracking from database
+        # Query actual usage tables to get current usage
+        try:
+            from datetime import datetime, timedelta
+            
+            # Get current billing period usage
+            current_period_start = subscription.current_period_start or datetime.now() - timedelta(days=30)
+            
+            # Query usage records for current period
+            usage_records = self.db.query(UsageRecord).filter(
+                and_(
+                    UsageRecord.user_id == user_id,
+                    UsageRecord.timestamp >= current_period_start
+                )
+            ).all()
+            
+            # Calculate current usage metrics
+            total_transcripts = sum(record.transcripts_processed for record in usage_records)
+            total_minutes = sum(record.minutes_processed for record in usage_records)
+            total_storage_mb = sum(record.storage_used_mb for record in usage_records)
+            total_api_calls = sum(record.api_calls_made for record in usage_records)
+            
+            # Add usage information to features
+            features["current_usage"] = {
+                "transcripts": total_transcripts,
+                "minutes": total_minutes,
+                "storage_mb": total_storage_mb,
+                "api_calls": total_api_calls,
+                "period_start": current_period_start.isoformat(),
+                "period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None
+            }
+            
+            # Calculate usage percentages
+            limits = features.get("limits", {})
+            if limits:
+                features["usage_percentages"] = {
+                    "transcripts": (total_transcripts / limits.get("max_transcripts_per_month", 1000)) * 100 if limits.get("max_transcripts_per_month") else 0,
+                    "minutes": (total_minutes / limits.get("max_minutes_per_month", 5000)) * 100 if limits.get("max_minutes_per_month") else 0,
+                    "storage_mb": (total_storage_mb / (limits.get("max_storage_gb", 10) * 1024)) * 100 if limits.get("max_storage_gb") else 0,
+                    "api_calls": (total_api_calls / limits.get("max_api_calls_per_month", 10000)) * 100 if limits.get("max_api_calls_per_month") else 0
+                }
+            
+            logger.info(f"Retrieved usage tracking for user {user_id}: {total_transcripts} transcripts, {total_minutes} minutes")
+            
+        except Exception as usage_error:
+            logger.error(f"Error retrieving usage tracking for user {user_id}: {usage_error}")
+            # Continue with base features if usage tracking fails
+            features["usage_tracking_error"] = str(usage_error)
         
         return features
     

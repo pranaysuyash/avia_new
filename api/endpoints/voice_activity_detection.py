@@ -8,18 +8,18 @@ from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
 import os
 import sys
-import asyncio
 import logging
 import tempfile
-from datetime import datetime
 from pydantic import BaseModel, Field
 import base64
+import numpy as np
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from api.auth_middleware import get_current_active_user, require_write
+from api.auth_middleware import get_current_active_user
 from api.dependencies import create_api_response, create_error_response
+from api.utils import track_api_call
 
 # Import voice activity detection system
 from voice_activity_detection import (
@@ -248,6 +248,13 @@ async def analyze_voice_activity_base64(
 ):
     """Analyze voice activity in base64 encoded audio data"""
     try:
+        # Log user activity for analytics
+        user_id = current_user.get("user_id", "anonymous")
+        logger.info(f"VAD analysis initiated by user {user_id}")
+        
+        # Track API usage for billing and analytics
+        await track_api_call("vad_analysis_base64", current_user)
+        
         # Decode base64 audio data
         try:
             audio_bytes = base64.b64decode(audio_data)
@@ -291,6 +298,9 @@ async def analyze_voice_activity_base64(
             # Convert result to API response
             api_result = _convert_result_to_api(result, quality_metrics)
             
+            # Log successful completion
+            logger.info(f"VAD analysis completed successfully for user {user_id}")
+            
             return create_api_response(
                 data=api_result,
                 message="Voice activity analysis completed successfully"
@@ -322,6 +332,13 @@ async def batch_analyze_voice_activity(
 ):
     """Analyze voice activity using multiple methods for comparison"""
     try:
+        # Log user activity for analytics
+        user_id = current_user.get("user_id", "anonymous")
+        logger.info(f"Batch VAD analysis initiated by user {user_id}")
+        
+        # Track API usage for billing and analytics
+        await track_api_call("batch_vad_analysis", current_user)
+        
         if len(request.configs) > 10:  # Limit batch size
             raise ValueError("Batch size cannot exceed 10 configurations")
         
@@ -367,64 +384,55 @@ async def batch_analyze_voice_activity(
                     )
                     
                     # Perform VAD analysis
-                    result = await vad_detector.detect_voice_activity(temp_file_path)
+                    result = await vad_detector.detect_voice_activity(
+                        temp_file_path,
+                        include_features=config.include_features
+                    )
+                    
+                    # Get audio quality metrics if requested
+                    quality_metrics = None
+                    if config.include_quality_metrics:
+                        quality_metrics = await vad_detector.analyze_audio_quality(temp_file_path)
                     
                     # Convert result to API response
-                    api_result = _convert_result_to_api(result)
+                    api_result = _convert_result_to_api(result, quality_metrics)
                     
                     results.append({
-                        "index": i,
-                        "config": config.dict(),
-                        "status": "success",
-                        "result": api_result.dict()
+                        'config_index': i,
+                        'config': config.dict(),
+                        'result': api_result,
+                        'processing_time': result.processing_time
                     })
                     
-                except Exception as e:
-                    logger.error(f"Error processing batch item {i}: {e}")
+                except Exception as config_error:
+                    logger.error(f"Error processing config {i}: {config_error}")
                     results.append({
-                        "index": i,
-                        "config": config.dict(),
-                        "status": "error",
-                        "error": str(e)
+                        'config_index': i,
+                        'config': config.dict(),
+                        'error': str(config_error)
                     })
             
-            # Generate comparison if requested
-            comparison = None
-            if request.include_comparison:
-                successful_results = [r for r in results if r["status"] == "success"]
-                if len(successful_results) > 1:
-                    comparison = _generate_method_comparison(successful_results)
+            # Calculate batch statistics
+            successful_results = [r for r in results if 'result' in r]
+            failed_results = [r for r in results if 'error' in r]
             
-            logger.info(f"Batch VAD analysis completed for user {current_user.get('user_id', 'unknown')}: "
-                       f"{len(request.configs)} configurations processed")
+            batch_stats = {
+                'total_configs': len(request.configs),
+                'successful_results': len(successful_results),
+                'failed_results': len(failed_results),
+                'average_processing_time': np.mean([r['processing_time'] for r in successful_results if 'processing_time' in r]) if successful_results else 0
+            }
+            
+            # Log successful completion
+            logger.info(f"Batch VAD analysis completed for user {user_id}: {batch_stats['successful_results']}/{batch_stats['total_configs']} successful")
             
             return create_api_response(
                 data={
-                    "results": results,
-                    "total": len(request.configs),
-                    "successful": len([r for r in results if r["status"] == "success"]),
-                    "comparison": comparison
+                    'results': results,
+                    'batch_stats': batch_stats
                 },
-                message="Batch voice activity analysis completed"
+                message=f"Batch VAD analysis completed: {batch_stats['successful_results']} of {batch_stats['total_configs']} configurations processed successfully"
             )
-            
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
-        
-    except ValueError as e:
-        logger.error(f"Validation error in batch VAD analysis: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request: {str(e)}"
-        )
-    except Exception as e:
-        logger.error(f"Error in batch VAD analysis: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to perform batch voice activity analysis"
-        )
 
 def _generate_method_comparison(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Generate comparison between different VAD methods"""
@@ -456,6 +464,7 @@ def _generate_method_comparison(results: List[Dict[str, Any]]) -> Dict[str, Any]
     comparison["performance_metrics"] = {
         "speech_ratio_variance": float(np.var(speech_ratios)) if len(speech_ratios) > 1 else 0.0,
         "avg_quality_score": float(np.mean(quality_scores)),
+        "avg_processing_time": float(np.mean(processing_times)),
         "fastest_method": min(comparison["methods"], key=lambda x: x["processing_time"])["method"],
         "highest_quality": max(comparison["methods"], key=lambda x: x["quality_score"])["method"]
     }

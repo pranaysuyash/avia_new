@@ -12,7 +12,8 @@ import {
   FlatList,
   Switch,
   Dimensions,
-  RefreshControl
+  RefreshControl,
+  Slider
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -35,6 +36,29 @@ interface SearchResult {
     text: string;
     label: string;
   }>;
+  // Task 133 enhancements
+  score?: number;
+  semanticScore?: number;
+  traditionalScore?: number;
+  highlightedContent?: string;
+  searchType?: 'semantic' | 'traditional' | 'hybrid' | 'fuzzy';
+  similarity?: number;
+  extractedEntities?: Array<{
+    type: string;
+    value: string;
+    confidence: number;
+  }>;
+  contentCategories?: string[];
+  explanation?: SearchExplanation;
+}
+
+interface SearchExplanation {
+  totalScore: number;
+  scoreComponents: Record<string, number>;
+  matchingTerms: string[];
+  boostApplied: Record<string, number>;
+  penaltiesApplied: Record<string, number>;
+  rankingModel: string;
 }
 
 interface SearchFilters {
@@ -58,6 +82,13 @@ interface SearchOptions {
   sortBy: 'relevance' | 'date_desc' | 'date_asc' | 'title';
   highlight: boolean;
   fuzzy: boolean;
+  // Task 133 enhancements
+  strategy: 'hybrid' | 'semantic_only' | 'traditional_only' | 'fuzzy_enhanced' | 'neural_ranking';
+  relevanceModel: 'bm25' | 'tfidf' | 'neural' | 'hybrid_ensemble';
+  searchType: 'full_text' | 'semantic' | 'fuzzy' | 'regex' | 'exact';
+  diversifyResults: boolean;
+  explainRanking: boolean;
+  semanticThreshold: number;
 }
 
 interface SearchResponse {
@@ -93,7 +124,14 @@ export const AdvancedSearch: React.FC = () => {
     offset: 0,
     sortBy: 'relevance',
     highlight: true,
-    fuzzy: false
+    fuzzy: false,
+    // Task 133 enhancements
+    strategy: 'hybrid',
+    relevanceModel: 'hybrid_ensemble',
+    searchType: 'full_text',
+    diversifyResults: true,
+    explainRanking: false,
+    semanticThreshold: 0.7
   });
   
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
@@ -127,15 +165,25 @@ export const AdvancedSearch: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/search/advanced', {
+      // Task 133: Use the new advanced search endpoint
+      const response = await fetch('/api/search/advanced-discovery', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: finalQuery,
+          strategy: finalOptions.strategy,
+          relevanceModel: finalOptions.relevanceModel,
+          searchType: finalOptions.searchType,
           filters: finalFilters,
-          options: finalOptions
+          facets: ['content_type', 'language', 'speakers', 'tags', 'entity_types'],
+          sortOrder: finalOptions.sortBy,
+          limit: finalOptions.limit,
+          offset: finalOptions.offset,
+          diversifyResults: finalOptions.diversifyResults,
+          explainRanking: finalOptions.explainRanking,
+          semanticThreshold: finalOptions.semanticThreshold
         }),
       });
 
@@ -416,7 +464,19 @@ export const AdvancedSearch: React.FC = () => {
                 // navigation.navigate('TranscriptViewer', { transcriptId: item.doc_id });
               }}
             >
-              <Text style={styles.resultTitle}>{item.title}</Text>
+              <View style={styles.resultHeader}>
+                <Text style={styles.resultTitle}>{item.title}</Text>
+                {item.searchType && (
+                  <View style={styles.searchTypeBadge}>
+                    <Text style={styles.searchTypeText}>{item.searchType}</Text>
+                  </View>
+                )}
+                {item.score && (
+                  <View style={styles.scoreBadge}>
+                    <Text style={styles.scoreText}>⭐ {item.score.toFixed(2)}</Text>
+                  </View>
+                )}
+              </View>
               
               {item.title_snippet && item.title_snippet.includes('<mark>') && (
                 <Text style={styles.titleMatch}>
@@ -424,10 +484,41 @@ export const AdvancedSearch: React.FC = () => {
                 </Text>
               )}
               
-              {item.content_snippet && (
-                <Text style={styles.resultSnippet}>
-                  {item.content_snippet.replace(/<\/?mark>/g, '')}
-                </Text>
+              {/* Use highlighted content if available, fallback to regular content */}
+              <Text style={styles.resultSnippet}>
+                {item.highlightedContent 
+                  ? item.highlightedContent.replace(/<\/?mark>/g, '') 
+                  : item.content_snippet?.replace(/<\/?mark>/g, '') || ''
+                }
+              </Text>
+
+              {/* Task 133: Display extracted entities */}
+              {item.extractedEntities && item.extractedEntities.length > 0 && (
+                <View style={styles.entitiesContainer}>
+                  <Text style={styles.entitiesTitle}>Entities:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {item.extractedEntities.slice(0, 5).map((entity, index) => (
+                      <View key={index} style={styles.entityChip}>
+                        <Text style={styles.entityText}>
+                          {entity.type}: {entity.value} ({(entity.confidence * 100).toFixed(0)}%)
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Task 133: Display content categories */}
+              {item.contentCategories && item.contentCategories.length > 0 && (
+                <View style={styles.categoriesContainer}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {item.contentCategories.map((category, index) => (
+                      <View key={index} style={styles.categoryChip}>
+                        <Text style={styles.categoryText}>{category}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
               )}
               
               {/* Metadata */}
@@ -476,6 +567,22 @@ export const AdvancedSearch: React.FC = () => {
                 )}
               </View>
               
+              {/* Task 133: Display ranking explanation */}
+              {options.explainRanking && item.explanation && (
+                <View style={styles.explanationContainer}>
+                  <Text style={styles.explanationTitle}>📖 Ranking Explanation:</Text>
+                  <Text style={styles.explanationText}>
+                    Model: {item.explanation.rankingModel}
+                  </Text>
+                  <Text style={styles.explanationText}>
+                    Total Score: {item.explanation.totalScore.toFixed(3)}
+                  </Text>
+                  <Text style={styles.explanationText}>
+                    Matching Terms: {item.explanation.matchingTerms.join(', ')}
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.resultActions}>
                 <Icon name="chevron-right" size={20} color="#ccc" />
               </View>
@@ -598,6 +705,59 @@ export const AdvancedSearch: React.FC = () => {
             </View>
           </View>
 
+          {/* Search Strategy - Task 133 */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Search Strategy</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={options.strategy}
+                onValueChange={(value) => setOptions({ ...options, strategy: value as any })}
+              >
+                <Picker.Item label="🔄 Hybrid" value="hybrid" />
+                <Picker.Item label="🧠 Semantic Only" value="semantic_only" />
+                <Picker.Item label="📝 Traditional Only" value="traditional_only" />
+                <Picker.Item label="🔤 Fuzzy Enhanced" value="fuzzy_enhanced" />
+                <Picker.Item label="🤖 Neural Ranking" value="neural_ranking" />
+              </Picker>
+            </View>
+          </View>
+
+          {/* Relevance Model - Task 133 */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Relevance Model</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={options.relevanceModel}
+                onValueChange={(value) => setOptions({ ...options, relevanceModel: value as any })}
+              >
+                <Picker.Item label="📊 BM25" value="bm25" />
+                <Picker.Item label="📈 TF-IDF" value="tfidf" />
+                <Picker.Item label="🧠 Neural" value="neural" />
+                <Picker.Item label="🎯 Hybrid Ensemble" value="hybrid_ensemble" />
+              </Picker>
+            </View>
+          </View>
+
+          {/* Semantic Threshold - Task 133 */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>
+              🎯 Semantic Similarity Threshold: {(options.semanticThreshold * 100).toFixed(0)}%
+            </Text>
+            <View style={styles.sliderContainer}>
+              <Slider
+                style={{ width: '100%', height: 40 }}
+                minimumValue={0.1}
+                maximumValue={1.0}
+                step={0.1}
+                value={options.semanticThreshold}
+                onValueChange={(value) => setOptions({ ...options, semanticThreshold: value })}
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#d3d3d3"
+                thumbTintColor="#007AFF"
+              />
+            </View>
+          </View>
+
           {/* Search Options */}
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>Search Options</Text>
@@ -615,6 +775,22 @@ export const AdvancedSearch: React.FC = () => {
               <Switch
                 value={options.fuzzy}
                 onValueChange={(value) => setOptions({ ...options, fuzzy: value })}
+              />
+            </View>
+
+            <View style={styles.switchItem}>
+              <Text style={styles.switchLabel}>🎭 Diversify Results</Text>
+              <Switch
+                value={options.diversifyResults}
+                onValueChange={(value) => setOptions({ ...options, diversifyResults: value })}
+              />
+            </View>
+
+            <View style={styles.switchItem}>
+              <Text style={styles.switchLabel}>📖 Explain Ranking</Text>
+              <Switch
+                value={options.explainRanking}
+                onValueChange={(value) => setOptions({ ...options, explainRanking: value })}
               />
             </View>
 
@@ -980,11 +1156,45 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    flexWrap: 'wrap',
+  },
   resultTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
+    flex: 1,
+  },
+  searchTypeBadge: {
+    backgroundColor: '#e6f3ff',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+    marginBottom: 5,
+  },
+  searchTypeText: {
+    fontSize: 10,
+    color: '#007AFF',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  scoreBadge: {
+    backgroundColor: '#fff3cd',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+    marginBottom: 5,
+  },
+  scoreText: {
+    fontSize: 12,
+    color: '#856404',
+    fontWeight: 'bold',
   },
   titleMatch: {
     fontSize: 14,
@@ -1175,6 +1385,65 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  // Task 133: New styles for enhanced features
+  entitiesContainer: {
+    marginVertical: 8,
+  },
+  entitiesTitle: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  entityChip: {
+    backgroundColor: '#e8f5e8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 6,
+  },
+  entityText: {
+    fontSize: 10,
+    color: '#2e7d32',
+    fontWeight: '500',
+  },
+  categoriesContainer: {
+    marginVertical: 8,
+  },
+  categoryChip: {
+    backgroundColor: '#f0f8ff',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  categoryText: {
+    fontSize: 10,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  explanationContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  explanationTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  explanationText: {
+    fontSize: 11,
+    color: '#666',
+    lineHeight: 16,
+    marginBottom: 2,
   },
 });
 

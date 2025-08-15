@@ -2,7 +2,7 @@
   "name": "transcription-desktop",
   "version": "1.0.0",
   "description": "Desktop app for Audio/Video Transcription and Entity Extraction",
-  "main": "src/main.js",
+  "main": "src/main_fixed.js",
   "homepage": "./",
   "scripts": {
     "start": "electron ${ELECTRON_MAIN:-src/main.js}",
