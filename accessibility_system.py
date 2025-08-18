@@ -144,14 +144,7 @@ class ColorContrastChecker:
         """Calculate relative luminance"""
         def adjust_color(c):
             c = c / 255.0
-            return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
-        
-        r, g, b = map(adjust_color, (r, g, b))
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b
-    
-    @classmethod
-    def check_contrast(cls, color1: str, color2: str) -> Dict[str, Union[float, bool]]:
-        """Check contrast ratio between two colors"""
+            return c / 12.92 if c </"""Check contrast ratio between two colors"""
         try:
             rgb1 = cls.hex_to_rgb(color1)
             rgb2 = cls.hex_to_rgb(color2)
@@ -190,12 +183,12 @@ class AccessibilityValidator:
             if len(line) > 80:  # Rough character count for readability
                 violations.append(WCAGViolation(
                     level=AccessibilityLevel.AA,
-                    guideline="1.4.8",
-                    criterion="Visual Presentation",
+                    guideline",
+                    criterion",
                     element=f"{context} line {i+1}",
                     description=f"Line too long ({len(line)} characters)",
-                    severity="moderate",
-                    fix_suggestion="Break long lines or provide text reflow options",
+                    severity",
+                    fix_suggestion",
                     timestamp=datetime.now()
                 ))
         
@@ -203,12 +196,12 @@ class AccessibilityValidator:
         if re.search(r'\b[A-Z]{3,}\b', text):
             violations.append(WCAGViolation(
                 level=AccessibilityLevel.A,
-                guideline="1.4.5",
-                criterion="Text Content",
+                guideline",
+                criterion",
                 element=context,
-                description="Text contains all capitals which may be read as acronyms",
-                severity="minor",
-                fix_suggestion="Use sentence case or provide proper markup for acronyms",
+                description",
+                severity",
+                fix_suggestion",
                 timestamp=datetime.now()
             ))
         
@@ -222,24 +215,24 @@ class AccessibilityValidator:
         if media_info.get('type') == 'video' and not media_info.get('has_captions'):
             violations.append(WCAGViolation(
                 level=AccessibilityLevel.A,
-                guideline="1.2.2",
-                criterion="Captions (Prerecorded)",
+                guideline",
+                criterion",
                 element=media_info.get('filename', 'video'),
-                description="Video content lacks captions",
-                severity="critical",
-                fix_suggestion="Provide captions or transcripts for video content",
+                description",
+                severity",
+                fix_suggestion",
                 timestamp=datetime.now()
             ))
         
         if media_info.get('type') == 'audio' and not media_info.get('has_transcript'):
             violations.append(WCAGViolation(
                 level=AccessibilityLevel.A,
-                guideline="1.2.1",
-                criterion="Audio-only and Video-only (Prerecorded)",
+                guideline",
+                criterion",
                 element=media_info.get('filename', 'audio'),
-                description="Audio content lacks transcript",
-                severity="critical",
-                fix_suggestion="Provide transcript for audio content",
+                description",
+                severity",
+                fix_suggestion",
                 timestamp=datetime.now()
             ))
         
@@ -270,34 +263,7 @@ class StreamlitAccessibilityEnhancer:
         prefs = st.session_state.accessibility_preferences
         
         css = """
-        <style>
-        /* Focus indicators */
-        button:focus, input:focus, textarea:focus, select:focus, [tabindex]:focus {
-            outline: 2px solid #3B82F6 !important;
-            outline-offset: 2px !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
-        }
-        
-        /* Skip links */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 6px;
-            z-index: 1000;
-            background: #3B82F6;
-            color: white;
-            padding: 8px;
-            text-decoration: none;
-            border-radius: 4px;
-            transition: top 0.3s ease;
-        }
-        
-        .skip-link:focus {
-            top: 6px;
-        }
-        
-        /* High contrast mode */
-        """
+        </"""
         
         if prefs.high_contrast:
             css += """
@@ -374,38 +340,32 @@ class StreamlitAccessibilityEnhancer:
         .stDataFrame td {
             border: 1px solid #ddd !important;
         }
-        </style>
-        """
+        </"""
         
         st.markdown(css, unsafe_allow_html=True)
     
     def add_skip_links(self, targets: List[Dict[str, str]]):
         """Add skip navigation links"""
         
-        skip_links_html = "<div class='skip-links'>"
+        skip_links_html = "</"
         for target in targets:
             skip_links_html += f"""
-            <a href="#{target['id']}" class="skip-link">
+            </"#{target['id']}" class">
                 {target.get('label', f'Skip to {target["id"]}')}
-            </a>
-            """
-        skip_links_html += "</div>"
+            </"""
+        skip_links_html += "</"
         
         st.markdown(skip_links_html, unsafe_allow_html=True)
     
     def create_accessible_heading(self, text: str, level: int = 1, element_id: str = None):
         """Create accessible heading with proper structure"""
         
-        if level < 1 or level > 6:
-            level = 1
-        
-        id_attr = f'id="{element_id}"' if element_id else ''
+        if level </"{element_id}"' if element_id else ''
         
         st.markdown(f"""
-        <h{level} {id_attr} role="heading" aria-level="{level}">
+        </"heading" aria-level">
             {text}
-        </h{level}>
-        """, unsafe_allow_html=True)
+        </""", unsafe_allow_html=True)
     
     def create_accessible_button(self, text: str, key: str, help_text: str = None, 
                                disabled: bool = False, icon: str = None) -> bool:
@@ -426,16 +386,13 @@ class StreamlitAccessibilityEnhancer:
         # Add ARIA attributes via JavaScript (limited in Streamlit)
         if button_clicked:
             st.markdown(f"""
-            <script>
-            (function() {{
-                const button = document.querySelector('[data-testid="baseButton-secondary"]:last-of-type');
+            </"baseButton-secondary"]:last-of-type');
                 if (button) {{
                     button.setAttribute('aria-label', '{aria_label}');
                     button.setAttribute('role', 'button');
                 }}
             }})();
-            </script>
-            """, unsafe_allow_html=True)
+            </""", unsafe_allow_html=True)
         
         return button_clicked
     
@@ -447,10 +404,7 @@ class StreamlitAccessibilityEnhancer:
         # Create label with required indicator
         label_html = label
         if required:
-            label_html += ' <span style="color: #dc2626;">*</span>'
-            label_html += '<span class="sr-only"> (required)</span>'
-        
-        st.markdown(f"**{label_html}**", unsafe_allow_html=True)
+            label_html += ' </"color: #dc2626;">*</"sr-only"> (required)</"**{label_html}**", unsafe_allow_html=True)
         
         # Help text
         if help_text:
@@ -459,14 +413,14 @@ class StreamlitAccessibilityEnhancer:
         # Form field
         field_value = None
         if field_type == "text":
-            field_value = st.text_input("", key=key, label_visibility="collapsed")
+            field_value = st.text_input("", key=key, label_visibility")
         elif field_type == "textarea":
-            field_value = st.text_area("", key=key, label_visibility="collapsed")
+            field_value = st.text_area("", key=key, label_visibility")
         elif field_type == "number":
-            field_value = st.number_input("", key=key, label_visibility="collapsed")
+            field_value = st.number_input("", key=key, label_visibility")
         elif field_type == "email":
-            field_value = st.text_input("", key=key, label_visibility="collapsed", 
-                                      placeholder="example@domain.com")
+            field_value = st.text_input("", key=key, label_visibility", 
+                                      placeholder")
         
         # Error message
         if error:
@@ -487,24 +441,24 @@ class StreamlitAccessibilityEnhancer:
             
             # Provide transcript
             if transcript:
-                with st.expander("=Ý Transcript (Click to expand)"):
+                with st.expander("" Transcript (Click to expand)"):
                     st.markdown(f"**Transcript:**\n\n{transcript}")
             else:
-                st.warning("  No transcript available - this may not be accessible to all users")
+                st.warning("ï¿½ No transcript available - this may not be accessible to all users")
         
         elif media_type == "video":
             st.video(media_path)
             
             # Provide captions or transcript
             if captions:
-                with st.expander("=Ý Captions (Click to expand)"):
+                with st.expander("" Captions (Click to expand)"):
                     for i, caption in enumerate(captions):
                         st.markdown(f"**{i+1}.** {caption}")
             elif transcript:
-                with st.expander("=Ý Transcript (Click to expand)"):
+                with st.expander("" Transcript (Click to expand)"):
                     st.markdown(f"**Video Transcript:**\n\n{transcript}")
             else:
-                st.warning("  No captions or transcript available - this may not be accessible to all users")
+                st.warning("ï¿½ No captions or transcript available - this may not be accessible to all users")
     
     def announce_to_screen_reader(self, message: str, priority: str = "polite"):
         """Announce message to screen readers via live region"""
@@ -512,10 +466,9 @@ class StreamlitAccessibilityEnhancer:
         aria_live = "polite" if priority == "polite" else "assertive"
         
         st.markdown(f"""
-        <div aria-live="{aria_live}" aria-atomic="true" class="sr-only" id="sr-announcements">
+        </"{aria_live}" aria-atomic" class" id">
             {message}
-        </div>
-        """, unsafe_allow_html=True)
+        </""", unsafe_allow_html=True)
     
     def render_accessibility_settings(self):
         """Render accessibility preferences panel"""
@@ -529,58 +482,58 @@ class StreamlitAccessibilityEnhancer:
         
         with col1:
             prefs.high_contrast = st.checkbox(
-                "=3 High Contrast Mode",
+                "1 High Contrast Mode",
                 value=prefs.high_contrast,
-                help="Increase contrast for better visibility"
+                help"
             )
             
             prefs.large_text = st.checkbox(
-                "= Large Text",
+                "ðŸ“ Large Text",
                 value=prefs.large_text, 
-                help="Increase text size for better readability"
+                help"
             )
             
             prefs.reduced_motion = st.checkbox(
-                "ø Reduced Motion",
+                "reduced Reduced Motion",
                 value=prefs.reduced_motion,
-                help="Minimize animations and transitions"
+                help"
             )
             
             prefs.focus_indicators = st.checkbox(
-                "<¯ Enhanced Focus Indicators",
+                "</",
                 value=prefs.focus_indicators,
-                help="Show clear visual focus indicators"
+                help"
             )
         
         with col2:
             prefs.screen_reader = st.checkbox(
-                "=â Screen Reader Optimizations",
+                "" Screen Reader Optimizations",
                 value=prefs.screen_reader,
-                help="Optimize interface for screen readers"
+                help"
             )
             
             prefs.keyboard_only = st.checkbox(
                 "( Keyboard Navigation",
                 value=prefs.keyboard_only,
-                help="Enable enhanced keyboard navigation"
+                help"
             )
             
             prefs.captions = st.checkbox(
-                "=¬ Show Captions",
+                "" Show Captions",
                 value=prefs.captions,
-                help="Display captions for audio/video content"
+                help"
             )
             
             prefs.simplified_ui = st.checkbox(
-                "<¨ Simplified Interface",
+                "</",
                 value=prefs.simplified_ui,
-                help="Use a simpler, cleaner interface"
+                help"
             )
         
         # Save preferences
         st.session_state.accessibility_preferences = prefs
         
-        if st.button("=¾ Apply Settings"):
+        if st.button("" Apply Settings"):
             self.announce_to_screen_reader("Accessibility settings have been applied")
             st.success(" Accessibility settings applied!")
             st.rerun()
@@ -605,12 +558,12 @@ class StreamlitAccessibilityEnhancer:
                 if not img.get('alt_text'):
                     violations.append(WCAGViolation(
                         level=AccessibilityLevel.A,
-                        guideline="1.1.1",
-                        criterion="Non-text Content",
+                        guideline",
+                        criterion",
                         element=img.get('src', 'image'),
-                        description="Image missing alt text",
-                        severity="critical",
-                        fix_suggestion="Add descriptive alt text for the image",
+                        description",
+                        severity",
+                        fix_suggestion",
                         timestamp=datetime.now()
                     ))
         
@@ -631,31 +584,31 @@ class StreamlitAccessibilityEnhancer:
         summary = validation_results['summary']
         
         if total_violations == 0:
-            st.success("<‰ **Excellent!** No accessibility violations detected.")
+            st.success("</")
         else:
-            st.warning(f"  Found {total_violations} accessibility issue(s)")
+            st.warning(f"ï¿½ Found {total_violations} accessibility issue(s)")
             
             # Summary metrics
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.metric("=4 Critical", summary.get('critical', 0))
+                st.metric("1 Critical", summary.get('critical', 0))
             with col2:
-                st.metric("=à Serious", summary.get('serious', 0))
+                st.metric("" Serious", summary.get('serious', 0))
             with col3:
-                st.metric("=á Moderate", summary.get('moderate', 0))
+                st.metric("" Moderate", summary.get('moderate', 0))
             with col4:
-                st.metric("=5 Minor", summary.get('minor', 0))
+                st.metric("1 Minor", summary.get('minor', 0))
             
             # Detailed violations
-            if st.expander("=Ë View Details", expanded=False):
+            if st.expander("" View Details", expanded=False):
                 for violation in validation_results['details']:
                     severity_emoji = {
-                        'critical': '=4',
-                        'serious': '=à', 
-                        'moderate': '=á',
-                        'minor': '=5'
-                    }.get(violation['severity'], 'ª')
+                        'critical': '1',
+                        'serious': '"', 
+                        'moderate': '"',
+                        'minor': '1'
+                    }.get(violation['severity'], 'ï¿½')
                     
                     st.markdown(f"""
                     **{severity_emoji} {violation['criterion']}** ({violation['level']})
@@ -674,9 +627,9 @@ def demo_accessibility_system():
     """Demo the comprehensive accessibility system"""
     
     st.set_page_config(
-        page_title="Accessibility System Demo",
-        page_icon="",
-        layout="wide"
+        page_title",
+        page_icon",
+        layout"
     )
     
     # Inject accessibility CSS
@@ -691,66 +644,66 @@ def demo_accessibility_system():
     # Header
     accessibility_enhancer.create_accessible_heading(
         " Comprehensive Accessibility System Demo", 
-        level=1, 
-        element_id="main-title"
+        level1, 
+        element_id"
     )
     
     st.markdown("*WCAG 2.1 AA compliant accessibility features for the transcription platform*")
     
     # Main content area
-    st.markdown('<div id="main-content">', unsafe_allow_html=True)
+    st.markdown('</"main-content">', unsafe_allow_html=True)
     
     # Tabs
     tab1, tab2, tab3, tab4 = st.tabs([
-        "<¯ Accessibility Features",
-        "™ Settings", 
-        "= Validation",
-        "=Ê Testing Tools"
+        "</",
+        "ï¿½ Settings", 
+        "âš™ï¸",
+        "" Testing Tools"
     ])
     
     with tab1:
-        st.markdown("### <¯ Accessibility Features Demonstration")
+        st.markdown("### </")
         
         # Accessible form example
-        st.markdown("#### =Ý Accessible Form Example")
+        st.markdown("#### " Accessible Form Example")
         
         name = accessibility_enhancer.create_accessible_form_field(
             "Full Name", 
-            field_type="text",
-            key="demo_name",
+            field_type",
+            key",
             required=True,
-            help_text="Enter your first and last name"
+            help_text"
         )
         
         email = accessibility_enhancer.create_accessible_form_field(
             "Email Address",
-            field_type="email", 
-            key="demo_email",
+            field_type", 
+            key",
             required=True,
-            help_text="We'll use this to contact you"
+            help_text"
         )
         
         message = accessibility_enhancer.create_accessible_form_field(
             "Message",
-            field_type="textarea",
-            key="demo_message",
-            help_text="Tell us how we can help you"
+            field_type",
+            key",
+            help_text"
         )
         
         if accessibility_enhancer.create_accessible_button(
             "Submit Form",
-            key="demo_submit",
-            help_text="Submit your information"
+            key",
+            help_text"
         ):
             if name and email:
                 accessibility_enhancer.announce_to_screen_reader(
                     "Form submitted successfully",
-                    priority="assertive"
+                    priority"
                 )
                 st.success(" Form submitted successfully!")
         
         # Accessible media example
-        st.markdown("#### <µ Accessible Media Example")
+        st.markdown("#### </")
         
         sample_transcript = """
         Welcome to our accessibility demo. This audio contains information about 
@@ -759,18 +712,15 @@ def demo_accessibility_system():
         """
         
         # Note: In a real implementation, you would have an actual audio file
-        st.info("<µ Audio player would appear here with full transcript support")
+        st.info("</")
         
-        with st.expander("=Ý Audio Transcript"):
+        with st.expander("" Audio Transcript"):
             st.markdown(sample_transcript)
     
     with tab2:
-        st.markdown('<div id="accessibility-settings">', unsafe_allow_html=True)
+        st.markdown('</"accessibility-settings">', unsafe_allow_html=True)
         accessibility_enhancer.render_accessibility_settings()
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with tab3:
-        st.markdown("### = Accessibility Validation")
+        st.markdown('</"### âš™ï¸")
         
         # Demo validation
         sample_content = {
@@ -785,12 +735,12 @@ def demo_accessibility_system():
             ]
         }
         
-        if st.button("= Run Accessibility Validation"):
+        if st.button("âš™ï¸"):
             results = accessibility_enhancer.validate_page_accessibility(sample_content)
             accessibility_enhancer.render_accessibility_report(results)
     
     with tab4:
-        st.markdown("### =Ê Accessibility Testing Tools")
+        st.markdown("### " Accessibility Testing Tools")
         
         st.markdown("""
         #### =' Available Testing Tools
@@ -802,22 +752,10 @@ def demo_accessibility_system():
         -  Screen reader compatibility
         
         **Manual Testing Checklist:**
-        - <¯ Tab through all interactive elements
-        - = Test with 200% zoom level
-        - =â Verify screen reader announcements
-        - ( Navigate using only keyboard
-        - <¨ Test with high contrast mode
-        
-        **Supported Assistive Technologies:**
-        - NVDA (Windows)
-        - JAWS (Windows) 
-        - VoiceOver (macOS/iOS)
-        - TalkBack (Android)
-        - Dragon NaturallySpeaking
-        """)
+        - </""")
         
         # Color contrast checker
-        st.markdown("#### <¨ Color Contrast Checker")
+        st.markdown("#### </")
         
         col1, col2 = st.columns(2)
         
@@ -843,10 +781,7 @@ def demo_accessibility_system():
             else:
                 st.error("L WCAG AA Large Text")
     
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Footer with accessibility statement
-    st.markdown("---")
+    st.markdown('</"---")
     st.markdown("""
     ###  Accessibility Statement
     

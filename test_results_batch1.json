@@ -1,0 +1,795 @@
+{
+  "test_run_info": {
+    "start_time": "2025-08-18T11:04:22.094171",
+    "root_directory": "/Users/pranay/Projects/LLM/video/ner",
+    "python_version": "3.12.10 (main, Apr  8 2025, 11:35:47) [Clang 17.0.0 (clang-1700.0.13.3)]",
+    "end_time": "2025-08-18T11:04:37.178953"
+  },
+  "summary": {
+    "total_files": 20,
+    "successful_imports": 17,
+    "failed_imports": 3,
+    "skipped_files": 0
+  },
+  "successful_files": [
+    "OBSOLETE_action_item_extraction.py",
+    "OBSOLETE_action_item_extraction_system.py",
+    "OBSOLETE_comprehensive_file_format_system.py",
+    "OBSOLETE_comprehensive_text_classification_system.py",
+    "OBSOLETE_meeting_element_identification.py",
+    "OBSOLETE_production_text_classification_system.py",
+    "action_item_extraction_system.py",
+    "active_learning_features.py",
+    "admin_analytics.py",
+    "admin_dashboard.py",
+    "admin_dashboard_interactive.py",
+    "admin_dashboard_ui.py",
+    "advanced_audio_preprocessing.py",
+    "advanced_audio_preprocessing_ui.py",
+    "advanced_audio_processing.py",
+    "advanced_audio_processor.py",
+    "advanced_content_analysis.py"
+  ],
+  "failed_files": [
+    "accessibility_system.py",
+    "advanced_analytics_reporting.py",
+    "advanced_caching_optimization.py"
+  ],
+  "skipped_files": [],
+  "detailed_results": {
+    "OBSOLETE_action_item_extraction.py": {
+      "path": "OBSOLETE_action_item_extraction.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 29825,
+        "classes": [
+          "datetime",
+          "timedelta",
+          "Any",
+          "Enum",
+          "OpenAI",
+          "ActionItemPriority",
+          "ActionItemStatus",
+          "ActionItem",
+          "MeetingInsights",
+          "ActionItemExtractor"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "dataclass",
+          "asdict",
+          "extract_action_items_from_transcript",
+          "format_action_items_for_export",
+          "example_usage"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:30.830226"
+    },
+    "OBSOLETE_action_item_extraction_system.py": {
+      "path": "OBSOLETE_action_item_extraction_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 42346,
+        "classes": [
+          "Any",
+          "Enum",
+          "datetime",
+          "timedelta",
+          "defaultdict",
+          "MeetingElementIdentifier",
+          "MeetingStructure",
+          "MeetingElement",
+          "MeetingElementType",
+          "ConfidenceLevel",
+          "ActionItemPriority",
+          "ActionItemStatus",
+          "DeadlineType",
+          "ActionItemDeadline",
+          "ActionItemAssignee",
+          "ActionItem",
+          "DeadlineParser",
+          "AssigneeExtractor",
+          "PriorityClassifier",
+          "ActionItemExtractor"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Set",
+          "Union",
+          "dataclass",
+          "field",
+          "create_action_item_extractor",
+          "extract_action_items_from_meeting",
+          "example_usage"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:35.708037"
+    },
+    "OBSOLETE_comprehensive_file_format_system.py": {
+      "path": "OBSOLETE_comprehensive_file_format_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 37880,
+        "classes": [
+          "Path",
+          "Any",
+          "datetime",
+          "Enum",
+          "AudioFormat",
+          "ConversionStatus",
+          "ValidationResult",
+          "FileFormatInfo",
+          "ConversionResult",
+          "BatchConversionJob",
+          "ComprehensiveFileFormatSystem"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "dataclass",
+          "field",
+          "demo_file_format_system"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:35.737071"
+    },
+    "OBSOLETE_comprehensive_text_classification_system.py": {
+      "path": "OBSOLETE_comprehensive_text_classification_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 35040,
+        "classes": [
+          "datetime",
+          "timedelta",
+          "Path",
+          "Any",
+          "AutoModel",
+          "AutoModelForSequenceClassification",
+          "AutoTokenizer",
+          "Trainer",
+          "TrainingArguments",
+          "BaseEstimator",
+          "TransformerMixin",
+          "CalibratedClassifierCV",
+          "RandomForestClassifier",
+          "TfidfVectorizer",
+          "LogisticRegression",
+          "OneVsRestClassifier",
+          "Pipeline",
+          "TextPreprocessor",
+          "ContentTypeClassifier",
+          "DomainSpecificClassifier"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Set",
+          "Tuple",
+          "Union",
+          "pipeline",
+          "classification_report",
+          "confusion_matrix",
+          "train_test_split",
+          "main"
+        ],
+        "imports": [],
+        "constants": [
+          "SPACY_AVAILABLE",
+          "TORCH_AVAILABLE",
+          "TRANSFORMERS_AVAILABLE",
+          "MEDICAL_SCHEMA_AVAILABLE"
+        ],
+        "has_main": true,
+        "module_type": "model"
+      },
+      "test_time": "2025-08-18T11:04:35.810545"
+    },
+    "OBSOLETE_meeting_element_identification.py": {
+      "path": "OBSOLETE_meeting_element_identification.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 28256,
+        "classes": [
+          "Any",
+          "Enum",
+          "datetime",
+          "timedelta",
+          "defaultdict",
+          "MeetingElementType",
+          "ConfidenceLevel",
+          "MeetingElement",
+          "MeetingStructure",
+          "MeetingPatternMatcher",
+          "MeetingElementIdentifier"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Set",
+          "dataclass",
+          "field",
+          "create_meeting_identifier",
+          "analyze_meeting_transcript",
+          "example_usage"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:35.818359"
+    },
+    "OBSOLETE_production_text_classification_system.py": {
+      "path": "OBSOLETE_production_text_classification_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 43345,
+        "classes": [
+          "Path",
+          "datetime",
+          "timedelta",
+          "Any",
+          "StratifiedKFold",
+          "TfidfVectorizer",
+          "CountVectorizer",
+          "Pipeline",
+          "RandomForestClassifier",
+          "GradientBoostingClassifier",
+          "LogisticRegression",
+          "OneVsRestClassifier",
+          "CalibratedClassifierCV",
+          "LabelEncoder",
+          "StandardScaler",
+          "Dataset",
+          "DataLoader",
+          "AutoTokenizer",
+          "AutoModel",
+          "AutoModelForSequenceClassification"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Union",
+          "dataclass",
+          "field",
+          "train_test_split",
+          "cross_val_score",
+          "classification_report",
+          "confusion_matrix",
+          "roc_auc_score",
+          "pipeline",
+          "set_seed",
+          "demo_production_text_classification"
+        ],
+        "imports": [],
+        "constants": [
+          "TRANSFORMERS_AVAILABLE",
+          "SPACY_AVAILABLE",
+          "MLFLOW_AVAILABLE",
+          "PLOTTING_AVAILABLE"
+        ],
+        "has_main": true,
+        "module_type": "model"
+      },
+      "test_time": "2025-08-18T11:04:36.280691"
+    },
+    "accessibility_system.py": {
+      "path": "accessibility_system.py",
+      "success": false,
+      "message": "unterminated string literal (detected at line 538) (accessibility_system.py, line 538)",
+      "details": {
+        "error_type": "SyntaxError",
+        "error_message": "unterminated string literal (detected at line 538) (accessibility_system.py, line 538)",
+        "traceback": [
+          "    spec.loader.exec_module(module)",
+          "  File \"<frozen importlib._bootstrap_external>\", line 995, in exec_module",
+          "  File \"<frozen importlib._bootstrap_external>\", line 1133, in get_code",
+          "  File \"<frozen importlib._bootstrap_external>\", line 1063, in source_to_code",
+          "  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed",
+          "  File \"/Users/pranay/Projects/LLM/video/ner/accessibility_system.py\", line 538",
+          "    \"=",
+          "    ^",
+          "SyntaxError: unterminated string literal (detected at line 538)",
+          ""
+        ]
+      },
+      "test_time": "2025-08-18T11:04:36.282506"
+    },
+    "action_item_extraction_system.py": {
+      "path": "action_item_extraction_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 36950,
+        "classes": [
+          "Path",
+          "datetime",
+          "timedelta",
+          "Any",
+          "Enum",
+          "Dataset",
+          "DataLoader",
+          "AutoTokenizer",
+          "AutoModelForTokenClassification",
+          "AutoModelForSequenceClassification",
+          "Trainer",
+          "TrainingArguments",
+          "BertTokenizer",
+          "BertForTokenClassification",
+          "DistilBertTokenizer",
+          "DistilBertForTokenClassification",
+          "RobertaTokenizer",
+          "RobertaForTokenClassification",
+          "ActionItemPriority",
+          "ActionItemStatus"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Union",
+          "Set",
+          "dataclass",
+          "field",
+          "classification_report",
+          "confusion_matrix",
+          "train_test_split",
+          "pipeline",
+          "set_seed",
+          "extract_action_items_from_meeting",
+          "main"
+        ],
+        "imports": [],
+        "constants": [
+          "TRANSFORMERS_AVAILABLE",
+          "SPACY_AVAILABLE",
+          "DATEUTIL_AVAILABLE"
+        ],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:36.285605"
+    },
+    "active_learning_features.py": {
+      "path": "active_learning_features.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 25505,
+        "classes": [
+          "Any",
+          "Enum",
+          "datetime",
+          "Path",
+          "RandomForestClassifier",
+          "LogisticRegression",
+          "TfidfVectorizer",
+          "ActiveLearningStrategy",
+          "LabelingStatus",
+          "ActiveLearningQuery",
+          "ActiveLearningSession",
+          "ModelPerformance",
+          "UncertaintySampler",
+          "ActiveLearningPipeline"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Callable",
+          "dataclass",
+          "field",
+          "train_test_split",
+          "accuracy_score",
+          "classification_report",
+          "integrate_with_production_classifier",
+          "main"
+        ],
+        "imports": [],
+        "constants": [
+          "MODAL_AVAILABLE"
+        ],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:36.288186"
+    },
+    "admin_analytics.py": {
+      "path": "admin_analytics.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 18025,
+        "classes": [
+          "datetime",
+          "timedelta",
+          "Any",
+          "UsageStats",
+          "CostTracking",
+          "AdminAnalytics"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "dataclass",
+          "asdict",
+          "make_subplots"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "streamlit"
+      },
+      "test_time": "2025-08-18T11:04:36.698055"
+    },
+    "admin_dashboard.py": {
+      "path": "admin_dashboard.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 76638,
+        "classes": [
+          "datetime",
+          "timedelta",
+          "Any",
+          "Enum",
+          "defaultdict",
+          "Counter",
+          "MIMEText",
+          "MIMEMultipart",
+          "UserStatus",
+          "SubscriptionTier",
+          "TicketStatus",
+          "TicketPriority",
+          "AdminUser",
+          "RevenueRecord",
+          "UserActivity",
+          "SystemMetric",
+          "SupportTicket",
+          "AdminDatabase",
+          "UserManagementSystem",
+          "RevenueTrackingSystem"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "dataclass",
+          "field",
+          "main"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:36.706372"
+    },
+    "admin_dashboard_interactive.py": {
+      "path": "admin_dashboard_interactive.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 26274,
+        "classes": [
+          "datetime",
+          "timedelta",
+          "Any",
+          "Enum",
+          "ComponentVariant",
+          "HealthStatus",
+          "SystemMetric",
+          "InteractiveAdminDashboard"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "dataclass",
+          "get_design_system",
+          "render_interactive_admin_dashboard"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "streamlit"
+      },
+      "test_time": "2025-08-18T11:04:36.709642"
+    },
+    "admin_dashboard_ui.py": {
+      "path": "admin_dashboard_ui.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 66655,
+        "classes": [
+          "datetime",
+          "AdminDashboardSystem",
+          "AdminUser",
+          "SupportTicket",
+          "UserStatus",
+          "SubscriptionTier",
+          "TicketStatus",
+          "TicketPriority",
+          "AdminDashboardUI"
+        ],
+        "functions": [
+          "main"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "streamlit"
+      },
+      "test_time": "2025-08-18T11:04:36.713453"
+    },
+    "advanced_analytics_reporting.py": {
+      "path": "advanced_analytics_reporting.py",
+      "success": false,
+      "message": "No module named 'pdfkit'",
+      "details": {
+        "error_type": "ModuleNotFoundError",
+        "error_message": "No module named 'pdfkit'",
+        "traceback": [
+          "Traceback (most recent call last):",
+          "  File \"/Users/pranay/Projects/LLM/video/ner/comprehensive_file_tester.py\", line 198, in test_file",
+          "    spec.loader.exec_module(module)",
+          "  File \"<frozen importlib._bootstrap_external>\", line 999, in exec_module",
+          "  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed",
+          "  File \"/Users/pranay/Projects/LLM/video/ner/advanced_analytics_reporting.py\", line 27, in <module>",
+          "    import pdfkit",
+          "ModuleNotFoundError: No module named 'pdfkit'",
+          ""
+        ]
+      },
+      "test_time": "2025-08-18T11:04:36.753973"
+    },
+    "advanced_audio_preprocessing.py": {
+      "path": "advanced_audio_preprocessing.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 51869,
+        "classes": [
+          "Any",
+          "datetime",
+          "Path",
+          "StandardScaler",
+          "PCA",
+          "KMeans",
+          "DBSCAN",
+          "AudioFeatures",
+          "AudioSimilarity",
+          "AudioCluster",
+          "SpectralAnalyzer",
+          "PitchAnalyzer",
+          "RhythmAnalyzer",
+          "AudioFingerprinter",
+          "AudioSimilarityAnalyzer",
+          "AudioClusteringEngine",
+          "AdvancedAudioPreprocessor"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Tuple",
+          "Optional",
+          "dataclass",
+          "asdict",
+          "cosine",
+          "euclidean",
+          "linkage",
+          "fcluster"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:36.947205"
+    },
+    "advanced_audio_preprocessing_ui.py": {
+      "path": "advanced_audio_preprocessing_ui.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 30377,
+        "classes": [
+          "datetime",
+          "AdvancedAudioPreprocessor",
+          "AudioFeatures"
+        ],
+        "functions": [
+          "make_subplots",
+          "asdict",
+          "init_session_state",
+          "display_spectral_analysis",
+          "display_pitch_analysis",
+          "display_rhythm_analysis",
+          "display_mfcc_analysis",
+          "display_audio_fingerprint",
+          "display_similarity_results",
+          "display_clustering_results",
+          "main"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "streamlit"
+      },
+      "test_time": "2025-08-18T11:04:36.952328"
+    },
+    "advanced_audio_processing.py": {
+      "path": "advanced_audio_processing.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 20322,
+        "classes": [
+          "Any",
+          "AudioSegment",
+          "SpectralAnalysis",
+          "PsychoacousticMetrics",
+          "AudioFingerprint",
+          "AdvancedAudioProcessor"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Tuple",
+          "Optional",
+          "dataclass",
+          "fft",
+          "fftfreq",
+          "normalize",
+          "compress_dynamic_range"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "utility"
+      },
+      "test_time": "2025-08-18T11:04:37.111203"
+    },
+    "advanced_audio_processor.py": {
+      "path": "advanced_audio_processor.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 34680,
+        "classes": [
+          "Any",
+          "Path",
+          "datetime",
+          "timedelta",
+          "AudioSegment",
+          "AudioBookmark",
+          "AudioChapter",
+          "AudioQualityMetrics",
+          "NoiseReducer",
+          "AudioQualityAnalyzer",
+          "AudioTrimmer",
+          "RealTimeStreamProcessor",
+          "AudioBookmarkManager",
+          "AdvancedAudioProcessor"
+        ],
+        "functions": [
+          "List",
+          "Tuple",
+          "Dict",
+          "Optional",
+          "Generator",
+          "dataclass",
+          "normalize",
+          "compress_dynamic_range",
+          "detect_silence",
+          "enhance_audio_for_transcription",
+          "analyze_audio_quality",
+          "create_audio_segments"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:04:37.113449"
+    },
+    "advanced_caching_optimization.py": {
+      "path": "advanced_caching_optimization.py",
+      "success": false,
+      "message": "No module named 'memcache'",
+      "details": {
+        "error_type": "ModuleNotFoundError",
+        "error_message": "No module named 'memcache'",
+        "traceback": [
+          "Traceback (most recent call last):",
+          "  File \"/Users/pranay/Projects/LLM/video/ner/comprehensive_file_tester.py\", line 198, in test_file",
+          "    spec.loader.exec_module(module)",
+          "  File \"<frozen importlib._bootstrap_external>\", line 999, in exec_module",
+          "  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed",
+          "  File \"/Users/pranay/Projects/LLM/video/ner/advanced_caching_optimization.py\", line 22, in <module>",
+          "    import memcache",
+          "ModuleNotFoundError: No module named 'memcache'",
+          ""
+        ]
+      },
+      "test_time": "2025-08-18T11:04:37.118645"
+    },
+    "advanced_content_analysis.py": {
+      "path": "advanced_content_analysis.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 37377,
+        "classes": [
+          "Any",
+          "defaultdict",
+          "Counter",
+          "TextBlob",
+          "datetime",
+          "EmotionAnalysis",
+          "SpeakingPatternAnalysis",
+          "ContentComplexityAnalysis",
+          "BiasDetectionAnalysis",
+          "PlagiarismAnalysis",
+          "EmotionDetector",
+          "SpeakingPatternAnalyzer",
+          "ContentComplexityAnalyzer",
+          "BiasDetector",
+          "PlagiarismDetector",
+          "AdvancedContentAnalyzer"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Union",
+          "dataclass",
+          "flesch_reading_ease",
+          "flesch_kincaid_grade",
+          "automated_readability_index"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "streamlit"
+      },
+      "test_time": "2025-08-18T11:04:37.178934"
+    }
+  }
+}

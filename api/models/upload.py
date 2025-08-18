@@ -10,7 +10,7 @@ from datetime import datetime
 import enum
 import uuid
 
-from api.database import Base
+from database.base import Base
 
 
 class UploadStatus(str, enum.Enum):

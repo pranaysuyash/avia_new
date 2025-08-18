@@ -57,8 +57,9 @@ interface BookmarkData {
   importance: number;
   created_at: string;
   metadata: Record<string, any>;
-}in
-terface TimestampingResult {
+}
+
+interface TimestampingResult {
   word_timestamps: WordTimestamp[];
   segment_timestamps: SegmentTimestamp[];
   bookmarks: BookmarkData[];

@@ -7,7 +7,7 @@ import SmartBRollSuggestions from './components/smart-broll/SmartBRollSuggestion
 import RealTimeCollaborativeEditor from './components/collaboration/RealTimeCollaborativeEditor';
 import AIAnalyticsDashboard from './components/analytics/AIAnalyticsDashboard';
 import { 
-  FileUpload, 
+  Upload as FileUpload, 
   Mic, 
   Globe, 
   Users, 
@@ -97,7 +97,7 @@ import {
   Watch,
   Camera,
   Printer,
-  Scanner,
+  ScanLine as Scanner,
   Keyboard,
   Mouse,
   Headphones,
@@ -135,8 +135,8 @@ import {
   Plane,
   Rocket,
   Globe2,
-  Globe3,
-  Earth,
+  Globe as Globe3,
+  Globe as Earth,
   ChevronRight,
   Plus,
   X,
@@ -149,9 +149,9 @@ import './styles/enterprise.css';
 
 // API integration hook
 const useApiData = (endpoint: string) => {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {

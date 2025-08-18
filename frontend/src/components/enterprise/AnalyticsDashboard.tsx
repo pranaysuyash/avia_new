@@ -42,7 +42,7 @@ import {
   FilterList as FilterIcon,
   DateRange as DateRangeIcon,
   Audiotrack as AudiotrackIcon,
-  Target as TargetIcon,
+  GpsFixed as TargetIcon,
   Speed as SpeedIcon,
   Savings as SavingsIcon,
   Language as LanguageIcon,
@@ -199,7 +199,31 @@ const KPICard: React.FC<KPICardProps> = ({
 
 // Enhanced analytics hook with API integration
 const useEnhancedAnalytics = () => {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<{
+    metrics: {
+      totalProcessed: number;
+      accuracy: number;
+      avgProcessingTime: number;
+      costSaved: number;
+      activeUsers: number;
+      storageUsed: number;
+      apiCalls: number;
+      revenue: number;
+    };
+    trends: {
+      processed: number;
+      accuracy: number;
+      speed: number;
+      revenue: number;
+    };
+    recentActivity: Array<{
+      id: number;
+      user: string;
+      action: string;
+      timestamp: string;
+      status: string;
+    }>;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -571,7 +595,7 @@ export const AnalyticsDashboard: React.FC = () => {
         <Grid item xs={6} sm={3}>
           <Paper elevation={2} sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.05) }}>
             <Typography variant="h6" color="success.main" fontWeight="bold">
-              {recentActivity.filter(a => a.status === 'completed').length}
+              {recentActivity.filter((a: any) => a.status === 'completed').length}
             </Typography>
             <Typography variant="caption" color="textSecondary">
               Completed Today
@@ -581,7 +605,7 @@ export const AnalyticsDashboard: React.FC = () => {
         <Grid item xs={6} sm={3}>
           <Paper elevation={2} sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.warning.main, 0.05) }}>
             <Typography variant="h6" color="warning.main" fontWeight="bold">
-              {recentActivity.filter(a => a.status === 'processing').length}
+              {recentActivity.filter((a: any) => a.status === 'processing').length}
             </Typography>
             <Typography variant="caption" color="textSecondary">
               In Progress
@@ -591,7 +615,7 @@ export const AnalyticsDashboard: React.FC = () => {
         <Grid item xs={6} sm={3}>
           <Paper elevation={2} sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.info.main, 0.05) }}>
             <Typography variant="h6" color="info.main" fontWeight="bold">
-              {recentActivity.filter(a => a.status === 'queued').length}
+              {recentActivity.filter((a: any) => a.status === 'queued').length}
             </Typography>
             <Typography variant="caption" color="textSecondary">
               In Queue

@@ -894,6 +894,16 @@ async def get_storage_stats(
 # Health Check
 # ===========================
 
+@app.get("/health")
+async def root_health_check():
+    """Root health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "transcription-api",
+        "timestamp": datetime.utcnow(),
+        "version": "1.0.0"
+    }
+
 @app.get("/api/health")
 async def health_check():
     """API health check"""

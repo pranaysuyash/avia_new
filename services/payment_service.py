@@ -18,7 +18,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc
 
 # Import database models
-from database.models import User, Team, Subscription, Payment, Invoice
+from database.models import User, Team
+from database.subscription_models import Subscription, Payment, Invoice
 
 logger = logging.getLogger(__name__)
 

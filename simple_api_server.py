@@ -1,333 +1,198 @@
-"""
-Simple API server for testing the search interface
-"""
-
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+from fastapi.responses import JSONResponse, FileResponse
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
 import uvicorn
-import asyncio
+import tempfile
+import os
 import json
+from datetime import datetime
 import random
+import uuid
 
-app = FastAPI()
+app = FastAPI(title="Transcription Platform API", version="1.0.0")
 
-# Enable CORS
+# Enable CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mock transcription data
-MOCK_TRANSCRIPTIONS = [
-    {
-        "transcript_id": "t1",
-        "title": "Tech Conference 2024 Keynote",
-        "full_text": "Welcome to our annual tech conference. Today we'll be discussing artificial intelligence, machine learning, and the future of technology...",
-        "snippet": "Welcome to our annual tech conference. Today we'll be discussing artificial intelligence...",
-        "created_at": "2024-01-15T10:30:00",
-        "duration": 3600,
-        "word_count": 8500,
-        "language": "en",
-        "entities": [
-            {"text": "Tech Conference", "label": "EVENT"},
-            {"text": "artificial intelligence", "label": "TECHNOLOGY"},
-            {"text": "machine learning", "label": "TECHNOLOGY"}
-        ]
-    },
-    {
-        "transcript_id": "t2", 
-        "title": "Product Team Meeting Q1",
-        "full_text": "Let's review our Q1 product roadmap. We have several key features to deliver including the new dashboard, API improvements, and mobile app updates...",
-        "snippet": "Let's review our Q1 product roadmap. We have several key features to deliver...",
-        "created_at": "2024-02-01T14:00:00",
-        "duration": 2400,
-        "word_count": 5200,
-        "language": "en",
-        "entities": [
-            {"text": "Q1", "label": "DATE"},
-            {"text": "dashboard", "label": "PRODUCT"},
-            {"text": "API", "label": "TECHNOLOGY"},
-            {"text": "mobile app", "label": "PRODUCT"}
-        ]
-    },
-    {
-        "transcript_id": "t3",
-        "title": "Customer Interview - Sarah Johnson",
-        "full_text": "Thank you for joining us today Sarah. Can you tell us about your experience with our platform? I've been using it for about 6 months now...",
-        "snippet": "Thank you for joining us today Sarah. Can you tell us about your experience...",
-        "created_at": "2024-02-10T09:15:00",
-        "duration": 1800,
-        "word_count": 3200,
-        "language": "en",
-        "entities": [
-            {"text": "Sarah Johnson", "label": "PERSON"},
-            {"text": "6 months", "label": "DURATION"}
-        ]
-    },
-    {
-        "transcript_id": "t4",
-        "title": "Engineering Standup - Sprint 23",
-        "full_text": "Good morning team. Let's go through our updates for Sprint 23. John, can you start with the API refactoring progress?...",
-        "snippet": "Good morning team. Let's go through our updates for Sprint 23...",
-        "created_at": "2024-02-20T10:00:00",
-        "duration": 900,
-        "word_count": 1500,
-        "language": "en",
-        "entities": [
-            {"text": "Sprint 23", "label": "EVENT"},
-            {"text": "John", "label": "PERSON"},
-            {"text": "API refactoring", "label": "TASK"}
-        ]
-    },
-    {
-        "transcript_id": "t5",
-        "title": "Marketing Strategy Session",
-        "full_text": "Today we'll discuss our Q2 marketing strategy. We need to focus on content marketing, social media engagement, and SEO improvements...",
-        "snippet": "Today we'll discuss our Q2 marketing strategy. We need to focus on content marketing...",
-        "created_at": "2024-03-01T15:30:00",
-        "duration": 3000,
-        "word_count": 6000,
-        "language": "en",
-        "entities": [
-            {"text": "Q2", "label": "DATE"},
-            {"text": "content marketing", "label": "STRATEGY"},
-            {"text": "social media", "label": "PLATFORM"},
-            {"text": "SEO", "label": "TECHNOLOGY"}
-        ]
-    }
+# In-memory storage
+transcriptions = []
+users = [
+    {"id": 1, "email": "admin@example.com", "name": "Admin User", "role": "admin"},
+    {"id": 2, "email": "user@example.com", "name": "Regular User", "role": "user"}
 ]
+
+class TranscriptionResponse(BaseModel):
+    id: str
+    filename: str
+    transcript: str
+    confidence: float
+    duration: float
+    language: str
+    timestamp: str
+    speaker_labels: List[Dict[str, Any]] = []
+
+class AuthResponse(BaseModel):
+    token: str
+    user: Dict[str, Any]
 
 @app.get("/")
 async def root():
-    return {"message": "Simple API Server", "status": "running"}
+    return {"message": "Transcription Platform API", "status": "running", "version": "1.0.0"}
 
 @app.get("/health")
-async def health():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+async def health_check():
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "services": {
+            "api": "running",
+            "database": "connected",
+            "storage": "available"
+        }
+    }
 
-@app.get("/api/v1/search")
-async def search_transcriptions(
-    q: str = Query(..., description="Search query"),
-    dateRange: Optional[str] = Query("all", description="Date range filter"),
-    language: Optional[str] = Query("all", description="Language filter"),
-    hasEntities: Optional[bool] = Query(False, description="Has entities filter"),
-    sortBy: Optional[str] = Query("relevance", description="Sort by field")
+@app.post("/api/auth/login")
+async def login(email: str = Form(...), password: str = Form(...)):
+    """Login endpoint"""
+    user = next((u for u in users if u["email"] == email), None)
+    if user and password:  # Accept any password for demo
+        return AuthResponse(
+            token=f"demo_token_{user['id']}_{uuid.uuid4().hex[:8]}",
+            user=user
+        )
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.post("/api/auth/register")
+async def register(email: str = Form(...), password: str = Form(...), name: str = Form(...)):
+    """Register endpoint"""
+    # Check if user exists
+    if any(u["email"] == email for u in users):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    new_user = {
+        "id": len(users) + 1,
+        "email": email,
+        "name": name,
+        "role": "user"
+    }
+    users.append(new_user)
+    
+    return AuthResponse(
+        token=f"demo_token_{new_user['id']}_{uuid.uuid4().hex[:8]}",
+        user=new_user
+    )
+
+@app.post("/api/v1/transcribe")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str = Form("en"),
+    speaker_diarization: bool = Form(False)
 ):
-    """Search through transcriptions"""
-    
-    # Filter results based on query
-    results = []
-    query_lower = q.lower()
-    
-    for transcript in MOCK_TRANSCRIPTIONS:
-        # Simple text matching
-        if (query_lower in transcript["title"].lower() or 
-            query_lower in transcript["full_text"].lower() or
-            any(query_lower in entity["text"].lower() for entity in transcript["entities"])):
-            
-            # Apply filters
-            if language != "all" and transcript["language"] != language:
-                continue
-            
-            if hasEntities and len(transcript["entities"]) == 0:
-                continue
-            
-            # Calculate mock relevance score
-            title_matches = transcript["title"].lower().count(query_lower)
-            text_matches = transcript["full_text"].lower().count(query_lower)
-            entity_matches = sum(1 for e in transcript["entities"] if query_lower in e["text"].lower())
-            
-            score = (title_matches * 3) + text_matches + (entity_matches * 2)
-            
-            result = {
-                **transcript,
-                "score": score
-            }
-            results.append(result)
-    
-    # Sort results
-    if sortBy == "relevance":
-        results.sort(key=lambda x: x["score"], reverse=True)
-    elif sortBy == "date":
-        results.sort(key=lambda x: x["created_at"], reverse=True)
-    elif sortBy == "duration":
-        results.sort(key=lambda x: x["duration"], reverse=True)
-    elif sortBy == "word_count":
-        results.sort(key=lambda x: x["word_count"], reverse=True)
-    
-    return {
-        "success": True,
-        "data": {
-            "results": results,
-            "total_count": len(results),
-            "query": q,
-            "filters": {
-                "dateRange": dateRange,
-                "language": language,
-                "hasEntities": hasEntities,
-                "sortBy": sortBy
-            }
-        }
-    }
-
-@app.get("/api/v1/insights/dashboard-stats")
-async def get_dashboard_stats():
-    """Get dashboard statistics"""
-    return {
-        "data": {
-            "totalTranscriptions": 1234,
-            "hoursProcessed": 842,
-            "entitiesFound": 5678,
-            "accuracyRate": 98.5
-        }
-    }
-
-@app.get("/api/v1/transcription/list")
-async def get_transcriptions(limit: int = 5):
-    """Get recent transcriptions"""
-    # Add proper IDs to transcriptions
-    items_with_ids = []
-    for t in MOCK_TRANSCRIPTIONS[:limit]:
-        item = t.copy()
-        item["id"] = item["transcript_id"]  # Add id field
-        items_with_ids.append(item)
-    
-    return {
-        "data": {
-            "items": items_with_ids,
-            "total": len(MOCK_TRANSCRIPTIONS),
-            "page": 1,
-            "pageSize": limit
-        }
-    }
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-        self.subscriptions: Dict[str, List[WebSocket]] = {}
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-        # Remove from all subscriptions
-        for sub_list in self.subscriptions.values():
-            if websocket in sub_list:
-                sub_list.remove(websocket)
-
-    async def send_to_client(self, message: dict, websocket: WebSocket):
-        await websocket.send_json(message)
-
-    async def broadcast(self, message: dict):
-        for connection in self.active_connections:
-            await connection.send_json(message)
-
-    def subscribe(self, transcription_id: str, websocket: WebSocket):
-        if transcription_id not in self.subscriptions:
-            self.subscriptions[transcription_id] = []
-        if websocket not in self.subscriptions[transcription_id]:
-            self.subscriptions[transcription_id].append(websocket)
-
-    async def send_to_subscribers(self, transcription_id: str, event: str, data: dict):
-        if transcription_id in self.subscriptions:
-            message = {
-                "event": event,
-                "data": {**data, "transcription_id": transcription_id}
-            }
-            for websocket in self.subscriptions[transcription_id]:
-                await websocket.send_json(message)
-
-manager = ConnectionManager()
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    """Transcribe audio file"""
     try:
-        while True:
-            data = await websocket.receive_json()
-            
-            if data.get("event") == "subscribe":
-                transcription_id = data.get("data", {}).get("transcription_id")
-                if transcription_id:
-                    manager.subscribe(transcription_id, websocket)
-                    # Start simulated transcription progress
-                    asyncio.create_task(simulate_transcription(transcription_id))
-                    
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
 
-async def simulate_transcription(transcription_id: str):
-    """Simulate transcription progress updates"""
-    steps = [
-        ("Audio Processing", 25),
-        ("Speech Recognition", 50),
-        ("Speaker Diarization", 75),
-        ("Entity Extraction", 100)
-    ]
-    
-    # Send initial status
-    await manager.send_to_subscribers(
-        transcription_id,
-        "transcription:status",
-        {"status": "processing", "step": "Initializing..."}
-    )
-    
-    # Simulate progress through steps
-    for step_name, progress in steps:
-        await asyncio.sleep(random.uniform(2, 4))  # Random delay
+        # Mock transcription - in real app, this would use Whisper
+        mock_transcripts = [
+            "Hello, this is a sample transcription of your audio file. The system successfully processed your upload and extracted the speech content.",
+            "Welcome to our transcription platform. Your audio has been analyzed and converted to text with high accuracy using advanced AI models.",
+            "This is an example output from our speech-to-text system. The file you uploaded has been processed successfully.",
+            "Thank you for using our transcription service. This text represents the spoken content from your audio file."
+        ]
         
-        await manager.send_to_subscribers(
-            transcription_id,
-            "transcription:step",
-            {"step": step_name}
+        transcript = random.choice(mock_transcripts)
+        duration = random.uniform(30, 180)  # 30s to 3min
+        confidence = random.uniform(0.85, 0.98)
+        
+        # Mock speaker diarization
+        speaker_labels = []
+        if speaker_diarization:
+            speaker_labels = [
+                {"speaker": "Speaker 1", "start": 0.0, "end": 15.5, "text": transcript[:50]},
+                {"speaker": "Speaker 2", "start": 15.5, "end": 30.0, "text": transcript[50:]}
+            ]
+        
+        transcription = TranscriptionResponse(
+            id=str(uuid.uuid4()),
+            filename=file.filename,
+            transcript=transcript,
+            confidence=confidence,
+            duration=duration,
+            language=language,
+            timestamp=datetime.utcnow().isoformat(),
+            speaker_labels=speaker_labels
         )
         
-        await manager.send_to_subscribers(
-            transcription_id,
-            "transcription:progress",
-            {"progress": progress}
-        )
-    
-    # Complete the transcription
-    await asyncio.sleep(1)
-    await manager.send_to_subscribers(
-        transcription_id,
-        "transcription:status",
-        {
-            "status": "completed",
-            "step": "Transcription complete",
-            "result": {
-                "id": transcription_id,
-                "duration": 1800,
-                "word_count": 3500,
-                "entities_count": 15
-            }
-        }
-    )
+        transcriptions.append(transcription.dict())
+        
+        # Clean up temp file
+        os.unlink(temp_file_path)
+        
+        return transcription
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
-@app.post("/api/v1/transcription/process")
-async def process_transcription(file_id: str):
-    """Start transcription processing"""
-    transcription_id = f"t_{random.randint(1000, 9999)}"
-    
-    # Start async processing
-    asyncio.create_task(simulate_transcription(transcription_id))
-    
+@app.get("/api/v1/transcriptions")
+async def get_transcriptions():
+    """Get all transcriptions"""
+    return {"transcriptions": transcriptions, "total": len(transcriptions)}
+
+@app.get("/api/v1/transcriptions/{transcription_id}")
+async def get_transcription(transcription_id: str):
+    """Get specific transcription"""
+    transcription = next((t for t in transcriptions if t["id"] == transcription_id), None)
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+    return transcription
+
+@app.delete("/api/v1/transcriptions/{transcription_id}")
+async def delete_transcription(transcription_id: str):
+    """Delete transcription"""
+    global transcriptions
+    transcriptions = [t for t in transcriptions if t["id"] != transcription_id]
+    return {"message": "Transcription deleted successfully"}
+
+@app.get("/api/v1/analytics/dashboard")
+async def get_analytics():
+    """Get analytics dashboard data"""
     return {
-        "success": True,
-        "data": {
-            "transcription_id": transcription_id,
-            "status": "processing",
-            "message": "Transcription started"
-        }
+        "total_transcriptions": len(transcriptions),
+        "total_users": len(users),
+        "average_confidence": 0.91 if transcriptions else 0,
+        "total_duration": sum(t.get("duration", 0) for t in transcriptions),
+        "languages": {"en": 80, "es": 15, "fr": 5},
+        "recent_activity": transcriptions[-5:] if transcriptions else []
+    }
+
+@app.get("/api/v1/models/available")
+async def get_available_models():
+    """Get available AI models"""
+    return {
+        "transcription_models": [
+            {"id": "whisper-large", "name": "Whisper Large", "language_support": ["en", "es", "fr", "de"]},
+            {"id": "whisper-medium", "name": "Whisper Medium", "language_support": ["en", "es", "fr"]},
+            {"id": "wav2vec2", "name": "Wav2Vec2", "language_support": ["en"]}
+        ],
+        "translation_models": [
+            {"id": "opus-mt", "name": "Helsinki-NLP OPUS-MT", "pairs": ["en-es", "en-fr", "es-en"]},
+            {"id": "m2m100", "name": "Facebook M2M-100", "pairs": ["en-es", "en-fr", "fr-en"]}
+        ]
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import sys
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8001
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")

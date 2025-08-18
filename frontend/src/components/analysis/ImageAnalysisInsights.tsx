@@ -145,7 +145,7 @@ const ImageAnalysisInsights: React.FC = () => {
       formData.append('analysis_options', JSON.stringify(analysisOptions));
       formData.append('include_sections', JSON.stringify(analysisOptions.include_sections));
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/image-analysis/analyze/upload`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/image-analysis/analyze/upload`, {
         method: 'POST',
         body: formData,
       }).then(res => res.json());

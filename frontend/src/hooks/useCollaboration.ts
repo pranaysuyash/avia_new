@@ -36,7 +36,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
     roomId,
     userId,
     userName,
-    signalingServerUrl = process.env.REACT_APP_SIGNALING_SERVER || 'wss://localhost:8080',
+    signalingServerUrl = import.meta.env.VITE_SIGNALING_SERVER || 'wss://localhost:8080',
     iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },

@@ -40,18 +40,31 @@ class User(Base):
     
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    username = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    full_name = Column(String(255))
+    
+    # Core user fields - support both schemas
+    name = Column(String(255))  # Current DB schema
+    username = Column(String(100), unique=True, nullable=True, index=True)  # Used in codebase
+    full_name = Column(String(255))  # Used in codebase
+    
+    # User status and verification
     role = Column(Enum(UserRole), default=UserRole.USER)
     is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
-    verification_token = Column(String(100), unique=True)
+    is_verified = Column(Boolean, default=False)  # Used in codebase
+    email_verified = Column(Boolean, default=False)  # Current DB schema
+    
+    # Verification and reset tokens
+    verification_token = Column(String(100), unique=True)  # Used in codebase
     reset_token = Column(String(100), unique=True)
     reset_token_expires = Column(DateTime)
+    
+    # Timestamps
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     last_login = Column(DateTime)
+    
+    # Subscription info
+    subscription_tier = Column(String(50), default='free')
     
     # Relationships
     transcripts = relationship("Transcript", back_populates="user", cascade="all, delete-orphan")
@@ -198,6 +211,65 @@ class TranscriptVersion(Base):
     transcript = relationship("Transcript", back_populates="versions")
     changed_by = relationship("User")
 
+class TranscriptSegment(Base):
+    """Individual segments/chunks of a transcript with timestamps"""
+    __tablename__ = 'transcript_segments'
+    
+    id = Column(Integer, primary_key=True)
+    transcript_id = Column(Integer, ForeignKey('transcripts.id'), nullable=False)
+    start_time = Column(Float, nullable=False)  # Start time in seconds
+    end_time = Column(Float, nullable=False)    # End time in seconds
+    text = Column(Text, nullable=False)         # Segment text
+    confidence = Column(Float)                  # Confidence score
+    speaker_id = Column(String(50))             # Speaker identification
+    words = Column(JSON)                        # Word-level data with timestamps
+    language = Column(String(10))               # Language code
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    transcript = relationship("Transcript")
+
+class TranscriptWord(Base):
+    """Individual words in a transcript with precise timing"""
+    __tablename__ = 'transcript_words'
+    
+    id = Column(Integer, primary_key=True)
+    segment_id = Column(Integer, ForeignKey('transcript_segments.id'), nullable=False)
+    transcript_id = Column(Integer, ForeignKey('transcripts.id'), nullable=False)
+    word = Column(String(255), nullable=False)
+    start_time = Column(Float, nullable=False)  # Start time in seconds
+    end_time = Column(Float, nullable=False)    # End time in seconds
+    confidence = Column(Float)                  # Confidence score
+    word_index = Column(Integer, nullable=False)  # Position in transcript
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    segment = relationship("TranscriptSegment")
+    transcript = relationship("Transcript")
+
+class TranscriptionSession(Base):
+    """Transcription processing sessions"""
+    __tablename__ = 'transcription_sessions'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    transcript_id = Column(Integer, ForeignKey('transcripts.id'), nullable=True)
+    file_name = Column(String(255), nullable=False)
+    file_path = Column(String(500))
+    file_size = Column(Integer)
+    status = Column(String(50), default='pending')  # pending, processing, completed, failed
+    progress = Column(Float, default=0.0)  # 0.0 to 100.0
+    error_message = Column(Text)
+    model_used = Column(String(50))
+    processing_time = Column(Float)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    user = relationship("User")
+    transcript = relationship("Transcript")
+
 class Team(Base):
     """Team workspace for collaboration"""
     __tablename__ = 'teams'
@@ -273,6 +345,7 @@ class Notification(Base):
     # Relationships
     user = relationship("User", foreign_keys=[user_id], backref="notifications")
     from_user = relationship("User", foreign_keys=[from_user_id])
+
 
 # Database initialization
 def init_db(database_url: Optional[str] = None):

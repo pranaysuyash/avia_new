@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-08-18T06:07:27.416702",
+  "overall_status": "degraded",
+  "overall_healthy": 1,
+  "overall_total": 11,
+  "check_types": {
+    "http": {
+      "healthy": 0,
+      "total": 2,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "fastapi",
+          "status": "unhealthy",
+          "response_time_ms": 7096.848964691162,
+          "timestamp": "2025-08-18T06:07:20.313984",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:8000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 8000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 8000)]",
+          "check_type": "http"
+        },
+        {
+          "service_name": "streamlit",
+          "status": "unhealthy",
+          "response_time_ms": 7095.325946807861,
+          "timestamp": "2025-08-18T06:07:20.315409",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:8501 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 8501, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 8501)]",
+          "check_type": "http"
+        }
+      ]
+    },
+    "database": {
+      "healthy": 0,
+      "total": 1,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "postgresql",
+          "status": "unhealthy",
+          "response_time_ms": 21.635055541992188,
+          "timestamp": "2025-08-18T06:07:20.315592",
+          "details": null,
+          "error_message": "connection to server at \"localhost\" (::1), port 5432 failed: FATAL:  database \"transcription_dev\" does not exist\n",
+          "check_type": "database"
+        }
+      ]
+    },
+    "cache": {
+      "healthy": 1,
+      "total": 1,
+      "percentage": 100.0,
+      "results": [
+        {
+          "service_name": "redis",
+          "status": "healthy",
+          "response_time_ms": 3.170013427734375,
+          "timestamp": "2025-08-18T06:07:20.337258",
+          "details": {
+            "connection_status": 

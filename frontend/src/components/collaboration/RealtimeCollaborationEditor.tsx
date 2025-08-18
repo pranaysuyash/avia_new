@@ -105,7 +105,7 @@ const EditorContent = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper
 }));
 
-const PresenceIndicator = styled(Box)(({ theme, color }) => ({
+const PresenceIndicator = styled(Box)<{ color?: string }>(({ theme, color }) => ({
   position: 'absolute',
   width: '12px',
   height: '12px',
@@ -132,7 +132,7 @@ const AnnotationPopover = styled(Paper)(({ theme }) => ({
   boxShadow: theme.shadows[8]
 }));
 
-const StatusIndicator = styled(Box)(({ theme, status }) => {
+const StatusIndicator = styled(Box)<{ status: 'connected' | 'connecting' | 'disconnected' | 'syncing' }>(({ theme, status }) => {
   const colors = {
     connected: theme.palette.success.main,
     connecting: theme.palette.warning.main,
@@ -375,9 +375,9 @@ const RealtimeCollaborationEditor: React.FC<Props> = ({
     });
     
     // Lock events
-    collaborationEngineRef.current.onLockChanged((locked, holderId) => {
+    collaborationEngineRef.current.onLockChanged((locked: boolean, holderId?: string) => {
       setIsLocked(locked);
-      setLockHolder(holderId);
+      setLockHolder(holderId || null);
       if (locked && holderId !== currentUser.id) {
         const holderName = users.find(u => u.id === holderId)?.name || 'Another user';
         showNotification('warning', `Document locked by ${holderName}`);
@@ -468,16 +468,28 @@ const RealtimeCollaborationEditor: React.FC<Props> = ({
     // Add medical context if it's a medical term
     if (type === 'medical_term' && medicalIntegratorRef.current) {
       medicalIntegratorRef.current.analyzeMedicalTerm(selectedText).then(analysis => {
-        annotation.medicalContext = {
-          terminology: analysis.terminology,
-          category: analysis.category,
-          confidence: analysis.confidence,
-          requiresValidation: analysis.confidence < 0.8
+        const medicalAnnotation = {
+          type: annotation.type,
+          startOffset: annotation.start,
+          endOffset: annotation.end,
+          text: annotation.text,
+          content: annotation.note || '',
+          authorId: annotation.userId,
+          authorName: currentUser.name
         };
-        annotationEngineRef.current?.addAnnotation(annotation);
+        annotationEngineRef.current?.addAnnotation(medicalAnnotation);
       });
     } else {
-      annotationEngineRef.current?.addAnnotation(annotation);
+      const simpleAnnotation = {
+        type: annotation.type,
+        startOffset: annotation.start,
+        endOffset: annotation.end,
+        text: annotation.text,
+        content: annotation.note || '',
+        authorId: annotation.userId,
+        authorName: currentUser.name
+      };
+      annotationEngineRef.current?.addAnnotation(simpleAnnotation);
     }
   }, [content, currentUser]);
   
@@ -604,29 +616,22 @@ const RealtimeCollaborationEditor: React.FC<Props> = ({
         {/* Editor */}
         <EditorContent>
           <Box position="relative" height="100%">
-            <TextField
-              ref={editorRef}
-              multiline
-              fullWidth
+            <textarea
+              ref={editorRef as React.RefObject<HTMLTextAreaElement>}
               value={content}
               onChange={handleContentChange}
               disabled={!canEdit}
               placeholder={canEdit ? "Start typing to collaborate..." : "Read-only mode"}
-              variant="outlined"
-              InputProps={{
-                sx: {
-                  height: '100%',
-                  '& .MuiInputBase-input': {
-                    height: '100% !important',
-                    overflow: 'auto !important'
-                  }
-                }
-              }}
-              sx={{
+              style={{
+                width: '100%',
                 height: '100%',
-                '& .MuiOutlinedInput-root': {
-                  height: '100%'
-                }
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '8px',
+                fontSize: '14px',
+                fontFamily: 'monospace',
+                resize: 'none',
+                outline: 'none'
               }}
             />
             

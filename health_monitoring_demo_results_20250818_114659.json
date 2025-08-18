@@ -1,0 +1,172 @@
+{
+  "timestamp": "2025-08-18T06:16:29.909349",
+  "overall_status": "degraded",
+  "overall_healthy": 1,
+  "overall_total": 11,
+  "check_types": {
+    "http": {
+      "healthy": 0,
+      "total": 2,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "fastapi",
+          "status": "unhealthy",
+          "response_time_ms": 6045.337915420532,
+          "timestamp": "2025-08-18T06:16:23.860336",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:8000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 8000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 8000)]",
+          "check_type": "http"
+        },
+        {
+          "service_name": "streamlit",
+          "status": "unhealthy",
+          "response_time_ms": 6044.878005981445,
+          "timestamp": "2025-08-18T06:16:23.860850",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:8501 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 8501, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 8501)]",
+          "check_type": "http"
+        }
+      ]
+    },
+    "database": {
+      "healthy": 0,
+      "total": 1,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "postgresql",
+          "status": "unhealthy",
+          "response_time_ms": 15.536069869995117,
+          "timestamp": "2025-08-18T06:16:23.860998",
+          "details": null,
+          "error_message": "connection to server at \"localhost\" (::1), port 5432 failed: FATAL:  database \"transcription_dev\" does not exist\n",
+          "check_type": "database"
+        }
+      ]
+    },
+    "cache": {
+      "healthy": 1,
+      "total": 1,
+      "percentage": 100.0,
+      "results": [
+        {
+          "service_name": "redis",
+          "status": "healthy",
+          "response_time_ms": 1.5130043029785156,
+          "timestamp": "2025-08-18T06:16:23.876568",
+          "details": {
+            "connection_status": "healthy",
+            "memory_usage_mb": 1.90216064453125,
+            "memory_max_mb": 0,
+            "connected_clients": 1,
+            "hit_rate_percent": 24.22679863062967,
+            "error_message": null
+          },
+          "error_message": null,
+          "check_type": "cache"
+        }
+      ]
+    },
+    "storage": {
+      "healthy": 0,
+      "total": 1,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "minio",
+          "status": "unhealthy",
+          "response_time_ms": 6022.778034210205,
+          "timestamp": "2025-08-18T06:16:23.878122",
+          "details": null,
+          "error_message": "HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1075d1220>: Failed to establish a new connection: [Errno 61] Connection refused'))",
+          "check_type": "storage"
+        }
+      ]
+    },
+    "frontend": {
+      "healthy": 0,
+      "total": 1,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "frontend",
+          "status": "unhealthy",
+          "response_time_ms": 6.826877593994141,
+          "timestamp": "2025-08-18T06:16:29.900946",
+          "details": null,
+          "error_message": "Server disconnected",
+          "check_type": "frontend"
+        }
+      ]
+    },
+    "connectivity": {
+      "healthy": 2,
+      "total": 5,
+      "percentage": 40.0,
+      "results": [
+        {
+          "service_name": "frontend->backend",
+          "status": "unhealthy",
+          "response_time_ms": 0.43511390686035156,
+          "timestamp": "2025-08-18T06:16:29.907857",
+          "details": null,
+          "error_message": "Connection failed: 61",
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "frontend->backend",
+          "status": "unhealthy",
+          "response_time_ms": 0.2548694610595703,
+          "timestamp": "2025-08-18T06:16:29.908302",
+          "details": null,
+          "error_message": "Connection failed: 61",
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "backend->database",
+          "status": "healthy",
+          "response_time_ms": 0.2930164337158203,
+          "timestamp": "2025-08-18T06:16:29.908558",
+          "details": {
+            "source": "backend",
+            "target": "database",
+            "target_url": "postgresql://localhost:5432",
+            "connection_result": "success"
+          },
+          "error_message": null,
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "backend->cache",
+          "status": "healthy",
+          "response_time_ms": 0.2617835998535156,
+          "timestamp": "2025-08-18T06:16:29.908855",
+          "details": {
+            "source": "backend",
+            "target": "cache",
+            "target_url": "redis://localhost:6379",
+            "connection_result": "success"
+          },
+          "error_message": null,
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "backend->storage",
+          "status": "unhealthy",
+          "response_time_ms": 0.19621849060058594,
+          "timestamp": "2025-08-18T06:16:29.909119",
+          "details": null,
+          "error_message": "Connection failed: 61",
+          "check_type": "connectivity"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "services_healthy": 1,
+    "services_total": 6,
+    "connectivity_healthy": 2,
+    "connectivity_total": 5
+  }
+}

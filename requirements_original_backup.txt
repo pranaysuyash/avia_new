@@ -1,0 +1,971 @@
+# Core web framework
+streamlit>=1.28.0
+
+# OpenAI API for Whisper and GPT
+openai>=1.3.0
+
+# Local Whisper model for offline operation
+openai-whisper>=20231117
+
+# Natural Language Processing
+spacy>=3.7.2
+spacy-transformers>=1.3.0  # For transformer-based models
+pydantic>=2.0.0
+textblob>=0.17.1
+language-tool-python>=2.9.0  # Grammar checking
+pyspellchecker>=0.8.0  # Spelling correction
+nltk>=3.9.0  # Natural language toolkit
+
+# Multi-language support (Task 36)
+langdetect>=1.0.9
+pycountry>=22.3.5
+googletrans==4.0.0rc1
+babel>=2.17.0
+
+# Error tracking and monitoring
+sentry-sdk[fastapi]>=1.39.0
+
+# Voice Activity Detection (Task 84)
+webrtcvad>=2.0.10
+pyAudioAnalysis>=0.3.14
+hmmlearn>=0.3.3
+eyed3>=0.9.8
+imbalanced-learn>=0.13.0
+
+# Real-Time Transcription (Task 85)
+websockets>=12.0
+uvicorn>=0.24.0
+pyaudio>=0.2.11
+vosk>=0.3.44
+torchaudio>=2.7.0
+
+# GraphQL Support (Task 22)
+strawberry-graphql[fastapi]>=0.270.0
+graphql-core==3.2.3
+
+
+# Media processing
+ffmpeg-python>=0.2.0
+pydub>=0.25.1
+
+# Video processing
+opencv-python>=4.8.0
+Pillow>=11.3.0
+ffmpeg>=1.4
+
+# Export and sharing
+reportlab>=4.0.0
+python-docx>=1.1.0
+
+# Text-to-Speech
+elevenlabs>=0.2.26
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Additional dependencies for robust operation
+requests>=2.31.0
+numpy>=2.2.6
+pandas>=2.3.1
+asyncio>=4.0.0
+
+# Audio processing for AI features
+librosa>=0.11.0
+soundfile>=0.13.1
+scikit-learn>=1.7.1
+
+# AI/ML models and transformers
+transformers>=4.35.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Visualization and plotting dependencies
+contourpy>=1.3.3
+cycler>=0.12.1
+fonttools>=4.59.0
+kiwisolver>=1.4.9
+pyparsing>=3.2.3
+python-dateutil>=2.9.0.post0
+six>=1.17.0
+wordcloud>=1.9.4
+
+# Core dependencies for collaborative discussion facilitator
+openai>=1.99.9
+pandas>=2.3.1
+librosa>=0.11.0
+soundfile>=0.13.1
+scikit-learn>=1.7.1
+transformers>=4.35.0
+torch>=2.0.0
+sqlalchemy>=2.0.0
+pyaudio>=0.2.11
+
+# Additional missing dependencies found in Python files
+streamlit>=1.48.0
+fastapi>=0.104.0
+uvicorn>=0.35.0
+websockets>=15.0.1
+redis>=5.0.0
+googletrans>=4.0.0rc1
+langdetect>=1.0.9
+bcrypt>=4.0.1
+PyJWT>=2.8.0
+pytest>=7.4.0
+opencv-python>=4.8.0
+pytesseract>=0.3.10
+easyocr>=1.7.0
+paddleocr>=2.7.0
+PyMuPDF>=1.23.0
+layoutparser>=0.3.4
+transformers>=4.35.0
+torch>=2.0.0
+torchvision>=0.15.0
+detectron2>=0.6
+camelot-py[cv]>=0.11.0
+tabula-py>=2.8.0
+pdfplumber>=0.10.0
+seaborn>=0.12.0
+aiohttp>=3.9.0
+aioredis>=2.0.1
+jinja2>=3.1.6
+celery>=5.3.0
+boto3>=1.29.0
+twilio>=8.10.0
+aiosmtplib>=3.0.0
+xgboost>=1.7.0
+lightgbm>=4.1.0
+pyiqa>=0.1.7
+pdfminer.six>=20221105
+diskcache>=5.6.0
+cerberus>=1.3.4
+marshmallow>=3.20.0
+click>=8.1.0
+dill>=0.3.7
+cloudpickle>=3.0.0
+imagehash>=4.3.2
+seaborn>=0.12.0
+
+# Excel export functionality
+openpyxl>=3.1.0
+
+# System monitoring and health checks
+psutil>=5.9.0
+
+# Logging and monitoring
+python-json-logger>=2.0.7
+
+# Audio processing for advanced features
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Audio Enhancement Pipeline (Task 117)
+noisereduce>=3.0.0
+scipy>=1.10.0  # Already included above but needed for audio enhancement
+matplotlib>=3.10.5  # Already included above but needed for visualizations
+plotly>=5.17.0  # Already included above but needed for UI visualizations
+
+# Production AI Audio Enhancement System Dependencies
+# Core audio processing and machine learning
+librosa>=0.10.1
+soundfile>=0.12.1
+numpy>=1.24.3
+scipy>=1.11.0
+
+# Neural audio enhancement models (optional but recommended)
+torch>=2.0.1
+torchaudio>=2.0.2
+# denoiser  # Facebook Denoiser - install separately: pip install git+https://github.com/facebookresearch/denoiser.git
+
+# Audio quality metrics (optional but recommended) 
+# pesq>=0.0.4  # PESQ quality metric - install separately: pip install https://github.com/ludlows/python-pesq/archive/master.zip
+# pystoi>=0.3.3  # STOI quality metric - install separately: pip install pystoi
+
+# Real-time audio processing (optional)
+pyaudio>=0.2.11
+webrtcvad>=2.0.10
+
+# Database for enhancement tracking
+# sqlite3  # Built-in Python module - commenting out as it's not installable via pip
+
+# Additional audio processing utilities
+noisereduce>=3.0.0  # Alternative noise reduction
+ffmpeg-python>=0.2.0  # Audio file handling
+
+# Database and Authentication
+sqlalchemy>=2.0.0
+passlib>=1.7.4
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+email-validator>=2.1.0
+pyotp>=2.9.0
+qrcode>=7.4.2
+openai-whisper>=20231117
+redis>=5.0.0
+python-json-logger>=3.3.0
+python-dotenv>=1.0.0
+
+# Enhanced Export Functionality
+python-docx>=1.1.0
+
+# WebSocket Support for Real-time Features
+websockets>=12.0
+python-socketio>=5.10.0
+
+# Analytics and visualization
+plotly>=5.17.0
+matplotlib>=3.10.5
+psutil>=5.9.0
+
+# JSON Schema validation
+jsonschema>=4.19.0
+
+# Enhanced speaker diarization with WhisperX
+whisperx>=3.1.0
+torch>=1.9.0
+torchaudio>=0.9.0
+speechbrain>=0.5.0
+scikit-learn>=1.0.0
+pyannote.audio>=3.1.0
+
+# Security and encryption
+cryptography>=41.0.0
+
+# API Framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+
+# Semantic search and embeddings
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+
+# Visual search and content discovery (Task 38)
+umap-learn>=0.5.3
+scipy>=1.10.0
+
+# Advanced content analysis (Task 39)
+textstat>=0.7.3
+textblob>=0.17.1
+
+# AI provider integrations
+replicate>=0.15.0
+stability-sdk>=0.8.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-timeout>=2.1.0
+pytest-mock>=3.11.0
+pytest-xdist>=3.3.0
+pytest-asyncio>=0.21.0
+
+# Advanced export and integration capabilities (Task 41)
+# Note: requests is already included above
+# Additional dependencies for export package creation
+zipfile-deflate64>=0.2.0  # Enhanced ZIP compression support
+
+# User Authentication System (Task 46)
+bcrypt>=4.0.1
+pyotp>=2.9.0
+qrcode>=7.4.2
+Pillow>=11.3.0  # Already included above for image processing
+
+# Notification System Dependencies (Task 52)
+# Email notifications
+aiosmtplib>=3.0.0
+
+# SMS notifications
+twilio>=8.10.0
+
+# AWS SNS for push notifications
+boto3>=1.29.0
+
+# Redis for in-app notifications
+redis>=5.0.0
+aioredis>=2.0.1
+
+# Template rendering
+jinja2>=3.1.2
+
+# Async HTTP for webhooks
+aiohttp>=3.9.0
+
+# Background task processing
+celery>=5.3.0
+kombu>=5.3.0
+
+# Advanced Document Analysis and Structure Detection (Task 76)
+# OCR Engines
+pytesseract>=0.3.10
+easyocr>=1.7.0
+paddleocr>=2.7.0
+
+# Hugging Face Transformers and Models
+transformers>=4.35.0
+torch>=2.0.0
+torchvision>=0.15.0
+datasets>=2.14.0
+
+# Computer Vision and Image Processing
+opencv-python>=4.8.0  # Already included above
+scikit-image>=0.21.0
+scipy>=1.10.0  # Already included above
+
+# Layout Analysis
+layoutparser>=0.3.4
+detectron2>=0.6
+
+# PDF and Document Processing
+PyMuPDF>=1.23.0
+camelot-py[cv]>=0.11.0
+tabula-py>=2.8.0
+pdfplumber>=0.10.0
+
+# Advanced Image Processing
+scikit-learn>=1.0.0  # Already included above
+matplotlib>=3.10.5  # Already included above
+
+# Data Processing and Analysis
+pandas>=2.0.0  # Already included above
+numpy>=1.24.0  # Already included above
+
+# Clustering and Machine Learning
+scikit-learn>=1.3.0
+DBSCAN>=0.1.0  # Part of scikit-learn
+
+# Additional Computer Vision
+imutils>=0.5.4
+dlib>=19.24.0
+
+# Table Processing
+openpyxl>=3.1.0  # Already included above
+
+# Advanced Text Processing
+regex>=2023.10.0
+nltk>=3.8.0
+
+# GPU Acceleration Support
+# torch>=2.0.0  # Already included above
+# torchvision>=0.15.0  # Already included above
+
+# Model Management
+huggingface-hub>=0.17.0
+
+# Additional Dependencies for Advanced Features
+Pillow>=11.3.0  # Already included above
+requests>=2.31.0  # Already included above
+python-dotenv>=1.0.0  # Already included above
+
+# Specialized Document Libraries
+python-docx>=1.1.0  # Already included above
+reportlab>=4.0.0  # Already included above
+
+# JSON and Data Handling
+jsonschema>=4.19.0  # Already included above
+
+# Logging
+# logging>=0.4.9.6  # Built-in Python module - commenting out as it's not installable via pip
+
+# Base64 and IO
+base64>=1.0.0  # Built-in Python module
+
+# Enum support (built-in in Python 3.4+)
+# enum34>=1.1.10  # Only needed for Python < 3.4
+
+# UUID support (built-in)
+# uuid>=1.30  # Built-in Python module
+
+# Dataclasses (built-in in Python 3.7+)
+# dataclasses>=0.8  # Only needed for Python < 3.7
+
+# Type hints
+typing-extensions>=4.8.0
+
+# Additional ML Libraries for Advanced Analysis
+xgboost>=1.7.0
+lightgbm>=4.1.0
+
+# Advanced NLP
+spacy>=3.7.0  # Already included above
+textblob>=0.17.1  # Already included above
+
+# Image Quality Assessment
+pyiqa>=0.1.7
+
+# Advanced PDF Processing
+pdfminer.six>=20221105
+
+# Template Matching
+opencv-contrib-python>=4.8.0
+
+# Statistical Analysis
+statsmodels>=0.14.0
+
+# Advanced Visualization
+seaborn>=0.12.0
+plotly>=5.17.0  # Already included above
+
+# Memory Optimization
+memory-profiler>=0.61.0
+
+# Parallel Processing
+joblib>=1.3.0
+
+# Configuration Management
+pyyaml>=6.0.1
+configparser>=6.0.0  # Built-in but explicit version
+
+# Advanced File Handling
+pathlib>=1.0.1  # Built-in but explicit
+tempfile>=1.0  # Built-in
+
+# Network and HTTP
+urllib3>=2.0.0
+httpx>=0.25.0
+
+# Async Support
+asyncio>=3.4.3  # Built-in but explicit
+aiofiles>=23.2.0
+
+# Advanced Error Handling
+traceback>=2.0.0  # Built-in but explicit
+
+# Performance Monitoring
+psutil>=5.9.0  # Already included above
+
+# Advanced Caching
+diskcache>=5.6.0
+
+# Multi-threading Support
+concurrent.futures>=3.1.1  # Built-in but explicit
+threading>=1.0  # Built-in
+
+# Advanced Data Structures
+collections>=1.0  # Built-in
+heapq>=1.0  # Built-in
+bisect>=1.0  # Built-in
+
+# Mathematical Operations
+math>=1.0  # Built-in
+random>=1.0  # Built-in
+statistics>=1.0  # Built-in
+
+# Advanced String Processing
+string>=1.0  # Built-in
+re>=2.2.1  # Built-in but explicit
+
+# Time and Date Handling
+datetime>=4.3  # Built-in but explicit
+time>=1.0  # Built-in
+
+# System Integration
+os>=1.0  # Built-in
+sys>=1.0  # Built-in
+platform>=1.0  # Built-in
+
+# Advanced I/O
+io>=1.0  # Built-in
+pickle>=4.0  # Built-in
+gzip>=1.0  # Built-in
+
+# Compression
+zipfile>=1.0  # Built-in
+tarfile>=1.0  # Built-in
+
+# Advanced Networking
+socket>=1.0  # Built-in
+ssl>=1.16  # Built-in
+
+# Process Management
+subprocess>=1.0  # Built-in
+multiprocessing>=1.0  # Built-in
+
+# Advanced Testing for Document Analysis
+pytest-mock>=3.11.0  # Already included above
+pytest-cov>=4.1.0  # Already included above
+pytest-timeout>=2.1.0  # Already included above
+
+# Mock and Testing Utilities
+unittest.mock>=1.0  # Built-in but explicit
+mock>=4.0.3
+
+# Advanced Debugging
+pdb>=1.0  # Built-in
+pprint>=1.0  # Built-in
+inspect>=1.0  # Built-in
+
+# Performance Profiling
+cProfile>=1.0  # Built-in
+profile>=1.0  # Built-in
+
+# Advanced Logging
+logging.handlers>=0.9.0  # Built-in but explicit
+
+# Environment Variables
+environ>=1.0  # Built-in through os
+
+# Advanced File System Operations
+shutil>=1.0  # Built-in
+glob>=1.0  # Built-in
+fnmatch>=1.0  # Built-in
+
+# Advanced Data Validation
+cerberus>=1.3.4
+marshmallow>=3.20.0
+
+# Advanced Configuration
+click>=8.1.0
+argparse>=1.4.0  # Built-in but explicit
+
+# Advanced Serialization
+dill>=0.3.7
+cloudpickle>=3.0.0
+
+# Advanced Hashing
+hashlib>=1.0  # Built-in
+hmac>=1.0  # Built-in
+
+# Advanced Encoding
+codecs>=1.0  # Built-in
+base64>=1.0  # Built-in but explicit
+
+# Advanced Iteration
+itertools>=1.0  # Built-in
+functools>=1.0  # Built-in
+operator>=1.0  # Built-in
+
+# Advanced Context Management
+contextlib>=1.0  # Built-in
+weakref>=1.0  # Built-in
+
+# Advanced Memory Management
+gc>=1.0  # Built-in
+resource>=1.0  # Built-in (Unix only)
+
+# Advanced Signal Handling
+signal>=1.0  # Built-in
+atexit>=1.0  # Built-in
+
+# Advanced Locale Support
+locale>=1.0  # Built-in
+gettext>=1.0  # Built-in
+
+# Advanced Unicode Support
+unicodedata>=1.0  # Built-in
+encodings>=1.0  # Built-in
+
+# API Platform and Developer Tools (Task 54)
+strawberry-graphql>=0.200.0
+graphql-core>=3.2.0
+jinja2>=3.1.2  # Already included above for templates
+pyyaml>=6.0.1  # Already included above
+redis>=5.0.0  # Already included above
+celery>=5.3.0  # Already included above
+
+# Compliance and Enterprise Security (Task 55)
+cryptography>=41.0.0  # Already included above for encryption
+pyjwt>=2.8.0  # Already included above for JWT tokens
+bcrypt>=4.0.0  # Already included above for password hashing
+plotly>=5.17.0  # Already included above for compliance dashboards
+imagehash>=4.3.2
+
+# Meeting Element Identification Engine (Task 3.1)
+# Core dependencies for pattern matching and NLP
+regex>=2023.10.0  # Already included above for advanced regex patterns
+python-dateutil>=2.9.0.post0  # Already included above for datetime parsing
+dataclasses>=0.8  # Built-in Python 3.7+ for data structures
+enum34>=1.1.10  # For Python < 3.4 enum support
+collections>=1.0  # Built-in for defaultdict and other collections
+json>=2.0.9  # Built-in for JSON serialization
+# logging>=0.4.9.6  # Built-in Python module - commenting out as it's not installable via pip  # Already included above for structured logging
+
+# Additional dependencies for meeting analysis
+typing-extensions>=4.8.0  # Already included above for advanced type hints
+pytest>=7.4.0  # Already included above for comprehensive testing
+
+# MOM Template Engine (Task 3.3)
+jinja2>=3.1.2  # Template engine for MOM generation
+markupsafe>=2.1.0  # Safe string handling for templates
+
+# Feedback Data Models and Storage (Task 4.1)
+# # sqlite3>=3.0.0  # Built-in SQLite database - commenting out as it's not installable via pip support - commenting out as it's not installable via pip
+uuid>=1.30  # Built-in UUID generation
+threading>=1.0  # Built-in threading support for concurrent access
+twilio>=9.7.0
+reportlab>=4.4.0
+
+# Production Authentication & Authorization System
+# Core authentication and security
+PyJWT>=2.8.0  # JWT token management (already included above)
+bcrypt>=4.0.1  # Password hashing (already included above)
+cryptography>=41.0.0  # Encryption and crypto operations (already included above)
+redis>=5.0.0  # Session storage and rate limiting (already included above)
+aiohttp>=3.9.0  # OAuth HTTP client (already included above)
+oauthlib>=3.2.2  # OAuth 2.0 implementation
+secrets>=1.0  # Built-in secure random generation
+hashlib>=1.0  # Built-in hashing utilities
+hmac>=1.0  # Built-in HMAC authentication
+
+# SAML 2.0 support (optional for enterprise SSO)
+pysaml2>=7.4.2
+
+# Additional security utilities
+passlib>=1.7.4  # Password context management (already included above)
+email-validator>=2.1.0  # Email validation (already included above)
+
+# Production Testing Infrastructure System
+# Core testing framework and utilities
+pytest>=7.4.0  # Comprehensive testing framework (already included above)
+pytest-asyncio>=0.21.0  # Async testing support (already included above)
+pytest-cov>=4.1.0  # Coverage reporting (already included above)
+pytest-mock>=3.11.0  # Mock and patching utilities (already included above)
+pytest-xdist>=3.3.0  # Parallel test execution (already included above)
+pytest-timeout>=2.1.0  # Test timeout management (already included above)
+coverage>=7.3.0  # Code coverage analysis
+unittest-xml-reporting>=3.2.0  # XML test reporting
+
+# Performance and load testing
+psutil>=5.9.0  # System monitoring and resource usage (already included above)
+memory-profiler>=0.61.0  # Memory profiling (already included above)
+py-spy>=0.3.14  # Python profiler for performance analysis
+
+# Mock and testing utilities
+responses>=0.23.0  # HTTP request mocking
+requests-mock>=1.11.0  # Advanced HTTP mocking
+freezegun>=1.2.2  # Time mocking for tests
+factory-boy>=3.3.0  # Test data factories
+
+# Security testing
+bandit>=1.7.5  # Security vulnerability scanner
+safety>=2.3.0  # Python package vulnerability checking
+semgrep>=1.45.0  # Static analysis security tool
+
+# Database testing
+# sqlite3>=3.0.0  # Built-in SQLite for test databases - commenting out as it's not installable via pip
+sqlalchemy>=2.0.0  # Database ORM for testing (already included above)
+
+# API testing and mocking
+httpx>=0.25.0  # Modern HTTP client for testing (already included above)
+aiohttp>=3.9.0  # Async HTTP for testing (already included above)
+aioresponses>=0.7.4  # Async HTTP response mocking
+
+# Test reporting and analytics
+allure-pytest>=2.13.0  # Advanced test reporting
+pytest-html>=4.1.0  # HTML test reports
+pytest-json-report>=1.5.0  # JSON test reporting
+
+# CI/CD integration
+tox>=4.11.0  # Testing across Python versions
+pre-commit>=3.5.0  # Git hooks for code quality
+# Media Ingestion Controller Dependencies (Task 1)
+# Core async file handling
+aiofiles>=23.2.0  # Already included above for async file operations
+
+# MIME type detection
+python-magic>=0.4.27  # Advanced MIME type detection using libmagic
+
+# PDF processing
+PyMuPDF>=1.23.0  # Already included above for PDF document processing
+
+# Image processing
+Pillow>=11.3.0  # Already included above for image processing and validation
+
+# Media file processing
+ffmpeg-python>=0.2.0  # Already included above for media file probing and processing
+
+# Async support and concurrency
+asyncio>=3.4.3  # Built-in async support
+concurrent.futures>=3.1.1  # Built-in thread pool executor
+threading>=1.0  # Built-in threading support
+
+# Data structures and validation
+dataclasses>=0.8  # Built-in dataclass support for Python 3.7+
+typing>=3.7.4  # Built-in type hints support
+
+# File system operations
+tempfile>=1.0  # Built-in temporary file handling
+pathlib>=1.0.1  # Built-in path operations
+os>=1.0  # Built-in operating system interface
+hashlib>=1.0  # Built-in hashing for unique IDs
+mimetypes>=1.0  # Built-in MIME type guessing
+
+# Date and time handling
+datetime>=4.3  # Built-in datetime operations
+
+# Logging
+# logging>=0.4.9.6  # Built-in Python module - commenting out as it's not installable via pip  # Built-in logging support
+
+# I/O operations
+io>=1.0  # Built-in I/O operations for stream handling
+
+# Additional missing dependencies for Media Ingestion Controller
+ffmpeg-python>=0.2.0  # Already included above but ensuring it's present
+future>=1.0.0  # Required by ffmpeg-python
+
+# Core Python libraries that may be missing
+typing-extensions>=4.8.0  # Already included above for advanced type hints
+
+# Additional async and concurrency support
+asyncio>=3.4.3  # Built-in but explicit version
+concurrent.futures>=3.1.1  # Built-in but explicit version
+
+# File and system operations
+tempfile>=1.0  # Built-in temporary file operations
+pathlib>=1.0.1  # Built-in path operations
+os>=1.0  # Built-in operating system interface
+sys>=1.0  # Built-in system operations
+platform>=1.0  # Built-in platform detection
+
+# Data structures and utilities
+collections>=1.0  # Built-in collections
+dataclasses>=0.8  # Built-in dataclasses for Python 3.7+
+enum34>=1.1.10  # Enum support for older Python versions
+typing>=3.7.4  # Built-in type hints
+
+# String and text processing
+string>=1.0  # Built-in string operations
+re>=2.2.1  # Built-in regular expressions
+unicodedata>=1.0  # Built-in Unicode support
+
+# Mathematical and hashing operations
+hashlib>=1.0  # Built-in hashing algorithms
+hmac>=1.0  # Built-in HMAC authentication
+math>=1.0  # Built-in mathematical functions
+random>=1.0  # Built-in random number generation
+
+# Time and date operations
+datetime>=4.3  # Built-in datetime operations
+time>=1.0  # Built-in time operations
+
+# I/O and serialization
+io>=1.0  # Built-in I/O operations
+pickle>=4.0  # Built-in serialization
+json>=2.0.9  # Built-in JSON operations
+base64>=1.0  # Built-in base64 encoding
+
+# Compression and archives
+gzip>=1.0  # Built-in gzip compression
+zipfile>=1.0  # Built-in ZIP file operations
+tarfile>=1.0  # Built-in TAR file operations
+
+# Network and HTTP operations
+socket>=1.0  # Built-in socket operations
+ssl>=1.16  # Built-in SSL/TLS support
+urllib3>=2.0.0  # Already included above for HTTP operations
+httpx>=0.25.0  # Already included above for modern HTTP client
+
+# Process and system management
+subprocess>=1.0  # Built-in subprocess operations
+multiprocessing>=1.0  # Built-in multiprocessing
+threading>=1.0  # Built-in threading support
+signal>=1.0  # Built-in signal handling
+atexit>=1.0  # Built-in exit handlers
+
+# Memory and resource management
+gc>=1.0  # Built-in garbage collection
+resource>=1.0  # Built-in resource management (Unix only)
+weakref>=1.0  # Built-in weak references
+
+# Context and iteration utilities
+contextlib>=1.0  # Built-in context managers
+itertools>=1.0  # Built-in iteration tools
+functools>=1.0  # Built-in functional programming tools
+operator>=1.0  # Built-in operator functions
+
+# Debugging and introspection
+inspect>=1.0  # Built-in code introspection
+traceback>=2.0.0  # Built-in traceback operations
+pdb>=1.0  # Built-in Python debugger
+pprint>=1.0  # Built-in pretty printing
+
+# Logging and monitoring
+# logging>=0.4.9.6  # Built-in Python module - commenting out as it's not installable via pip  # Built-in logging framework
+logging.handlers>=0.9.0  # Built-in logging handlers
+warnings>=1.0  # Built-in warning system
+
+# File system operations
+shutil>=1.0  # Built-in high-level file operations
+glob>=1.0  # Built-in filename pattern matching
+fnmatch>=1.0  # Built-in filename matching
+
+# Configuration and argument parsing
+configparser>=6.0.0  # Built-in configuration parser
+argparse>=1.4.0  # Built-in argument parsing
+
+# Locale and internationalization
+locale>=1.0  # Built-in locale support
+gettext>=1.0  # Built-in internationalization
+
+# Encoding and decoding
+codecs>=1.0  # Built-in codec operations
+encodings>=1.0  # Built-in encoding support
+
+# MIME type detection and file operations
+mimetypes>=1.0  # Built-in MIME type guessing
+python-magic>=0.4.27  # Advanced MIME type detection (already added above)
+
+# Additional dependencies that might be missing
+six>=1.17.0  # Python 2/3 compatibility (already included above)
+setuptools>=69.0.0  # Package installation tools
+wheel>=0.42.0  # Wheel package format support
+pip>=25.1.0  # Package installer
+
+# Development and testing utilities
+unittest>=1.0  # Built-in unit testing framework
+unittest.mock>=1.0  # Built-in mocking framework
+doctest>=1.0  # Built-in documentation testing
+
+# Additional system utilities
+copy>=1.0  # Built-in object copying
+deepcopy>=1.0  # Part of copy module
+csv>=1.0  # Built-in CSV operations
+xml>=1.0  # Built-in XML operations
+html>=1.0  # Built-in HTML operations
+
+# Additional async support
+asyncio.subprocess>=1.0  # Built-in async subprocess
+asyncio.streams>=1.0  # Built-in async streams
+
+# Additional file format support
+# sqlite3>=3.0.0  # Built-in SQLite database - commenting out as it's not installable via pip
+dbm>=1.0  # Built-in database interface
+
+# Additional network support
+email>=1.0  # Built-in email operations
+smtplib>=1.0  # Built-in SMTP client
+poplib>=1.0  # Built-in POP3 client
+imaplib>=1.0  # Built-in IMAP client
+ftplib>=1.0  # Built-in FTP client
+http>=1.0  # Built-in HTTP operations
+
+# Additional compression support
+bz2>=1.0  # Built-in bzip2 compression
+lzma>=1.0  # Built-in LZMA compression
+
+# Additional data structures
+heapq>=1.0  # Built-in heap queue
+bisect>=1.0  # Built-in array bisection
+queue>=1.0  # Built-in queue operations
+collections.abc>=1.0  # Built-in abstract base classes
+
+# Additional utilities
+secrets>=1.0  # Built-in secure random generation
+statistics>=1.0  # Built-in statistical functions
+decimal>=1.0  # Built-in decimal arithmetic
+fractions>=1.0  # Built-in rational numbers
+cmath>=1.0  # Built-in complex math
+
+# Additional text processing
+textwrap>=1.0  # Built-in text wrapping
+difflib>=1.0  # Built-in sequence comparison
+keyword>=1.0  # Built-in Python keyword testing
+token>=1.0  # Built-in tokenization
+tokenize>=1.0  # Built-in Python tokenizer
+
+# Additional development tools
+dis>=1.0  # Built-in bytecode disassembler
+ast>=1.0  # Built-in abstract syntax trees
+parser>=1.0  # Built-in Python parser
+symbol>=1.0  # Built-in symbol constants
+symtable>=1.0  # Built-in symbol table
+
+# Additional system information
+sysconfig>=1.0  # Built-in system configuration
+site>=1.0  # Built-in site-specific configuration
+
+# Additional import utilities
+importlib>=1.0  # Built-in import machinery
+pkgutil>=1.0  # Built-in package utilities
+modulefinder>=1.0  # Built-in module finder
+
+# Additional runtime utilities
+runpy>=1.0  # Built-in module execution
+py_compile>=1.0  # Built-in Python compilation
+compileall>=1.0  # Built-in compilation utilities
+
+# Additional data persistence
+shelve>=1.0  # Built-in persistent dictionary
+pickle>=4.0  # Already included above
+copyreg>=1.0  # Built-in pickle registration
+
+# Additional testing and profiling
+timeit>=1.0  # Built-in timing utilities
+cProfile>=1.0  # Built-in profiler
+profile>=1.0  # Built-in profiler
+pstats>=1.0  # Built-in profiler statistics
+
+# Additional command line utilities
+cmd>=1.0  # Built-in command line framework
+readline>=1.0  # Built-in line editing
+rlcompleter>=1.0  # Built-in completion
+
+# Additional GUI support (if needed)
+tkinter>=1.0  # Built-in GUI toolkit
+turtle>=1.0  # Built-in turtle graphics
+
+# Additional multimedia support
+wave>=1.0  # Built-in WAV file support
+audioop>=1.0  # Built-in audio operations
+sunau>=1.0  # Built-in Sun AU file support
+aifc>=1.0  # Built-in AIFF file support
+
+# Additional internet protocols
+urllib>=1.0  # Built-in URL handling
+urllib.parse>=1.0  # Built-in URL parsing
+urllib.request>=1.0  # Built-in URL requests
+urllib.error>=1.0  # Built-in URL errors
+urllib.robotparser>=1.0  # Built-in robots.txt parser
+
+# Additional data formats
+plistlib>=1.0  # Built-in plist support
+xdrlib>=1.0  # Built-in XDR data support
+
+# Additional cryptographic support
+hashlib>=1.0  # Already included above
+hmac>=1.0  # Already included above
+
+# Additional platform-specific utilities
+msvcrt>=1.0  # Windows-specific utilities (Windows only)
+winsound>=1.0  # Windows sound utilities (Windows only)
+
+# Packages installed during Media Ingestion Controller testing
+python-magic>=0.4.27  # MIME type detection using libmagic (already added above but ensuring it's present)
+PyMuPDF>=1.26.3  # PDF processing library (fitz module) (already added above but ensuring version)
+aiofiles>=24.1.0  # Async file operations (already added above but ensuring version)
+ffmpeg-python>=0.2.0  # FFmpeg Python bindings (already added above but ensuring it's present)
+future>=1.0.0  # Python 2/3 compatibility for ffmpeg-python (already added above but ensuring it's present)
+
+# Testing framework for async functions
+pytest-asyncio>=1.1.0  # Async test support for MediaIngestionController tests
+
+# Note: libmagic system library was installed via homebrew on macOS:
+# brew install libmagic
+# This is required for python-magic to work properly on macOS
+
+# System dependencies for MediaIngestionController:
+# - libmagic (for MIME type detection)
+# - ffmpeg (for media file processing)
+# Install on macOS: brew install libmagic ffmpeg
+# Install on Ubuntu/Debian: sudo apt-get install libmagic1 ffmpeg
+# Install on CentOS/RHEL: sudo yum install file-libs ffmpeg
+
+# File upload support for FastAPI
+python-multipart>=0.0.20
+
+# PostgreSQL database adapter
+psycopg2-binary>=2.9.0
+
+# Payment processing
+stripe>=5.5.0
+
+# Faster Whisper for transcription
+faster-whisper>=0.9.0
+
+# Google Cloud Storage
+google-cloud-storage>=2.10.0
+
+# Azure Storage
+azure-storage-blob>=12.17.0
+
+# Language detection
+lingua-language-detector>=1.3.2

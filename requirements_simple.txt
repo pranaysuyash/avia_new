@@ -1,0 +1,19 @@
+# Essential dependencies for running the transcription platform
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.20
+streamlit>=1.28.0
+openai>=1.3.0
+openai-whisper>=20231117
+transformers>=4.35.0
+torch>=2.0.0
+pydantic>=2.0.0
+requests>=2.31.0
+numpy>=2.2.6
+pandas>=2.3.1
+aiofiles>=24.1.0
+python-dotenv>=1.0.0
+Pillow>=11.3.0
+sqlalchemy>=2.0.0
+redis>=5.0.0
+websockets>=12.0

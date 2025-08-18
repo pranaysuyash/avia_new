@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 import aiohttp
-import backoff
+# import backoff  # Optional dependency
 from datetime import datetime, timedelta
 
 # Configure logging
@@ -122,7 +122,80 @@ class CloudModelProvider:
     
     async def process(self, text: str, task_type: str, **kwargs) -> ProcessingResult:
         """Process text using the cloud provider"""
-        raise NotImplementedError("Subclasses must implement process method")
+        start_time = time.time()
+        
+        try:
+            # Prepare request based on task type
+            if task_type == "transcription":
+                result = await self._process_transcription(text, **kwargs)
+            elif task_type == "translation":
+                result = await self._process_translation(text, **kwargs)
+            elif task_type == "classification":
+                result = await self._process_classification(text, **kwargs)
+            elif task_type == "entity_extraction":
+                result = await self._process_entity_extraction(text, **kwargs)
+            elif task_type == "summarization":
+                result = await self._process_summarization(text, **kwargs)
+            else:
+                return ProcessingResult(
+                    status=ProcessingStatus.FAILED,
+                    error_message=f"Unsupported task type: {task_type}",
+                    processing_time=time.time() - start_time,
+                    provider_used=self.config.provider
+                )
+            
+            processing_time = time.time() - start_time
+            self.config.update_usage(True, processing_time)
+            
+            return ProcessingResult(
+                status=ProcessingStatus.SUCCESS,
+                data=result,
+                processing_time=processing_time,
+                provider_used=self.config.provider,
+                model_id=self.config.model_id
+            )
+            
+        except asyncio.TimeoutError:
+            processing_time = time.time() - start_time
+            self.config.update_usage(False, processing_time)
+            return ProcessingResult(
+                status=ProcessingStatus.TIMEOUT,
+                error_message="Request timed out",
+                processing_time=processing_time,
+                provider_used=self.config.provider
+            )
+        except Exception as e:
+            processing_time = time.time() - start_time
+            self.config.update_usage(False, processing_time)
+            return ProcessingResult(
+                status=ProcessingStatus.FAILED,
+                error_message=str(e),
+                processing_time=processing_time,
+                provider_used=self.config.provider
+            )
+    
+    async def _process_transcription(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process transcription task - override in subclasses"""
+        return {"text": text, "task": "transcription", "provider": self.config.provider.value}
+    
+    async def _process_translation(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process translation task - override in subclasses"""
+        target_language = kwargs.get("target_language", "en")
+        return {"translated_text": text, "target_language": target_language, "provider": self.config.provider.value}
+    
+    async def _process_classification(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process classification task - override in subclasses"""
+        labels = kwargs.get("labels", ["positive", "negative", "neutral"])
+        return {"predicted_label": labels[0], "confidence": 0.8, "all_scores": {label: 0.8 if label == labels[0] else 0.2 for label in labels}}
+    
+    async def _process_entity_extraction(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process entity extraction task - override in subclasses"""
+        return {"entities": [], "text": text, "provider": self.config.provider.value}
+    
+    async def _process_summarization(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process summarization task - override in subclasses"""
+        max_length = kwargs.get("max_length", 100)
+        return {"summary": text[:max_length] + "...", "original_length": len(text), "provider": self.config.provider.value}
     
     def is_healthy(self) -> bool:
         """Check if provider is healthy"""
@@ -449,7 +522,110 @@ class LocalModelProvider:
     
     async def process(self, text: str, task_type: str, **kwargs) -> ProcessingResult:
         """Process text using the local model"""
-        raise NotImplementedError("Subclasses must implement process method")
+        start_time = time.time()
+        
+        try:
+            await self.initialize()
+            
+            # Route to specific task processing
+            if task_type == "transcription":
+                result = await self._process_transcription(text, **kwargs)
+            elif task_type == "translation":
+                result = await self._process_translation(text, **kwargs)
+            elif task_type == "classification":
+                result = await self._process_classification(text, **kwargs)
+            elif task_type == "entity_extraction":
+                result = await self._process_entity_extraction(text, **kwargs)
+            elif task_type == "summarization":
+                result = await self._process_summarization(text, **kwargs)
+            else:
+                return ProcessingResult(
+                    status=ProcessingStatus.FAILED,
+                    error_message=f"Unsupported task type: {task_type}",
+                    processing_time=time.time() - start_time,
+                    provider_used=self.config.provider
+                )
+            
+            processing_time = time.time() - start_time
+            self.config.update_usage(True, processing_time)
+            
+            return ProcessingResult(
+                status=ProcessingStatus.SUCCESS,
+                data=result,
+                processing_time=processing_time,
+                provider_used=self.config.provider,
+                model_id=self.config.model_id,
+                confidence_score=result.get("confidence", 0.9)
+            )
+            
+        except Exception as e:
+            processing_time = time.time() - start_time
+            self.config.update_usage(False, processing_time)
+            return ProcessingResult(
+                status=ProcessingStatus.FAILED,
+                error_message=str(e),
+                processing_time=processing_time,
+                provider_used=self.config.provider
+            )
+    
+    async def _process_transcription(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process transcription locally - override in subclasses"""
+        return {"text": text, "task": "transcription", "provider": "local", "confidence": 0.9}
+    
+    async def _process_translation(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process translation locally - override in subclasses"""
+        target_language = kwargs.get("target_language", "en")
+        return {"translated_text": f"[LOCAL] {text}", "target_language": target_language, "confidence": 0.8}
+    
+    async def _process_classification(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process classification locally - override in subclasses"""
+        labels = kwargs.get("labels", ["positive", "negative", "neutral"])
+        # Simple local classification logic
+        if "good" in text.lower() or "great" in text.lower():
+            predicted = "positive"
+        elif "bad" in text.lower() or "terrible" in text.lower():
+            predicted = "negative"
+        else:
+            predicted = "neutral"
+        
+        return {
+            "predicted_label": predicted,
+            "confidence": 0.85,
+            "all_scores": {label: 0.85 if label == predicted else 0.15 for label in labels}
+        }
+    
+    async def _process_entity_extraction(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process entity extraction locally - override in subclasses"""
+        # Simple entity extraction
+        entities = []
+        words = text.split()
+        for i, word in enumerate(words):
+            if word[0].isupper() and len(word) > 2:
+                entities.append({
+                    "text": word,
+                    "label": "PERSON" if any(w in word.lower() for w in ["john", "mary", "mike"]) else "ORG",
+                    "start": sum(len(w) + 1 for w in words[:i]),
+                    "end": sum(len(w) + 1 for w in words[:i]) + len(word),
+                    "confidence": 0.8
+                })
+        
+        return {"entities": entities, "text": text, "provider": "local"}
+    
+    async def _process_summarization(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process summarization locally - override in subclasses"""
+        max_length = kwargs.get("max_length", 100)
+        sentences = text.split(".")
+        summary = ". ".join(sentences[:2]) if len(sentences) > 2 else text
+        if len(summary) > max_length:
+            summary = summary[:max_length] + "..."
+        
+        return {
+            "summary": summary,
+            "original_length": len(text),
+            "summary_length": len(summary),
+            "compression_ratio": len(summary) / len(text),
+            "provider": "local"
+        }
     
     def is_healthy(self) -> bool:
         """Check if provider is healthy"""

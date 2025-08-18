@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
@@ -522,49 +521,49 @@ const CustomVocabulary: React.FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="domain-filter">Domain</Label>
-                  <Select value={selectedDomain} onValueChange={setSelectedDomain}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All domains" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All domains</SelectItem>
-                      {domains.map(domain => (
-                        <SelectItem key={domain.domain_name} value={domain.domain_name}>
-                          {domain.domain_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="domain-filter"
+                    value={selectedDomain}
+                    onChange={(e) => setSelectedDomain(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">All domains</option>
+                    {domains.map(domain => (
+                      <option key={domain.domain_name} value={domain.domain_name}>
+                        {domain.domain_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <Label htmlFor="language-filter">Language</Label>
-                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All languages" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All languages</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="it">Italian</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="language-filter"
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">All languages</option>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                  </select>
                 </div>
                 <div>
                   <Label htmlFor="status-filter">Status</Label>
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All statuses</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="status-filter"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">All statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
                 </div>
               </div>
               <Button onClick={handleSearch} disabled={isLoading}>
@@ -602,21 +601,19 @@ const CustomVocabulary: React.FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="domain">Domain *</Label>
-                  <Select 
-                    value={formData.domain} 
-                    onValueChange={(value) => setFormData({...formData, domain: value})}
+                  <select
+                    id="domain"
+                    value={formData.domain}
+                    onChange={(e) => setFormData({...formData, domain: e.target.value})}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select domain" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {domains.map(domain => (
-                        <SelectItem key={domain.domain_name} value={domain.domain_name}>
-                          {domain.domain_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <option value="">Select domain</option>
+                    {domains.map(domain => (
+                      <option key={domain.domain_name} value={domain.domain_name}>
+                        {domain.domain_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -687,37 +684,29 @@ const CustomVocabulary: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="difficulty">Difficulty Level</Label>
-                  <Select 
-                    value={formData.difficulty_level} 
-                    onValueChange={(value) => setFormData({...formData, difficulty_level: value})}
+                  <select
+                    value={formData.difficulty_level}
+                    onChange={(e) => setFormData({...formData, difficulty_level: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="beginner">Beginner</SelectItem>
-                      <SelectItem value="intermediate">Intermediate</SelectItem>
-                      <SelectItem value="advanced">Advanced</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
                 </div>
                 <div>
                   <Label htmlFor="language">Language</Label>
-                  <Select 
-                    value={formData.language} 
-                    onValueChange={(value) => setFormData({...formData, language: value})}
+                  <select
+                    value={formData.language}
+                    onChange={(e) => setFormData({...formData, language: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="it">Italian</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                  </select>
                 </div>
                 <div>
                   <Label htmlFor="tags">Tags (comma-separated)</Label>
@@ -899,19 +888,15 @@ const CustomVocabulary: React.FC = () => {
                   </div>
                   <div>
                     <Label htmlFor="priority">Priority Level</Label>
-                    <Select 
-                      value={domainForm.priority_level} 
-                      onValueChange={(value) => setDomainForm({...domainForm, priority_level: value})}
+                    <select
+                      value={domainForm.priority_level}
+                      onChange={(e) => setDomainForm({...domainForm, priority_level: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
                   </div>
                 </div>
 
@@ -940,21 +925,17 @@ const CustomVocabulary: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="domain-language">Language</Label>
-                    <Select 
-                      value={domainForm.language} 
-                      onValueChange={(value) => setDomainForm({...domainForm, language: value})}
+                    <select
+                      value={domainForm.language}
+                      onChange={(e) => setDomainForm({...domainForm, language: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="es">Spanish</SelectItem>
-                        <SelectItem value="fr">French</SelectItem>
-                        <SelectItem value="de">German</SelectItem>
-                        <SelectItem value="it">Italian</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="it">Italian</option>
+                    </select>
                   </div>
                   <div>
                     <Label htmlFor="threshold">Min Confidence: {domainForm.min_confidence_threshold}</Label>
@@ -1211,33 +1192,35 @@ const CustomVocabulary: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="import-domain">Target Domain</Label>
-                  <Select value={selectedDomain} onValueChange={setSelectedDomain}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select domain" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {domains.map(domain => (
-                        <SelectItem key={domain.domain_name} value={domain.domain_name}>
-                          {domain.domain_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="import-domain"
+                    value={selectedDomain}
+                    onChange={(e) => setSelectedDomain(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select domain</option>
+                    {domains.map(domain => (
+                      <option key={domain.domain_name} value={domain.domain_name}>
+                        {domain.domain_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <Label htmlFor="import-language">Language</Label>
-                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="it">Italian</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="import-language"
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select language</option>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                  </select>
                 </div>
               </div>
 
@@ -1279,35 +1262,35 @@ const CustomVocabulary: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="export-domain">Filter by Domain</Label>
-                  <Select value={selectedDomain} onValueChange={setSelectedDomain}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All domains" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All domains</SelectItem>
-                      {domains.map(domain => (
-                        <SelectItem key={domain.domain_name} value={domain.domain_name}>
-                          {domain.domain_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="export-domain"
+                    value={selectedDomain}
+                    onChange={(e) => setSelectedDomain(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">All domains</option>
+                    {domains.map(domain => (
+                      <option key={domain.domain_name} value={domain.domain_name}>
+                        {domain.domain_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <Label htmlFor="export-language">Filter by Language</Label>
-                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All languages" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All languages</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="it">Italian</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="export-language"
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">All languages</option>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                  </select>
                 </div>
               </div>
 

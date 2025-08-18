@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { 
-  FileUpload, 
+  Upload as FileUpload, 
   Mic, 
   Globe, 
   Users, 
@@ -91,7 +91,7 @@ import {
   Watch,
   Camera,
   Printer,
-  Scanner,
+  ScanLine as Scanner,
   Keyboard,
   Mouse,
   Headphones,
@@ -129,8 +129,8 @@ import {
   Plane,
   Rocket,
   Globe2,
-  Globe3,
-  Earth
+  Globe as Globe3,
+  Globe as Earth
 } from 'lucide-react';
 
 const EnterpriseApp: React.FC = () => {

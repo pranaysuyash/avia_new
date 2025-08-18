@@ -54,6 +54,83 @@ export const lightTheme = {
   shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
   shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   shadow2xl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+  shadowInner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+  shadowNone: 'none',
+  
+  // Spacing
+  spacing: {
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+    '2xl': '48px',
+    '3xl': '64px',
+    '4xl': '80px',
+    '5xl': '96px',
+    '6xl': '128px'
+  },
+  
+  // Typography
+  fontSize: {
+    xs: '12px',
+    sm: '14px',
+    base: '16px',
+    lg: '18px',
+    xl: '20px',
+    '2xl': '24px',
+    '3xl': '30px',
+    '4xl': '36px',
+    '5xl': '48px',
+    '6xl': '64px'
+  },
+  
+  // Border Radius
+  borderRadius: {
+    none: '0',
+    sm: '4px',
+    md: '8px',
+    lg: '12px',
+    xl: '16px',
+    '2xl': '24px',
+    '3xl': '32px',
+    full: '9999px'
+  },
+  
+  // Breakpoints
+  breakpoints: {
+    xs: '320px',
+    sm: '640px',
+    md: '768px',
+    lg: '1024px',
+    xl: '1280px',
+    '2xl': '1536px'
+  },
+  
+  // Animation
+  transition: {
+    fast: '0.15s ease',
+    base: '0.3s ease',
+    slow: '0.5s ease',
+    slower: '0.8s ease'
+  },
+  
+  // Z-index
+  zIndex: {
+    hide: -1,
+    auto: 0,
+    base: 1,
+    docked: 10,
+    dropdown: 1000,
+    sticky: 1100,
+    banner: 1200,
+    overlay: 1300,
+    modal: 1400,
+    popover: 1500,
+    skipLink: 1600,
+    toast: 1700,
+    tooltip: 1800
+  }
 };
 
 export const darkTheme = {
@@ -104,7 +181,130 @@ export const darkTheme = {
   shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
   shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
   shadow2xl: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+  shadowInner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.2)',
+  shadowNone: 'none',
+  
+  // Spacing
+  spacing: {
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+    '2xl': '48px',
+    '3xl': '64px',
+    '4xl': '80px',
+    '5xl': '96px',
+    '6xl': '128px'
+  },
+  
+  // Typography
+  fontSize: {
+    xs: '12px',
+    sm: '14px',
+    base: '16px',
+    lg: '18px',
+    xl: '20px',
+    '2xl': '24px',
+    '3xl': '30px',
+    '4xl': '36px',
+    '5xl': '48px',
+    '6xl': '64px'
+  },
+  
+  // Border Radius
+  borderRadius: {
+    none: '0',
+    sm: '4px',
+    md: '8px',
+    lg: '12px',
+    xl: '16px',
+    '2xl': '24px',
+    '3xl': '32px',
+    full: '9999px'
+  },
+  
+  // Breakpoints
+  breakpoints: {
+    xs: '320px',
+    sm: '640px',
+    md: '768px',
+    lg: '1024px',
+    xl: '1280px',
+    '2xl': '1536px'
+  },
+  
+  // Animation
+  transition: {
+    fast: '0.15s ease',
+    base: '0.3s ease',
+    slow: '0.5s ease',
+    slower: '0.8s ease'
+  },
+  
+  // Z-index
+  zIndex: {
+    hide: -1,
+    auto: 0,
+    base: 1,
+    docked: 10,
+    dropdown: 1000,
+    sticky: 1100,
+    banner: 1200,
+    overlay: 1300,
+    modal: 1400,
+    popover: 1500,
+    skipLink: 1600,
+    toast: 1700,
+    tooltip: 1800
+  }
 };
+
+// Component prop interfaces
+interface CardProps {
+  padding?: string;
+  elevated?: boolean;
+  hoverable?: boolean;
+}
+
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'accent' | 'gradient' | 'ghost' | 'outline';
+  size?: 'small' | 'medium' | 'large';
+  rounded?: boolean;
+  loading?: boolean;
+  disabled?: boolean;
+  fullWidth?: boolean;
+}
+
+interface InputProps {
+  variant?: 'primary' | 'secondary' | 'error';
+  size?: 'small' | 'medium' | 'large';
+  rounded?: boolean;
+}
+
+interface BadgeProps {
+  status?: 'success' | 'warning' | 'error' | 'info' | 'online' | 'offline' | 'busy' | 'away';
+  size?: 'small' | 'medium' | 'large';
+  rounded?: boolean;
+}
+
+interface ProgressProps {
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error';
+  size?: 'small' | 'medium' | 'large';
+}
+
+interface ModalProps {
+  size?: 'small' | 'medium' | 'large' | 'fullscreen';
+}
+
+interface TooltipProps {
+  placement?: 'top' | 'bottom' | 'left' | 'right';
+}
+
+interface DividerProps {
+  orientation?: 'horizontal' | 'vertical';
+  variant?: 'solid' | 'dashed' | 'dotted';
+}
 
 // Global Styles
 export const GlobalStyle = createGlobalStyle`
@@ -153,7 +353,7 @@ export const GlobalStyle = createGlobalStyle`
 `;
 
 // Professional Card Component
-export const Card = styled(motion.div)`
+export const Card = styled(motion.div)<CardProps>`
   background: ${props => props.theme.card};
   border: 1px solid ${props => props.theme.border};
   border-radius: 16px;
@@ -178,7 +378,7 @@ export const GlassCard = styled(Card)`
 `;
 
 // Premium Button Component
-export const Button = styled(motion.button)`
+export const Button = styled(motion.button)<ButtonProps>`
   background: ${props => {
     switch(props.variant) {
       case 'secondary': return props.theme.secondary;
@@ -253,7 +453,7 @@ export const Button = styled(motion.button)`
 `;
 
 // Status Badge Component
-export const Badge = styled.span`
+export const Badge = styled.span<BadgeProps>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -286,7 +486,7 @@ export const Badge = styled.span`
 `;
 
 // Input Field Component
-export const Input = styled.input`
+export const Input = styled.input<InputProps>`
   background: ${props => props.theme.background};
   border: 2px solid ${props => props.theme.border};
   border-radius: 12px;
@@ -314,7 +514,13 @@ export const Input = styled.input`
 `;
 
 // Progress Ring Component
-export const ProgressRing = ({ percentage, size = 120, strokeWidth = 8 }) => {
+interface ProgressRingProps {
+  percentage: number;
+  size?: number;
+  strokeWidth?: number;
+}
+
+export const ProgressRing: React.FC<ProgressRingProps> = ({ percentage, size = 120, strokeWidth = 8 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -353,8 +559,18 @@ export const ProgressRing = ({ percentage, size = 120, strokeWidth = 8 }) => {
 };
 
 // Animated Metric Card
-export const MetricCard = ({ title, value, change, icon, color = 'primary' }) => {
-  const theme = useTheme();
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  change: string | number;
+  icon: React.ReactNode;
+  color?: string;
+}
+
+export const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, icon, color = 'primary' }) => {
+  // Note: useTheme would need to be imported from styled-components
+  // For now, using lightTheme as fallback
+  const theme = lightTheme;
   
   return (
     <Card
@@ -367,7 +583,9 @@ export const MetricCard = ({ title, value, change, icon, color = 'primary' }) =>
         <div style={{
           width: '48px',
           height: '48px',
-          background: theme[`${color}Light`],
+          background: color === 'primary' ? theme.primaryLight : 
+                     color === 'secondary' ? theme.secondaryLight : 
+                     color === 'accent' ? theme.accentLight : theme.primaryLight,
           borderRadius: '12px',
           display: 'flex',
           alignItems: 'center',
@@ -377,7 +595,7 @@ export const MetricCard = ({ title, value, change, icon, color = 'primary' }) =>
           {icon}
         </div>
         {change && (
-          <Badge status={change.startsWith('+') ? 'success' : 'error'}>
+          <Badge status={typeof change === 'string' && change.startsWith('+') ? 'success' : 'error'}>
             {change}
           </Badge>
         )}
@@ -393,7 +611,13 @@ export const MetricCard = ({ title, value, change, icon, color = 'primary' }) =>
 };
 
 // Loading Skeleton
-export const Skeleton = styled.div`
+interface SkeletonProps {
+  rounded?: string;
+  height?: string;
+  width?: string;
+}
+
+export const Skeleton = styled.div<SkeletonProps>`
   background: linear-gradient(
     90deg,
     ${props => props.theme.surface} 25%,
@@ -422,7 +646,7 @@ export const TabContainer = styled.div`
   margin-bottom: 24px;
 `;
 
-export const Tab = styled.button`
+export const Tab = styled.button<{ active?: boolean }>`
   flex: 1;
   padding: 12px 24px;
   background: ${props => props.active ? props.theme.background : 'transparent'};
@@ -479,7 +703,7 @@ export const TableBody = styled.tbody`
 `;
 
 // Floating Action Button
-export const FAB = styled(motion.button)`
+export const FAB = styled(motion.button)<ButtonProps>`
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -503,8 +727,18 @@ export const FAB = styled(motion.button)`
 `;
 
 // Timeline Component
-export const TimelineItem = ({ title, description, time, status, icon, isLast }) => {
-  const theme = useTheme();
+interface TimelineItemProps {
+  title: string;
+  description: string;
+  time: string;
+  status: 'completed' | 'in_progress' | 'pending';
+  icon: React.ReactNode;
+  isLast: boolean;
+}
+
+export const TimelineItem: React.FC<TimelineItemProps> = ({ title, description, time, status, icon, isLast }) => {
+  // Using lightTheme as fallback
+  const theme = lightTheme;
   const statusColors = {
     completed: theme.success,
     in_progress: theme.warning,

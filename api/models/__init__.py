@@ -8,6 +8,12 @@ from .transcription import (
     TranscriptionRequest, TranscriptionResponse, TranscriptionResult,
     Entity, SpeakerSegment, FileUploadResponse, TranscriptionStatus
 )
+from .auth import (
+    LoginRequest, LoginResponse, APIKeyRequest, APIKeyResponse,
+    UserCreateRequest, UserResponse, TokenRefreshRequest,
+    PasswordResetRequest, PasswordResetConfirm, ChangePasswordRequest,
+    UserPreferencesUpdate
+)
 
 __all__ = [
     'UploadSession',
@@ -19,5 +25,16 @@ __all__ = [
     'Entity',
     'SpeakerSegment',
     'FileUploadResponse',
-    'TranscriptionStatus'
+    'TranscriptionStatus',
+    'LoginRequest',
+    'LoginResponse',
+    'APIKeyRequest',
+    'APIKeyResponse',
+    'UserCreateRequest',
+    'UserResponse',
+    'TokenRefreshRequest',
+    'PasswordResetRequest',
+    'PasswordResetConfirm',
+    'ChangePasswordRequest',
+    'UserPreferencesUpdate'
 ]

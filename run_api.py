@@ -13,4 +13,4 @@ os.environ['DISABLE_REDIS'] = 'true'  # Disable Redis for development
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # Run uvicorn
-os.system("uvicorn api.app:app --reload --host 127.0.0.1 --port 8000")
+os.system("uvicorn api.app:app --reload --host 127.0.0.1 --port 8005")

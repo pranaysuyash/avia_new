@@ -4,10 +4,11 @@
   "description": "React frontend for audio/video transcription platform",
   "main": "src/App.tsx",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
+    "dev": "vite",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
     "type-check": "tsc --noEmit",
@@ -38,13 +39,16 @@
     "clsx": "^1.2.1",
     "date-fns": "^2.30.0",
     "emoji-picker-react": "^4.13.2",
+    "framer-motion": "^12.23.12",
     "graphql": "^16.11.0",
     "graphql-ws": "^6.0.6",
     "konva": "^9.3.22",
     "lucide-react": "^0.315.0",
+    "notistack": "^3.0.2",
     "posthog-js": "^1.259.0",
     "puppeteer": "^24.16.0",
     "react": "^18.2.0",
+    "react-big-calendar": "^1.19.4",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.0",
@@ -57,6 +61,7 @@
     "react-toastify": "^11.0.5",
     "recharts": "^2.5.0",
     "socket.io-client": "^4.6.0",
+    "styled-components": "^6.1.19",
     "tailwind-merge": "^3.3.1",
     "urql": "^4.2.2",
     "wavesurfer.js": "^6.6.0"
@@ -68,16 +73,21 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^18.14.0",
+    "@types/node": "^18.19.123",
+    "@types/react-big-calendar": "^1.16.2",
+    "@types/styled-components": "^5.1.34",
     "@types/testing-library__react": "^10.0.1",
+    "@types/wavesurfer.js": "^6.0.12",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
+    "@vitejs/plugin-react-swc": "^4.0.0",
     "eslint": "^8.34.0",
     "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-react": "^7.32.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "react-scripts": "5.0.1",
     "typescript": "^4.9.5",
+    "vite": "^7.1.2",
+    "vitest": "^3.2.4",
     "web-vitals": "^3.1.0"
   },
   "browserslist": {
@@ -91,6 +101,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "proxy": "http://localhost:8000"
+  }
 }

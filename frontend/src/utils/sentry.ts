@@ -7,9 +7,9 @@ import * as Sentry from '@sentry/react';
 
 // Sentry config from environment variables
 const sentryConfig = {
-  dsn: process.env.REACT_APP_SENTRY_DSN,
-  environment: process.env.REACT_APP_ENVIRONMENT || 'development',
-  release: process.env.REACT_APP_VERSION,
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.VITE_ENVIRONMENT || 'development',
+  release: import.meta.env.VITE_VERSION,
   tracesSampleRate: 0.1,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,

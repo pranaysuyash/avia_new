@@ -121,3 +121,172 @@ run.bat
 # Environment-specific configurations
 monitoring/
 nginx/
+
+# Media files and uploads
+uploads/
+media/
+audio_files/
+video_files/
+temp_uploads/
+processed_media/
+*.wav
+*.mp3
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flac
+*.aac
+*.m4a
+*.wma
+
+# Transcription outputs
+transcripts/
+export_files/
+*.transcript
+*.srt
+*.vtt
+*.ass
+
+# AI/ML models and data
+models/
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+*.onnx
+*.pb
+*.pt
+*.pth
+*.safetensors
+whisper_models/
+spacy_models/
+huggingface_cache/
+
+# Analytics and reporting
+analytics_data/
+reports/
+*.csv
+*.xlsx
+*.parquet
+performance_data/
+usage_analytics.db
+marketing_growth.db
+
+# Document processing artifacts
+documents/
+ocr_output/
+processed_docs/
+*.pdf.txt
+
+# Redis dumps and persistence files
+dump.rdb
+appendonly.aof
+
+# Elasticsearch/search indices
+elasticsearch_data/
+search_indices/
+
+# Backup files
+backups/
+*.backup
+*.bak
+
+# Enterprise features data
+enterprise_backups/
+disaster_recovery_data/
+compliance_reports/
+
+# Development artifacts created during testing
+comprehensive_file_tester.py
+test_results/
+validation_reports/
+CODEBASE_ANALYSIS_REPORT.md
+
+# Mobile development
+mobile/android/app/build/
+mobile/ios/build/
+mobile/android/.gradle/
+mobile/ios/Pods/
+mobile/ios/*.xcworkspace
+mobile/ios/*.xcodeproj/xcuserdata/
+
+# Desktop app builds
+desktop_app/dist/
+desktop_app/out/
+desktop_app/build/
+desktop_app/*.dmg
+desktop_app/*.exe
+desktop_app/*.AppImage
+desktop_app/*.deb
+desktop_app/*.rpm
+
+# Frontend build artifacts
+frontend/.next/
+frontend/.nuxt/
+frontend/.svelte-kit/
+frontend/coverage/
+
+# API documentation
+api_docs_build/
+openapi_generated/
+
+# Docker artifacts
+.dockerignore
+docker-compose.override.yml
+Dockerfile.dev
+*.dockerfile.dev
+
+# Kubernetes configs (if using k8s)
+k8s-configs/
+*.kubeconfig
+
+# Terraform state (if using terraform)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Monitoring and observability
+prometheus_data/
+grafana_data/
+jaeger_data/
+otel_data/
+
+# Cloud provider configs
+.aws/
+.gcp/
+.azure/
+
+# Load testing artifacts
+load_test_results/
+*.jmx
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# PyTorch Lightning logs
+lightning_logs/
+
+# Weights & Biases
+wandb/
+
+# MLflow
+mlruns/
+
+# DVC (Data Version Control)
+.dvc/
+
+# Large language model artifacts
+llm_cache/
+openai_cache/
+anthropic_cache/
+embeddings_cache/
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# FastAPI auto-generated files
+openapi.json
+redoc.html
+swagger-ui-bundle.js

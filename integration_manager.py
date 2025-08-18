@@ -9,7 +9,7 @@ from datetime import datetime
 
 # Import all integration components
 from webhooks import webhook_manager, WebhookEventType
-from cloud_storage import cloud_storage_manager, StorageProviderType
+from cloud_storage.storage_manager import CloudStorageManager, StorageProviderType
 from cloud_storage.google_drive import create_google_drive_provider
 from cloud_storage.dropbox_provider import create_dropbox_provider
 from cloud_storage.s3_provider import create_s3_provider
@@ -18,6 +18,9 @@ from plugins.entity_plugin import DefaultEntityExtractionPlugin, MedicalEntityEx
 from sso import initialize_sso_manager
 
 logger = logging.getLogger(__name__)
+
+# Initialize cloud storage manager instance
+cloud_storage_manager = CloudStorageManager()
 
 
 class IntegrationManager:

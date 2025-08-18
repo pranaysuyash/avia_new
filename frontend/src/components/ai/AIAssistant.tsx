@@ -172,7 +172,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   useEffect(() => {
     if (autoCompleteEnabled && tokens?.accessToken) {
       const ws = new WebSocket(
-        `${process.env.REACT_APP_WS_URL}/api/v1/ai-suggestions/ws/autocomplete?token=${tokens.accessToken}`
+        `${import.meta.env.VITE_WS_URL}/api/v1/ai-suggestions/ws/autocomplete?token=${tokens.accessToken}`
       );
 
       ws.onopen = () => {

@@ -18,7 +18,7 @@ from database.models_extended import (
 from services.notification_service import NotificationService
 from services.email_service import EmailService
 from services.analytics_service import AnalyticsService
-from marketing_growth import (
+from marketing_growth_system import (
     ReferralSystem, EmailMarketingPlatform, MarketingAutomation,
     GrowthAnalytics, ABTestingEngine, ContentDistribution,
     CampaignType, CampaignStatus, Channel

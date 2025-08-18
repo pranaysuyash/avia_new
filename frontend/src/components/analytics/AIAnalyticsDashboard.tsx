@@ -559,7 +559,7 @@ const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
                         <MetricValue variant="h4">
                           {metric.value}
                         </MetricValue>
-                        <TrendIndicator trend={metric.trend}>
+                        <TrendIndicator trend={metric.trend as 'up' | 'down' | 'stable'}>
                           {metric.trend === 'up' ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />}
                           <Typography variant="body2" fontWeight="bold">
                             {metric.change}

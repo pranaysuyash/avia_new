@@ -37,8 +37,8 @@ const getWebSocketURL = () => {
   // Non-browser environment (Node.js, React Native, Electron main process)
   if (typeof process !== 'undefined' && process.env) {
     // Check for environment variables
-    if (process.env.REACT_APP_WS_URL) {
-      return process.env.REACT_APP_WS_URL;
+    if (import.meta.env.VITE_WS_URL) {
+      return import.meta.env.VITE_WS_URL;
     }
     
     if (process.env.EXPO_PUBLIC_WS_URL) {

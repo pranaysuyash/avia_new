@@ -1,1 +1,141 @@
-import React, { useState } from 'react';\nimport {\n  Fab,\n  SpeedDial,\n  SpeedDialAction,\n  SpeedDialIcon,\n  Backdrop,\n  useTheme,\n  alpha,\n} from '@mui/material';\nimport {\n  Add as AddIcon,\n  Upload as UploadIcon,\n  Mic as MicIcon,\n  VideoCall as VideoCallIcon,\n  CloudUpload as CloudUploadIcon,\n  Settings as SettingsIcon,\n  Help as HelpIcon,\n} from '@mui/icons-material';\n\ninterface FloatingActionMenuProps {\n  onUpload?: () => void;\n  onRecord?: () => void;\n  onLiveCapture?: () => void;\n  onCloudImport?: () => void;\n  onSettings?: () => void;\n  onHelp?: () => void;\n}\n\nexport const FloatingActionMenu: React.FC<FloatingActionMenuProps> = ({\n  onUpload,\n  onRecord,\n  onLiveCapture,\n  onCloudImport,\n  onSettings,\n  onHelp,\n}) => {\n  const theme = useTheme();\n  const [open, setOpen] = useState(false);\n\n  const actions = [\n    {\n      icon: <UploadIcon />,\n      name: 'Upload Files',\n      onClick: onUpload,\n      color: theme.palette.primary.main,\n    },\n    {\n      icon: <MicIcon />,\n      name: 'Record Audio',\n      onClick: onRecord,\n      color: theme.palette.success.main,\n    },\n    {\n      icon: <VideoCallIcon />,\n      name: 'Live Capture',\n      onClick: onLiveCapture,\n      color: theme.palette.warning.main,\n    },\n    {\n      icon: <CloudUploadIcon />,\n      name: 'Cloud Import',\n      onClick: onCloudImport,\n      color: theme.palette.info.main,\n    },\n    {\n      icon: <SettingsIcon />,\n      name: 'Settings',\n      onClick: onSettings,\n      color: theme.palette.secondary.main,\n    },\n    {\n      icon: <HelpIcon />,\n      name: 'Help',\n      onClick: onHelp,\n      color: theme.palette.error.main,\n    },\n  ];\n\n  return (\n    <>\n      <Backdrop\n        open={open}\n        sx={{\n          zIndex: theme.zIndex.speedDial - 1,\n          backgroundColor: alpha(theme.palette.common.black, 0.3),\n          backdropFilter: 'blur(4px)',\n        }}\n      />\n      \n      <SpeedDial\n        ariaLabel=\"Quick Actions\"\n        sx={{\n          position: 'fixed',\n          bottom: 24,\n          right: 24,\n          '& .MuiFab-primary': {\n            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,\n            boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.3)}`,\n            '&:hover': {\n              background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,\n              transform: 'scale(1.1)',\n              boxShadow: `0 12px 40px ${alpha(theme.palette.primary.main, 0.4)}`,\n            },\n          },\n        }}\n        icon={<SpeedDialIcon />}\n        onClose={() => setOpen(false)}\n        onOpen={() => setOpen(true)}\n        open={open}\n        direction=\"up\"\n      >\n        {actions.map((action) => (\n          <SpeedDialAction\n            key={action.name}\n            icon={action.icon}\n            tooltipTitle={action.name}\n            tooltipOpen\n            onClick={() => {\n              action.onClick?.();\n              setOpen(false);\n            }}\n            sx={{\n              '& .MuiFab-primary': {\n                backgroundColor: action.color,\n                color: 'white',\n                '&:hover': {\n                  backgroundColor: action.color,\n                  transform: 'scale(1.1)',\n                  boxShadow: `0 8px 24px ${alpha(action.color, 0.4)}`,\n                },\n              },\n            }}\n          />\n        ))}\n      </SpeedDial>\n    </>\n  );\n};\n\nexport default FloatingActionMenu;\n
+import React, { useState } from 'react';
+import {
+  Fab,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon,
+  Backdrop,
+  useTheme,
+  alpha,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Upload as UploadIcon,
+  Mic as MicIcon,
+  VideoCall as VideoCallIcon,
+  CloudUpload as CloudUploadIcon,
+  Settings as SettingsIcon,
+  Help as HelpIcon,
+} from '@mui/icons-material';
+
+interface FloatingActionMenuProps {
+  onUpload?: () => void;
+  onRecord?: () => void;
+  onLiveCapture?: () => void;
+  onCloudImport?: () => void;
+  onSettings?: () => void;
+  onHelp?: () => void;
+}
+
+export const FloatingActionMenu: React.FC<FloatingActionMenuProps> = ({
+  onUpload,
+  onRecord,
+  onLiveCapture,
+  onCloudImport,
+  onSettings,
+  onHelp,
+}) => {
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+
+  const actions = [
+    {
+      icon: <UploadIcon />,
+      name: 'Upload Files',
+      onClick: onUpload,
+      color: theme.palette.primary.main,
+    },
+    {
+      icon: <MicIcon />,
+      name: 'Record Audio',
+      onClick: onRecord,
+      color: theme.palette.success.main,
+    },
+    {
+      icon: <VideoCallIcon />,
+      name: 'Live Capture',
+      onClick: onLiveCapture,
+      color: theme.palette.warning.main,
+    },
+    {
+      icon: <CloudUploadIcon />,
+      name: 'Cloud Import',
+      onClick: onCloudImport,
+      color: theme.palette.info.main,
+    },
+    {
+      icon: <SettingsIcon />,
+      name: 'Settings',
+      onClick: onSettings,
+      color: theme.palette.secondary.main,
+    },
+    {
+      icon: <HelpIcon />,
+      name: 'Help',
+      onClick: onHelp,
+      color: theme.palette.error.main,
+    },
+  ];
+
+  return (
+    <>
+      <Backdrop
+        open={open}
+        sx={{
+          zIndex: theme.zIndex.speedDial - 1,
+          backgroundColor: alpha(theme.palette.common.black, 0.3),
+          backdropFilter: 'blur(4px)',
+        }}
+      />
+      
+      <SpeedDial
+        ariaLabel="Quick Actions"
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          '& .MuiFab-primary': {
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+            boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.3)}`,
+            '&:hover': {
+              background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+              transform: 'scale(1.1)',
+              boxShadow: `0 12px 40px ${alpha(theme.palette.primary.main, 0.4)}`,
+            },
+          },
+        }}
+        icon={<SpeedDialIcon />}
+        onClose={() => setOpen(false)}
+        onOpen={() => setOpen(true)}
+        open={open}
+        direction="up"
+      >
+        {actions.map((action) => (
+          <SpeedDialAction
+            key={action.name}
+            icon={action.icon}
+            tooltipTitle={action.name}
+            tooltipOpen
+            onClick={() => {
+              action.onClick?.();
+              setOpen(false);
+            }}
+            sx={{
+              '& .MuiFab-primary': {
+                backgroundColor: action.color,
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: action.color,
+                  transform: 'scale(1.1)',
+                  boxShadow: `0 8px 24px ${alpha(action.color, 0.4)}`,
+                },
+              },
+            }}
+          />
+        ))}
+      </SpeedDial>
+    </>
+  );
+};
+
+export default FloatingActionMenu;

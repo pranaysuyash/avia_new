@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
@@ -505,21 +504,18 @@ const VoiceActivityDetection: React.FC = () => {
               <TabsContent value="basic" className="space-y-4">
                 <div>
                   <Label htmlFor="method">Detection Method</Label>
-                  <Select 
-                    value={config.method} 
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, method: value }))}
+                  <select
+                    id="method"
+                    value={config.method}
+                    onChange={(e) => setConfig(prev => ({ ...prev, method: e.target.value }))}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {methods.map(method => (
-                        <SelectItem key={method.value} value={method.value}>
-                          {method.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {methods.map(method => (
+                      <option key={method.value} value={method.value}>
+                        {method.label}
+                      </option>
+                    ))}
+                  </select>
                   {methods.find(m => m.value === config.method) && (
                     <p className="text-xs text-gray-500 mt-1">
                       {methods.find(m => m.value === config.method)?.description}
@@ -529,38 +525,32 @@ const VoiceActivityDetection: React.FC = () => {
 
                 <div>
                   <Label htmlFor="mode">Aggressiveness Mode</Label>
-                  <Select 
-                    value={config.mode.toString()} 
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, mode: parseInt(value) }))}
+                  <select
+                    id="mode"
+                    value={config.mode.toString()}
+                    onChange={(e) => setConfig(prev => ({ ...prev, mode: parseInt(e.target.value) }))}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Quality (Most Aggressive)</SelectItem>
-                      <SelectItem value="1">Low Bitrate</SelectItem>
-                      <SelectItem value="2">Normal (Balanced)</SelectItem>
-                      <SelectItem value="3">Very Aggressive</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="0">Quality (Most Aggressive)</option>
+                    <option value="1">Low Bitrate</option>
+                    <option value="2">Normal (Balanced)</option>
+                    <option value="3">Very Aggressive</option>
+                  </select>
                 </div>
 
                 <div>
                   <Label htmlFor="sample-rate">Sample Rate (Hz)</Label>
-                  <Select 
-                    value={config.sample_rate.toString()} 
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, sample_rate: parseInt(value) }))}
+                  <select
+                    id="sample-rate"
+                    value={config.sample_rate.toString()}
+                    onChange={(e) => setConfig(prev => ({ ...prev, sample_rate: parseInt(e.target.value) }))}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="8000">8000 Hz</SelectItem>
-                      <SelectItem value="16000">16000 Hz</SelectItem>
-                      <SelectItem value="32000">32000 Hz</SelectItem>
-                      <SelectItem value="48000">48000 Hz</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="8000">8000 Hz</option>
+                    <option value="16000">16000 Hz</option>
+                    <option value="32000">32000 Hz</option>
+                    <option value="48000">48000 Hz</option>
+                  </select>
                 </div>
               </TabsContent>
 

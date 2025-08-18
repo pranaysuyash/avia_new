@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
@@ -25,7 +24,7 @@ import {
   CheckCircle,
   AlertCircle,
   TrendingUp,
-  Waveform,
+  Activity as Waveform,
   Filter,
   Maximize
 } from 'lucide-react';
@@ -72,8 +71,9 @@ interface EnhancementConfig {
   compression_ratio: number;
   high_pass_freq: number;
   low_pass_freq: number;
-}con
-st AudioEnhancement: React.FC = () => {
+}
+
+const AudioEnhancement: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<EnhancementResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -219,8 +219,9 @@ st AudioEnhancement: React.FC = () => {
     if (score >= 60) return 'Good';
     if (score >= 40) return 'Fair';
     return 'Poor';
-  };  re
-turn (
+  };
+
+  return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -309,18 +310,19 @@ turn (
               {/* Preset Selection */}
               <div>
                 <Label htmlFor="preset">Enhancement Preset</Label>
-                <Select value={selectedPreset} onValueChange={handlePresetChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a preset or configure manually" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {presets.map(preset => (
-                      <SelectItem key={preset.name} value={preset.name}>
-                        {preset.name} - {preset.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  id="preset"
+                  value={selectedPreset}
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Choose a preset or configure manually</option>
+                  {presets.map(preset => (
+                    <option key={preset.name} value={preset.name}>
+                      {preset.name} - {preset.description}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <Button
@@ -516,8 +518,9 @@ turn (
               </Card>
             </div>
           )}
-        </TabsContent>        <Ta
-bsContent value="analyze" className="space-y-6">
+        </TabsContent>
+
+        <TabsContent value="analyze" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -599,38 +602,32 @@ bsContent value="analyze" className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="sample-rate">Target Sample Rate</Label>
-                    <Select 
-                      value={config.target_sample_rate.toString()} 
-                      onValueChange={(value) => setConfig({...config, target_sample_rate: parseInt(value)})}
+                    <select
+                      id="sample-rate"
+                      value={config.target_sample_rate.toString()}
+                      onChange={(e) => setConfig({...config, target_sample_rate: parseInt(e.target.value)})}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="8000">8 kHz (Phone)</SelectItem>
-                        <SelectItem value="16000">16 kHz (Voice)</SelectItem>
-                        <SelectItem value="22050">22.05 kHz</SelectItem>
-                        <SelectItem value="44100">44.1 kHz (CD)</SelectItem>
-                        <SelectItem value="48000">48 kHz (Professional)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="8000">8 kHz (Phone)</option>
+                      <option value="16000">16 kHz (Voice)</option>
+                      <option value="22050">22.05 kHz</option>
+                      <option value="44100">44.1 kHz (CD)</option>
+                      <option value="48000">48 kHz (Professional)</option>
+                    </select>
                   </div>
 
                   <div>
                     <Label htmlFor="bit-depth">Target Bit Depth</Label>
-                    <Select 
-                      value={config.target_bit_depth.toString()} 
-                      onValueChange={(value) => setConfig({...config, target_bit_depth: parseInt(value)})}
+                    <select
+                      id="bit-depth"
+                      value={config.target_bit_depth.toString()}
+                      onChange={(e) => setConfig({...config, target_bit_depth: parseInt(e.target.value)})}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="16">16-bit</SelectItem>
-                        <SelectItem value="24">24-bit</SelectItem>
-                        <SelectItem value="32">32-bit</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="16">16-bit</option>
+                      <option value="24">24-bit</option>
+                      <option value="32">32-bit</option>
+                    </select>
                   </div>
                 </div>
               </div>

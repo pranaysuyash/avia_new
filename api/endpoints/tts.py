@@ -296,7 +296,6 @@ async def get_tts_usage_stats(
     
     Admin endpoint for monitoring usage
     """
-    """
     if current_user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
     
@@ -554,9 +553,7 @@ async def get_synthesis_history(
     limit: int = 20,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get user's TTS synthesis history
-    """
+    """Get user TTS synthesis history"""
     try:
         history = tts.get_synthesis_history()
         
@@ -573,6 +570,8 @@ async def get_synthesis_history(
         logger.error(f"History retrieval error: {str(e)}")
         raise HTTPException(
             status_code=500,
+            detail=f"Failed to retrieve synthesis history: {str(e)}"
+        )
 
 
 # Export the router

@@ -32,7 +32,7 @@ from database.models import (
 from services.storage_service import StorageService
 from services.cache_service import CacheService
 from services.webhook_service import WebhookService
-from services.audit_logging_service import AuditLogger
+from services.audit_logging_service import AuditLoggingService
 
 # Import utilities
 from utils.audio_processing import AudioProcessor
@@ -67,14 +67,14 @@ class TranscriptionService:
         storage_service: Optional[StorageService] = None,
         cache_service: Optional[CacheService] = None,
         webhook_service: Optional[WebhookService] = None,
-        audit_logger: Optional[AuditLogger] = None,
+        audit_logger: Optional[AuditLoggingService] = None,
         config: Optional[Dict[str, Any]] = None
     ):
         self.db = db
         self.storage_service = storage_service or StorageService()
         self.cache_service = cache_service or CacheService()
         self.webhook_service = webhook_service or WebhookService()
-        self.audit_logger = audit_logger or AuditLogger(db)
+        self.audit_logger = audit_logger or AuditLoggingService()
         self.config = config or {}
         
         # Initialize transcription models

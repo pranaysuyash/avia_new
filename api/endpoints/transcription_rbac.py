@@ -24,9 +24,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/transcripts", tags=["transcripts"])
 
-# Initialize services
-transcription_service = TranscriptionService()
-subscription_service = SubscriptionService(get_db)
+# Initialize services with dependency injection
+def get_transcription_service(db: Session = Depends(get_db)) -> TranscriptionService:
+    return TranscriptionService(db)
+
+def get_subscription_service(db: Session = Depends(get_db)) -> SubscriptionService:
+    return SubscriptionService(db)
 
 # Request/Response Models
 from pydantic import BaseModel, Field

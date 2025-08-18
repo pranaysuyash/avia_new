@@ -7,7 +7,7 @@ import axios, { AxiosError } from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
 // API base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Types
 interface Transcription {

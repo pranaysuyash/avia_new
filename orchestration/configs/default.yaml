@@ -1,0 +1,322 @@
+environment: development
+
+environments:
+  development:
+    name: development
+    backend:
+      api_port: 8000
+      streamlit_port: 8501
+      debug: true
+      workers: 1
+      reload: true
+    frontend:
+      port: 3000
+      api_url: "http://localhost:8000"
+      build_command: "npm run build"
+      dev_command: "npm run dev"
+    mobile:
+      api_url: "http://localhost:8000"
+      dev_mode: true
+      platform: "ios"
+      metro_port: 8081
+    desktop:
+      api_url: "http://localhost:8000"
+      auto_updater: false
+      dev_mode: true
+    infrastructure:
+      postgres:
+        host: "localhost"
+        port: 5432
+        database: "transcription_dev"
+        username: "postgres"
+        password: "postgres"
+      redis:
+        host: "localhost"
+        port: 6379
+        db: 0
+      minio:
+        endpoint: "localhost:9000"
+        access_key: "minioadmin"
+        secret_key: "minioadmin"
+        secure: false
+
+  testing:
+    name: testing
+    backend:
+      api_port: 8001
+      streamlit_port: 8502
+      debug: true
+      workers: 1
+      reload: false
+    frontend:
+      port: 3001
+      api_url: "http://localhost:8001"
+      build_command: "npm run build:test"
+      dev_command: "npm run dev:test"
+    mobile:
+      api_url: "http://localhost:8001"
+      dev_mode: true
+      platform: "both"
+      metro_port: 8082
+    desktop:
+      api_url: "http://localhost:8001"
+      auto_updater: false
+      dev_mode: true
+    infrastructure:
+      postgres:
+        host: "localhost"
+        port: 5433
+        database: "transcription_test"
+        username: "postgres"
+        password: "postgres"
+      redis:
+        host: "localhost"
+        port: 6380
+        db: 1
+      minio:
+        endpoint: "localhost:9001"
+        access_key: "minioadmin"
+        secret_key: "minioadmin"
+        secure: false
+
+  staging:
+    name: staging
+    backend:
+      api_port: 8000
+      streamlit_port: 8501
+      debug: false
+      workers: 2
+      reload: false
+    frontend:
+      port: 3000
+      api_url: "https://api-staging.example.com"
+      build_command: "npm run build:staging"
+      dev_command: "npm run dev"
+    mobile:
+      api_url: "https://api-staging.example.com"
+      dev_mode: false
+      platform: "both"
+      metro_port: 8081
+    desktop:
+      api_url: "https://api-staging.example.com"
+      auto_updater: true
+      dev_mode: false
+    infrastructure:
+      postgres:
+        host: "staging-db.example.com"
+        port: 5432
+        database: "transcription_staging"
+        username: "app_user"
+        password: "${POSTGRES_PASSWORD}"
+      redis:
+        host: "staging-redis.example.com"
+        port: 6379
+        db: 0
+      minio:
+        endpoint: "staging-storage.example.com:9000"
+        access_key: "${MINIO_ACCESS_KEY}"
+        secret_key: "${MINIO_SECRET_KEY}"
+        secure: true
+
+  production:
+    name: production
+    backend:
+      api_port: 8000
+      streamlit_port: 8501
+      debug: false
+      workers: 4
+      reload: false
+    frontend:
+      port: 3000
+      api_url: "https://api.example.com"
+      build_command: "npm run build:production"
+      dev_command: "npm run dev"
+    mobile:
+      api_url: "https://api.example.com"
+      dev_mode: false
+      platform: "both"
+      metro_port: 8081
+    desktop:
+      api_url: "https://api.example.com"
+      auto_updater: true
+      dev_mode: false
+    infrastructure:
+      postgres:
+        host: "prod-db.example.com"
+        port: 5432
+        database: "transcription_prod"
+        username: "app_user"
+        password: "${POSTGRES_PASSWORD}"
+      redis:
+        host: "prod-redis.example.com"
+        port: 6379
+        db: 0
+      minio:
+        endpoint: "prod-storage.example.com:9000"
+        access_key: "${MINIO_ACCESS_KEY}"
+        secret_key: "${MINIO_SECRET_KEY}"
+        secure: true
+
+services:
+  fastapi:
+    name: "fastapi"
+    type: "backend"
+    port: 8000
+    health_check_url: "http://localhost:8000/health"
+    startup_command: "uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
+    working_directory: "."
+    environment_variables:
+      PYTHONPATH: "."
+      LOG_LEVEL: "INFO"
+      ENVIRONMENT: "development"
+    dependencies: ["postgres", "redis", "minio"]
+    timeout: 30
+    restart_policy: "on-failure"
+    max_restarts: 3
+
+  streamlit:
+    name: "streamlit"
+    type: "backend"
+    port: 8501
+    health_check_url: "http://localhost:8501"
+    startup_command: "streamlit run app.py --server.port 8501"
+    working_directory: "."
+    environment_variables:
+      PYTHONPATH: "."
+      STREAMLIT_SERVER_PORT: "8501"
+    dependencies: ["fastapi"]
+    timeout: 30
+    restart_policy: "on-failure"
+    max_restarts: 3
+
+  react:
+    name: "react"
+    type: "frontend"
+    port: 3000
+    health_check_url: "http://localhost:3000"
+    startup_command: "npm run dev"
+    working_directory: "frontend"
+    environment_variables:
+      REACT_APP_API_URL: "http://localhost:8000"
+      NODE_ENV: "development"
+    dependencies: ["fastapi"]
+    timeout: 60
+    restart_policy: "on-failure"
+    max_restarts: 3
+
+  mobile:
+    name: "mobile"
+    type: "mobile"
+    port: 8081
+    health_check_url: "http://localhost:8081"
+    startup_command: "npx react-native start"
+    working_directory: "mobile"
+    environment_variables:
+      REACT_NATIVE_PACKAGER_HOSTNAME: "localhost"
+      API_URL: "http://localhost:8000"
+    dependencies: ["fastapi"]
+    timeout: 60
+    restart_policy: "on-failure"
+    max_restarts: 3
+
+  desktop:
+    name: "desktop"
+    type: "desktop"
+    port: 3001
+    health_check_url: "http://localhost:3001"
+    startup_command: "npm run electron:dev"
+    working_directory: "desktop_app"
+    environment_variables:
+      ELECTRON_IS_DEV: "true"
+      API_URL: "http://localhost:8000"
+    dependencies: ["fastapi"]
+    timeout: 60
+    restart_policy: "on-failure"
+    max_restarts: 3
+
+  postgres:
+    name: "postgres"
+    type: "infrastructure"
+    port: 5432
+    health_check_url: "postgresql://postgres:postgres@localhost:5432/transcription_dev"
+    startup_command: "docker run -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:15"
+    working_directory: "."
+    environment_variables:
+      POSTGRES_DB: "transcription_dev"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    dependencies: []
+    timeout: 30
+    restart_policy: "always"
+    max_restarts: 5
+
+  redis:
+    name: "redis"
+    type: "infrastructure"
+    port: 6379
+    health_check_url: "redis://localhost:6379"
+    startup_command: "docker run -d --name redis -p 6379:6379 redis:7-alpine"
+    working_directory: "."
+    environment_variables: {}
+    dependencies: []
+    timeout: 30
+    restart_policy: "always"
+    max_restarts: 5
+
+  minio:
+    name: "minio"
+    type: "infrastructure"
+    port: 9000
+    health_check_url: "http://localhost:9000/minio/health/live"
+    startup_command: "docker run -d --name minio -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin minio/minio server /data --console-address ':9001'"
+    working_directory: "."
+    environment_variables:
+      MINIO_ROOT_USER: "minioadmin"
+      MINIO_ROOT_PASSWORD: "minioadmin"
+    dependencies: []
+    timeout: 30
+    restart_policy: "always"
+    max_restarts: 5
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers: ["console", "file"]
+  file_path: "logs/orchestration.log"
+  max_file_size: "10MB"
+  backup_count: 5
+  correlation_id: true
+
+monitoring:
+  health_check_interval: 30
+  metrics_collection_interval: 60
+  alert_thresholds:
+    response_time: 5000
+    error_rate: 0.05
+    cpu_usage: 0.8
+    memory_usage: 0.8
+    disk_usage: 0.9
+  prometheus:
+    enabled: true
+    port: 9090
+  grafana:
+    enabled: true
+    port: 3000
+
+testing:
+  test_environments: ["development", "testing"]
+  parallel_execution: true
+  max_workers: 4
+  timeout: 300
+  coverage_threshold: 0.8
+  test_data_cleanup: true
+  mock_external_services: true
+
+deployment:
+  strategy: "rolling"
+  max_unavailable: 1
+  max_surge: 1
+  health_check_grace_period: 30
+  rollback_on_failure: true
+  backup_before_deploy: true
+  notification_channels: ["slack", "email"]

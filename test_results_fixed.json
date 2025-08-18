@@ -1,0 +1,234 @@
+{
+  "test_run_info": {
+    "start_time": "2025-08-18T11:08:36.654128",
+    "root_directory": "/Users/pranay/Projects/LLM/video/ner",
+    "python_version": "3.12.10 (main, Apr  8 2025, 11:35:47) [Clang 17.0.0 (clang-1700.0.13.3)]",
+    "end_time": "2025-08-18T11:08:48.230337"
+  },
+  "summary": {
+    "total_files": 5,
+    "successful_imports": 5,
+    "failed_imports": 0,
+    "skipped_files": 0
+  },
+  "successful_files": [
+    "OBSOLETE_action_item_extraction.py",
+    "OBSOLETE_action_item_extraction_system.py",
+    "OBSOLETE_comprehensive_file_format_system.py",
+    "OBSOLETE_comprehensive_text_classification_system.py",
+    "OBSOLETE_meeting_element_identification.py"
+  ],
+  "failed_files": [],
+  "skipped_files": [],
+  "detailed_results": {
+    "OBSOLETE_action_item_extraction.py": {
+      "path": "OBSOLETE_action_item_extraction.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 29825,
+        "classes": [
+          "datetime",
+          "timedelta",
+          "Any",
+          "Enum",
+          "OpenAI",
+          "ActionItemPriority",
+          "ActionItemStatus",
+          "ActionItem",
+          "MeetingInsights",
+          "ActionItemExtractor"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "dataclass",
+          "asdict",
+          "extract_action_items_from_transcript",
+          "format_action_items_for_export",
+          "example_usage"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:08:43.064187"
+    },
+    "OBSOLETE_action_item_extraction_system.py": {
+      "path": "OBSOLETE_action_item_extraction_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 42346,
+        "classes": [
+          "Any",
+          "Enum",
+          "datetime",
+          "timedelta",
+          "defaultdict",
+          "MeetingElementIdentifier",
+          "MeetingStructure",
+          "MeetingElement",
+          "MeetingElementType",
+          "ConfidenceLevel",
+          "ActionItemPriority",
+          "ActionItemStatus",
+          "DeadlineType",
+          "ActionItemDeadline",
+          "ActionItemAssignee",
+          "ActionItem",
+          "DeadlineParser",
+          "AssigneeExtractor",
+          "PriorityClassifier",
+          "ActionItemExtractor"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Set",
+          "Union",
+          "dataclass",
+          "field",
+          "create_action_item_extractor",
+          "extract_action_items_from_meeting",
+          "example_usage"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:08:48.186075"
+    },
+    "OBSOLETE_comprehensive_file_format_system.py": {
+      "path": "OBSOLETE_comprehensive_file_format_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 37880,
+        "classes": [
+          "Path",
+          "Any",
+          "datetime",
+          "Enum",
+          "AudioFormat",
+          "ConversionStatus",
+          "ValidationResult",
+          "FileFormatInfo",
+          "ConversionResult",
+          "BatchConversionJob",
+          "ComprehensiveFileFormatSystem"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "dataclass",
+          "field",
+          "demo_file_format_system"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:08:48.205018"
+    },
+    "OBSOLETE_comprehensive_text_classification_system.py": {
+      "path": "OBSOLETE_comprehensive_text_classification_system.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 35040,
+        "classes": [
+          "datetime",
+          "timedelta",
+          "Path",
+          "Any",
+          "AutoModel",
+          "AutoModelForSequenceClassification",
+          "AutoTokenizer",
+          "Trainer",
+          "TrainingArguments",
+          "BaseEstimator",
+          "TransformerMixin",
+          "CalibratedClassifierCV",
+          "RandomForestClassifier",
+          "TfidfVectorizer",
+          "LogisticRegression",
+          "OneVsRestClassifier",
+          "Pipeline",
+          "TextPreprocessor",
+          "ContentTypeClassifier",
+          "DomainSpecificClassifier"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Set",
+          "Tuple",
+          "Union",
+          "pipeline",
+          "classification_report",
+          "confusion_matrix",
+          "train_test_split",
+          "main"
+        ],
+        "imports": [],
+        "constants": [
+          "SPACY_AVAILABLE",
+          "TORCH_AVAILABLE",
+          "TRANSFORMERS_AVAILABLE",
+          "MEDICAL_SCHEMA_AVAILABLE"
+        ],
+        "has_main": true,
+        "module_type": "model"
+      },
+      "test_time": "2025-08-18T11:08:48.228844"
+    },
+    "OBSOLETE_meeting_element_identification.py": {
+      "path": "OBSOLETE_meeting_element_identification.py",
+      "success": true,
+      "message": "Import successful",
+      "details": {
+        "file_size": 28256,
+        "classes": [
+          "Any",
+          "Enum",
+          "datetime",
+          "timedelta",
+          "defaultdict",
+          "MeetingElementType",
+          "ConfidenceLevel",
+          "MeetingElement",
+          "MeetingStructure",
+          "MeetingPatternMatcher",
+          "MeetingElementIdentifier"
+        ],
+        "functions": [
+          "Dict",
+          "List",
+          "Optional",
+          "Tuple",
+          "Set",
+          "dataclass",
+          "field",
+          "create_meeting_identifier",
+          "analyze_meeting_transcript",
+          "example_usage"
+        ],
+        "imports": [],
+        "constants": [],
+        "has_main": true,
+        "module_type": "unknown"
+      },
+      "test_time": "2025-08-18T11:08:48.230330"
+    }
+  }
+}

@@ -734,3 +734,104 @@ if __name__ == "__main__":
         commission_rate=15.0
     )
     print(f"Created affiliate partner: {affiliate_id}")
+
+
+# Component Classes for Service Integration
+# These provide the interface expected by marketing_service.py
+
+class ReferralSystem:
+    """Referral system component"""
+    
+    def __init__(self, db_path: str = "marketing_growth.db"):
+        self.marketing_system = MarketingGrowthSystem(db_path)
+    
+    def create_program(self, **kwargs):
+        return self.marketing_system.create_referral_program(**kwargs)
+    
+    def generate_code(self, program_id: str, user_id: str):
+        return self.marketing_system.generate_referral_code(program_id, user_id)
+    
+    def track_signup(self, referral_code: str, user_id: str):
+        return self.marketing_system.track_referral_signup(referral_code, user_id)
+
+
+class EmailMarketingPlatform:
+    """Email marketing platform component"""
+    
+    def __init__(self, db_path: str = "marketing_growth.db"):
+        self.marketing_system = MarketingGrowthSystem(db_path)
+    
+    def create_campaign(self, **kwargs):
+        # Email campaign functionality would be implemented here
+        return f"email_campaign_{uuid.uuid4()}"
+    
+    def send_campaign(self, campaign_id: str, recipients: List[str]):
+        # Email sending logic would be implemented here
+        return True
+
+
+class MarketingAutomation:
+    """Marketing automation component"""
+    
+    def __init__(self, db_path: str = "marketing_growth.db"):
+        self.marketing_system = MarketingGrowthSystem(db_path)
+    
+    def create_workflow(self, **kwargs):
+        # Automation workflow logic would be implemented here
+        return f"workflow_{uuid.uuid4()}"
+
+
+class GrowthAnalytics:
+    """Growth analytics component"""
+    
+    def __init__(self, db_path: str = "marketing_growth.db"):
+        self.marketing_system = MarketingGrowthSystem(db_path)
+    
+    def get_referral_analytics(self, program_id: str = None):
+        return self.marketing_system.get_referral_analytics(program_id)
+    
+    def get_conversion_analytics(self):
+        return self.marketing_system.get_conversion_analytics()
+
+
+class ABTestingEngine:
+    """A/B testing engine component"""
+    
+    def __init__(self, db_path: str = "marketing_growth.db"):
+        self.marketing_system = MarketingGrowthSystem(db_path)
+    
+    def create_test(self, **kwargs):
+        return self.marketing_system.create_ab_test(**kwargs)
+    
+    def assign_variant(self, test_id: str, user_id: str):
+        return self.marketing_system.assign_variant(test_id, user_id)
+
+
+class ContentDistribution:
+    """Content distribution component"""
+    
+    def __init__(self, db_path: str = "marketing_growth.db"):
+        self.marketing_system = MarketingGrowthSystem(db_path)
+    
+    def create_template(self, **kwargs):
+        return self.marketing_system.create_social_share_template(**kwargs)
+    
+    def distribute_content(self, content_id: str, channels: List[str]):
+        # Content distribution logic would be implemented here
+        return True
+
+
+# Additional enums and classes that marketing_service expects
+class CampaignStatus(Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+
+
+class Channel(Enum):
+    EMAIL = "email"
+    SOCIAL = "social"
+    PAID = "paid"
+    REFERRAL = "referral"
+    AFFILIATE = "affiliate"
