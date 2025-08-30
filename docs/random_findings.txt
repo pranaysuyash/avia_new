@@ -981,3 +981,257 @@ you are a tech reviewer. you follow this guidebook for all your                 
 ╭────────────────────────────────────────────────────────────────────────────────────────╮
 │  > dont only think from mvp perspective but full , also you can go through the whole   │
 │    codebase to come up with your own, not necessary to agree like i said  
+Based on my comprehensive review of the codebase and documentation using the
+  Intent-First Development Philosophy, here's my assessment of the lowest-hanging fruit
+  with high-value potential for a full implementation:
+
+  Lowest Hanging Fruit: Frame OCR Indexing System
+
+  Why It's the Lowest Hanging Fruit (Full Scope Perspective)
+
+   1. Explicit High-Value Recognition
+      - Documented as a "Quick-Win Addition" in KIRO_TASKS_GAP_AUDIT.md
+      - Listed as a "Candidate Task" in REVIEW_FINDINGS_SUMMARY.md
+      - Identified as a key differentiator for media management platforms
+
+   2. Well-Defined Scope with Clear Boundaries
+      - Focused functionality: Extract text from video frames (burned-in captions/titles)
+      - Integrates with existing search infrastructure (explicitly mentioned)
+      - Self-contained pipeline with measurable outputs
+
+   3. High User & Business Value
+      - User Impact: Enables search within video content that lacks transcripts (e.g.,
+        archival footage, third-party content)
+      - Business Impact: Creates a unique competitive advantage; unlocks value in
+        existing media assets
+      - Strategic Alignment: Supports multiple downstream features (accessibility,
+        compliance, content discovery)
+
+   4. Feasible Technical Effort
+      - Leverages proven computer vision libraries (Tesseract, OpenCV)
+      - Builds on existing video processing infrastructure (FFmpeg integration visible in
+        advanced_timestamping_system.py)
+      - Integrates with current search architecture (likely via semantic_search/ or
+        search/ modules)
+      - Clear path from prototype to production with existing ML Ops patterns
+
+   5. Low Operational Risk
+      - Batch processing model (less real-time complexity)
+      - Modular integration points (OCR pipeline → search index)
+      - Established storage and queuing systems can handle processing workloads
+
+  Full Implementation Scope
+
+   - Pipeline Components:
+     - Frame extraction scheduler (periodic or keyframe-based)
+     - OCR engine (Tesseract/OpenCV with preprocessing)
+     - Text cleaning and normalization
+     - Entity/timecode indexing
+   - Integration Points:
+     - Media ingestion controller (media_ingestion_controller.py)
+     - Search index (search/, semantic_search/)
+     - Storage manager (cloud_storage/)
+   - UI/UX:
+     - Search result highlighting with timecode jumps
+     - Admin dashboard for OCR job monitoring
+   - Advanced Features:
+     - Confidence scoring and review queues
+     - Multi-language support
+     - Position-based text detection (titles vs. lower-thirds)
+
+  Decision Matrix Alignment
+
+  ┌───────────────────┬──────────┬─────────────────────────────────────────────┐
+  │ Factor            │ Asses... │ Reasoning                                   │
+  ├───────────────────┼──────────┼─────────────────────────────────────────────┤
+  │ User Value        │ High     │ Enables search in previously unsearchabl... │
+  │ Business Value    │ High     │ Differentiates platform; unlocks archive... │
+  │ Technical Effort  │ Low-M... │ Uses proven tech; clear integration points  │
+  │ Operational Risk  │ Low      │ Batch processing; modular design            │
+  │ **Strategic Impo... │ High     │ Supports visual enrichment and search in... │
+  └───────────────────┴──────────┴─────────────────────────────────────────────┘
+
+
+  This task directly addresses a documented gap with a clear path to implementation,
+  offering immediate user value while laying groundwork for advanced visual analytics
+  features.
+
+  While "Caption QC" was also mentioned, it lacks existing code scaffolding and would
+  require more foundational work to establish parsing and validation libraries for
+  subtitle formats. Frame OCR offers a cleaner path to high-impact functionality with
+  existing media processing patterns to build upon.
+
+╭──────────────────────────────────────────────────────────────────────────────────────────╮
+│  > from another agent:codex                                                             │
+│    Verdict                                                                              │
+│                                                                                         │
+│    - Strong pick. Frame OCR Indexing is a legitimate lowest‑hanging fruit with high     │
+│    user value and                                                                       │
+│    clear integration points already present in the repo.                                │
+│                                                                                         │
+│    Why I Agree                                                                          │
+│                                                                                         │
+│    - Existing scaffolding: api/endpoints/ocr.py is already in place; FFmpeg/video       │
+│    utilities are                                                                        │
+│    present (e.g., timestamping/video processing files). Search endpoints/modules exist  │
+│    (e.g.,                                                                               │
+│    frontend/src/api/search.ts, backend search routers), so plumbing is familiar.        │
+│    - Clear value: unlocks search for videos without transcripts (titles/lower‑thirds),  │
+│    benefits many                                                                        │
+│    personas (news, archives, education).                                                │
+│    - Bounded scope: extract keyframes → OCR → index → surface matches with timecodes.   │
+│                                                                                         │
+│    Caption QC vs Frame OCR (quick compare)                                              │
+│                                                                                         │
+│    - Effort:                                                                            │
+│        - Caption QC (Web‑only): minimal infra, JS parsing libs; UI work needed.         │
+│        - Frame OCR (API+Web): server batch job + indexing + small UI enhancement.       │
+│    - Value:                                                                             │
+│        - Caption QC: immediate usability for editors/students; improves accessibility   │
+│    quality.                                                                             │
+│        - Frame OCR: expands searchable content set; differentiates product more         │
+│    visibly.                                                                             │
+│    - Dependencies:                                                                      │
+│        - Caption QC: client lib + UI; no backend changes.                               │
+│        - Frame OCR: uses existing OCR endpoint + FFmpeg; adds batch scheduler + index   │
+│    hook.                                                                                │
+│    - Risk:                                                                              │
+│        - Caption QC: low, purely client side.                                           │
+│        - Frame OCR: low–medium, adds compute cost; but batch and modular.               │
+│                                                                                         │
+│    If you want a single pick with higher strategic return, I’d go with Frame OCR first; │
+│     Caption QC                                                                          │
+│    can follow quickly and uses the same search/result display patterns.                 │
+│                                                                                         │
+│    Lean Plan (Frame OCR, 1–2 weeks)                                                     │
+│                                                                                         │
+│    - Scope                                                                              │
+│        - Extract keyframes (scene‑change or time‑interval), OCR each frame, normalize   │
+│    text, store                                                                          │
+│    hits with timecodes, index into existing search.                                     │
+│    - Integration Points                                                                 │
+│        - Frame extraction: FFmpeg utilities (keyframes or every N seconds).             │
+│        - OCR: reuse api/endpoints/ocr.py service; add preprocessing                     │
+│    (grayscale/threshold).                                                               │
+│        - Indexing: extend existing search index (add “ocr_text” per time span) or       │
+│    simple inverted                                                                      │
+│    index table.                                                                         │
+│        - API: new endpoints to trigger OCR, check status, and query results (or fold    │
+│    into existing                                                                        │
+│    search endpoints with a filter).                                                     │
+│    - Milestones                                                                         │
+│        - Week 1: POC on a sample video, measure accuracy/latency; define schema for OCR │
+│     hits                                                                                │
+│    (video_id, t_start/t_end, text, bbox?, conf).                                        │
+│        - Week 2: Batch job + idempotency, API endpoints, basic UI hooks in search       │
+│    panel; add cost/                                                                     │
+│    latency logging and throttling.                                                      │
+│    - Non‑functional                                                                     │
+│        - Controls: per‑team toggle; max frame rate caps; queue limits; retries/fail     │
+│    logging.                                                                             │
+│        - I18n: detect language; choose appropriate OCR model; fallback to English.      │
+│        - Privacy: redact faces/regions if policy requires before OCR; store only needed │
+│     text.                                                                               │
+│    - Verification                                                                       │
+│        - Golden video with known lower‑thirds: >80% match of expected strings; timecode │
+│     jump                                                                                │
+│    accuracy ±0.5s.                                                                      │
+│        - Load test: N videos, bounded throughput; budgeted cost per hour.               │
+╰──────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+✦ I agree with the other agent's assessment. Frame OCR Indexing is indeed a strong pick
+  for the lowest-hanging fruit with significant strategic value.
+
+  Why Frame OCR Indexing is Optimal
+
+   1. Clear Strategic Value
+      - Enables search in videos without transcripts (a common real-world scenario)
+      - Differentiates the platform by unlocking value in existing media assets
+      - Supports multiple user personas (archivists, educators, researchers)
+
+   2. Existing Technical Foundation
+      - api/endpoints/ocr.py already exists
+      - FFmpeg integration present in advanced_timestamping_system.py
+      - Search infrastructure (search/, semantic_search/) available for integration
+      - Video processing utilities already in place
+
+   3. Bounded Implementation Scope
+      - Well-defined pipeline: keyframe extraction → OCR → indexing → search integration
+      - Measurable success criteria (accuracy, latency, cost)
+      - Modular design allows for iterative enhancements
+
+   4. Low Risk, High Reward
+      - Batch processing model reduces real-time complexity
+      - Uses proven computer vision libraries (Tesseract, OpenCV)
+      - Clear path to production with existing infrastructure patterns
+
+  Comparison with Caption QC
+
+  While Caption QC has merit:
+   - Effort: Frame OCR requires more infrastructure but builds on existing patterns
+   - Value: Frame OCR creates a more visible product differentiation
+   - Dependencies: Frame OCR leverages existing OCR endpoint and video utilities
+   - Risk: Both are low-risk, but Frame OCR offers higher strategic return
+
+  Recommended Implementation Approach
+
+   1. Phase 1 (Week 1):
+      - POC with sample video
+      - Define schema for OCR hits (video_id, timecodes, text, confidence)
+      - Measure accuracy and latency
+
+   2. Phase 2 (Week 2):
+      - Implement batch job with idempotency
+      - Add API endpoints for triggering OCR and querying results
+      - Integrate with existing search infrastructure
+      - Add basic UI hooks in search panel
+
+  This approach aligns with the intent-first philosophy by focusing on measurable user
+  value while leveraging existing technical investments.
+
+  Next Steps (decision)
+
+- If you want the biggest upside quickly, green‑light Frame OCR. I’ll create a task log, WS/
+REST endpoint plan, and a lightweight schema for the index and results — no code changes until
+you confirm.
+- If you prefer to start client‑only, we can do Caption QC first and pick up Frame OCR right
+after.
+
+user
+your call
+
+thinking
+Planning documentation for Frame OCR
+
+I'm planning the documentation without making code changes, as instructed. Since the user
+mentioned "your call," I'll choose Frame OCR, which I believe has higher value. I'll create
+task log entries and detailed specs, including a design document outline for the OCR indexing
+pipeline. It's essential to keep everything documented in a way that allows for clear milestones
+and planning, including any potential WS endpoints and UI changes, following the guidelines.
+
+Creating documentation files
+
+I’m planning to create several important documentation files. First, I'll set up a task log for
+Frame OCR indexing under "docs/task-logs." Next, I'll document the decision process in an ADR
+file, followed by a detailed design spec including architecture and data schema. I’m thinking
+of placing the backlog tickets in "tickets/FRAME_OCR_TASKS.md" within the docs. I'll also ensure
+to follow the CLI guidelines by adding concise preamble messages before tool calls, keeping
+everything clear and organized.
+
+Designing Frame OCR system
+
+I’m outlining the design for the Frame OCR system. First, I need to define objectives,
+assumptions, and components like the frame extractor and OCR engine, along with preprocessing and
+indexing. The API will include endpoints to start jobs, check job status, and fetch results.
+
+For the data model, I’m considering tables that track OCR hits and jobs. Performance metrics
+will include sampling intervals and concurrency. Privacy measures will focus on redaction and
+retention policies, with proposed UI changes showing OCR results in web search. I’ll also set up
+testing with golden videos. Let's move forward!
+
+
+
+codex
+I’ll document the Frame OCR plan: add a task log, an ADR decision, and a detailed design/spec. No
+code changes.
