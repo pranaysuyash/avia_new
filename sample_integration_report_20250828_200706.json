@@ -1,0 +1,287 @@
+{
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 1,
+    "failed_tests": 4,
+    "error_tests": 0,
+    "success_rate": 20.0,
+    "total_assertions": 15,
+    "passed_assertions": 11,
+    "assertion_success_rate": 73.33333333333333,
+    "total_execution_time": 10.5,
+    "average_execution_time": 2.1
+  },
+  "test_results": [
+    {
+      "test_id": "test_0",
+      "name": "Sample Test 1",
+      "integration_type": "api_endpoint",
+      "status": "failed",
+      "execution_time": 1.5,
+      "start_time": "2025-08-28T20:07:06.742481",
+      "end_time": "2025-08-28T20:07:06.742482",
+      "assertions": [
+        {
+          "assertion_id": "test_0_assertion_0",
+          "description": "Assertion 1",
+          "expected": "Expected value",
+          "actual": "Different value",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_0_assertion_1",
+          "description": "Assertion 2",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_0_assertion_2",
+          "description": "Assertion 3",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    },
+    {
+      "test_id": "test_1",
+      "name": "Sample Test 2",
+      "integration_type": "api_endpoint",
+      "status": "passed",
+      "execution_time": 1.8,
+      "start_time": "2025-08-28T20:07:06.742490",
+      "end_time": "2025-08-28T20:07:06.742490",
+      "assertions": [
+        {
+          "assertion_id": "test_1_assertion_0",
+          "description": "Assertion 1",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_1_assertion_1",
+          "description": "Assertion 2",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_1_assertion_2",
+          "description": "Assertion 3",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    },
+    {
+      "test_id": "test_2",
+      "name": "Sample Test 3",
+      "integration_type": "api_endpoint",
+      "status": "failed",
+      "execution_time": 2.1,
+      "start_time": "2025-08-28T20:07:06.742497",
+      "end_time": "2025-08-28T20:07:06.742497",
+      "assertions": [
+        {
+          "assertion_id": "test_2_assertion_0",
+          "description": "Assertion 1",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_2_assertion_1",
+          "description": "Assertion 2",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_2_assertion_2",
+          "description": "Assertion 3",
+          "expected": "Expected value",
+          "actual": "Different value",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    },
+    {
+      "test_id": "test_3",
+      "name": "Sample Test 4",
+      "integration_type": "api_endpoint",
+      "status": "failed",
+      "execution_time": 2.4,
+      "start_time": "2025-08-28T20:07:06.742502",
+      "end_time": "2025-08-28T20:07:06.742503",
+      "assertions": [
+        {
+          "assertion_id": "test_3_assertion_0",
+          "description": "Assertion 1",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_3_assertion_1",
+          "description": "Assertion 2",
+          "expected": "Expected value",
+          "actual": "Different value",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_3_assertion_2",
+          "description": "Assertion 3",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    },
+    {
+      "test_id": "test_4",
+      "name": "Sample Test 5",
+      "integration_type": "api_endpoint",
+      "status": "failed",
+      "execution_time": 2.7,
+      "start_time": "2025-08-28T20:07:06.742507",
+      "end_time": "2025-08-28T20:07:06.742508",
+      "assertions": [
+        {
+          "assertion_id": "test_4_assertion_0",
+          "description": "Assertion 1",
+          "expected": "Expected value",
+          "actual": "Different value",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_4_assertion_1",
+          "description": "Assertion 2",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "test_4_assertion_2",
+          "description": "Assertion 3",
+          "expected": "Expected value",
+          "actual": "Expected value",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    }
+  ],
+  "failure_analysis": {
+    "failure_patterns": {
+      "api_endpoint": [
+        {
+          "test_id": "test_0",
+          "error_details": null,
+          "failed_assertions": [
+            {
+              "assertion_id": "test_0_assertion_0",
+              "description": "Assertion 1",
+              "expected": "Expected value",
+              "actual": "Different value",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        },
+        {
+          "test_id": "test_2",
+          "error_details": null,
+          "failed_assertions": [
+            {
+              "assertion_id": "test_2_assertion_2",
+              "description": "Assertion 3",
+              "expected": "Expected value",
+              "actual": "Different value",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        },
+        {
+          "test_id": "test_3",
+          "error_details": null,
+          "failed_assertions": [
+            {
+              "assertion_id": "test_3_assertion_1",
+              "description": "Assertion 2",
+              "expected": "Expected value",
+              "actual": "Different value",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        },
+        {
+          "test_id": "test_4",
+          "error_details": null,
+          "failed_assertions": [
+            {
+              "assertion_id": "test_4_assertion_0",
+              "description": "Assertion 1",
+              "expected": "Expected value",
+              "actual": "Different value",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    "error_categories": {},
+    "recommendations": [
+      "Review API endpoint implementations and response formats"
+    ]
+  },
+  "generated_at": "2025-08-28T20:07:06.742617"
+}

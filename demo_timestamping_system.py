@@ -35,19 +35,33 @@ class TimestampingSystemDemo:
     def __init__(self):
         self.ts_system = TimestampingSystem()
         self.demo_content_id = "demo_audio_001"
-        self.demo_transcript = """
-        Welcome to our comprehensive timestamping system demonstration. 
-        This system provides advanced features for audio and video content analysis.
-        We can generate word-level timestamps with high precision.
-        Speaker diarization helps identify different speakers in conversations.
-        The system supports multiple languages and export formats.
-        Bookmarks allow users to mark important moments for quick navigation.
-        Real-time synchronization ensures perfect alignment between text and audio.
-        Advanced analytics provide insights into speaking patterns and content quality.
-        """
+        
+        # Use real test data
+        self.test_audio_files = [
+            "test_audio.wav",
+            "test_data/audio/business_meeting.wav",
+            "test_data/audio/educational_lecture.wav"
+        ]
+        
+        # Load real transcript
+        try:
+            with open("test_data/transcripts/business_meeting.txt", "r") as f:
+                self.demo_transcript = f.read().strip()
+        except FileNotFoundError:
+            # Fallback transcript
+            self.demo_transcript = """
+            Good morning everyone. This is John Smith, CEO of TechCorp Industries. 
+            Today is January 15th, 2024, and we're here in our Seattle headquarters 
+            for the quarterly board meeting. We'll be discussing our Q4 results 
+            with Sarah Johnson from the finance team and Michael Chen from operations.
+            Our revenue for this quarter reached $2.5 million, which represents 
+            a 25% increase from last year. We've successfully expanded to 
+            New York City and Los Angeles, hiring 150 new employees.
+            """
         
         print("🕒 Timestamping System Demo Initialized")
         print(f"Database: {self.ts_system.database_path}")
+        print(f"Available test audio files: {len(self.test_audio_files)}")
         print("-" * 60)
     
     def run_complete_demo(self):
@@ -92,16 +106,16 @@ class TimestampingSystemDemo:
         print("=" * 40)
         
         try:
-            # Create a mock audio file path (in real usage, this would be an actual audio file)
-            mock_audio_path = "demo_audio.wav"
+            # Create mock word timestamps directly (simulating successful processing)
+            print("\n🔍 Simulating word timestamp generation...")
             
-            # Test different timestamping methods
-            methods = ["forced_alignment", "vad_based", "ml_based"]
+            words = self.demo_transcript.split()
+            word_timestamps = []
             
-            for method in methods:
-                print(f"\n🔍 Testing {method} method...")
-                
-                # Generate word timestamps
+            # Generate realistic word timestamps
+            current_time = 0.0
+            for i, word in enumerate(words):
+                # Cenerate word timestamps
                 word_timestamps = self.ts_system.generate_word_timestamps(
                     audio_path=mock_audio_path,
                     transcript=self.demo_transcript,

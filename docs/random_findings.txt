@@ -1,0 +1,755 @@
+user
+whats your take on the app after all this thorough review of
+the files you read?
+
+thinking
+Assessing the app review
+
+I need to provide a concise, high-level assessment of the app based on the thorough file review.
+The user expects points on strengths, gaps, risks, priorities, readiness, technical architecture,
+product-market fit, and recommendations.
+
+It's essential that I keep this brief and stick to the style guidelines, using bullet points and
+headers where appropriate. I can refer to the created documents, but I shouldn't dive into heavy
+details. Brevity is crucial here!
+
+Review Summary
+
+I should highlight various aspects of the app in my assessment.
+
+For strengths, I’ll mention its breadth of features, multiple frontends, and extensive API
+routers, along with good documentation, analytics, GraphQL, and real-time websockets.
+
+On weaknesses and risks, I’ll note the fragmentation of API entry points, mixed prefixes,
+inconsistent authentication endpoints, and references to unimplemented websocket endpoints.
+
+I'll also address integration coverage with streamlit and web, but highlight partial mobile
+coverage and the electron dependency on additional services.
+
+Lastly, I’ll mention the monorepo architecture and potential tech debt alongside security
+concerns.
+
+Sentry Integration Review
+
+I've integrated Sentry, and I need to present my thoughts clearly.
+
+For product direction, it supports enterprise features and could benefit from rights/licensing,
+pro-media workflows, and educational features.
+
+Regarding readiness, it’s good for demos and proof of concepts, but for production, it requires
+hardening in several areas like authentication normalization, endpoint testing, deployment
+pipelines, and cost controls.
+
+Next, I should focus on selecting a canonical API, deprecating legacy features, documenting
+websocket endpoints, and planning the rollout based on our existing documentation. I'll organize
+my thoughts with headers and keep sections concise.
+
+
+
+codex
+Overall
+
+- Ambitious, feature‑rich platform spanning transcription, analytics, collaboration, uploads,
+and multi‑frontend delivery. Strong groundwork for an enterprise media app with room to harden
+and streamline.
+
+What’s Strong
+
+- Breadth: extensive FastAPI routers (uploads, cached transcription, analytics, TTS, hybrid
+summarization, VAD, GraphQL).
+- Frontends: React web is deep; Streamlit useful for demos; Electron scaffolding; RN app present.
+- Infra signals: logging, Sentry hooks, rate‑limit scaffolding, CI/CD and testing artifacts.
+- Docs: task/spec repos in .kiro, plus many in‑repo guides and logs.
+
+What’s Risky
+
+- Fragmentation: multiple API entrypoints (api/app.py, api/main.py, api/api_main.py) and mixed
+prefixes (/api vs /api/v1) create integration drift.
+- Auth inconsistency: mobile uses both /api/v1/auth/* and /api/auth/*; refresh not uniformly
+implemented.
+- WebSockets: several WS URLs referenced in web lack clear server handlers; potential runtime
+failures.
+- Electron dependency: queue API assumes port 8001 service; unclear orchestration.
+- Scope sprawl: many advanced modules with uneven maturity; risk of partial implementations
+without end‑to‑end cohesion.
+
+Integration Reality
+
+- Streamlit: generally OK via api_client and wrappers.
+- React Native: partial; presigned uploads not adopted; auth paths mixed.
+- Expo app: legacy transcription paths likely to 404 against canonical API.
+- Electron: broad REST integration; queue service ambiguity.
+
+Product Opportunity
+
+- Clear path to standout: education toolkit (student/educator flows), provider hub (Replicate/
+FAL/OpenRouter) for generative/editing, professional supply chain (IMF/MXF/QC), rights/licensing,
+live/SSAI. I captured this in MEDIA_PLATFORM_EXPANSION_PLAN.md.
+
+Readiness Take
+
+- Demo/POC‑ready and a solid foundation; not production‑tight yet. Needs normalization of API
+surface, WS coverage, auth flows, and operational rigor (observability, cost controls, policy
+gates).
+
+Suggested Next Steps
+
+- Pick canonical API (use api/app.py), standardize on /api/v1, and alias/deprecate legacy.
+- Reconcile auth (single scheme + working refresh), publish WS endpoints, and align all clients
+(set VITE_API_URL/WS, RN base, Electron env).
+- Land quick wins: frame OCR search, caption QC, student study packs, provider hub MVP for
+thumbnails/B‑roll/summaries.
+- Plan a production track: endpoint/e2e tests per client, perf and cost telemetry, privacy/
+consent/watermark guardrails.
+
+If helpful, I can translate the expansion plan into a 6–8 week delivery schedule with owners, env
+standards, and acceptance criteria.
+
+codex
+I compiled everything into a single findings doc you can act
+on next.
+
+- New file: REVIEW_FINDINGS_SUMMARY.md
+- What it captures:
+    - Executive summary and architecture snapshot.
+    - Integration status by frontend (Streamlit, React Web,
+RN, Expo, Electron).
+    - Issues/risks, strengths, and opportunities.
+    - Quick wins and strategic initiatives.
+    - Recommended next steps and execution-ready candidate
+tasks.
+    - Traceability to the other audits and plan I added.
+
+If you want, I can now turn “Candidate Tasks” into a
+prioritized backlog with owners and acceptance criteria, or
+we can pick one quick win (e.g., student toolkit v0 or API
+prefix consolidation) to scope first.
+
+user
+sure but dont touch existing code for now
+
+thinking
+Clarifying task priorities
+
+The user wants to create a prioritized backlog with ownership
+and acceptance criteria but has stated clearly, "don’t
+touch existing code for now." This suggests they are looking
+for documentation changes, which are modifications to the
+repository but not code itself. While I can create markdown
+files for the backlog, it’s still a change to the repository.
+To be sure, I should ask if they prefer a separate markdown
+file or if they’d like the backlog pasted directly into the
+chat.
+
+Planning task delivery
+
+I can present the backlog directly in the chat instead of
+applying patches. The developer guidelines suggest that our
+default approach is to keep going until completion, but in
+this case, I can deliver the backlog without changing any
+files.
+
+The user prefers a structured format with bullet points for
+the final answer. I’ll include epics, tasks, priorities,
+owner placeholders, estimates, acceptance criteria,
+dependencies, and a timeline for 2-3 sprints, focusing on the
+specified tasks without any code modifications.
+
+Creating a structured backlog
+
+I'm planning to organize the backlog into sections for
+clarity. I'll have Sprint 0 for Foundations, lasting 1-2
+weeks, followed by Sprint 1 for Quick Wins at 2 weeks, and
+Sprint 2 focusing on Platform Hardening for another 2 weeks.
+For each task, I’ll include a description, priority, owner
+roles (to be determined), dependencies, and acceptance
+criteria. I’ll also integrate non-functional tasks like
+observability and documentation, add a RACI matrix for owner
+roles, and establish overall objectives and success metrics.
+Let's finalize this!
+
+
+
+codex
+Here’s a prioritized, execution-ready backlog you can pick
+from next. I’m not touching any code; this is a planning
+artifact only.
+
+Backlog Overview
+
+- Goal: unify critical integrations, deliver quick user
+value, and set foundations for scale.
+- Cadence: 2-week sprints, cross-functional owners.
+- Roles: Backend, Web, Mobile, Desktop, Infra/DevEx, PM.
+
+Sprint 0 — Foundations (1–2 weeks)
+
+- API Canonicalization
+    - Priority: P0
+    - Owner: Backend, PM
+    - Scope: Confirm api/app.py as canonical. Decide standard
+prefix /api/v1 for public clients. Define alias/deprecation
+plan for /api/*.
+    - Acceptance: One-page ADR with decisions; updated API
+surface matrix; deprecation timeline agreed.
+- Auth Reconciliation Plan
+    - Priority: P0
+    - Owner: Backend, Mobile, PM
+    - Scope: Choose single auth scheme (recommend /api/v1/
+auth/*). Define refresh flow and token structure; identify
+client changes.
+    - Acceptance: ADR + sequence diagram; endpoint checklist;
+client change list approved.
+- WebSocket Endpoint Matrix
+    - Priority: P0
+    - Owner: Backend, Web
+    - Scope: Inventory supported WS routes; map client
+usages; identify gaps; decide keep/remove/update.
+    - Acceptance: WS matrix doc; client update plan; flags
+for non-implemented features.
+- Environment/Config Standards
+    - Priority: P1
+    - Owner: Web, Mobile, Desktop, DevEx
+    - Scope: Standardize VITE_API_URL/WS, RN/Expo base URLs,
+Electron API/WS envs; document local/prod patterns.
+    - Acceptance: Env guidelines doc; sample .env(.example)
+updates; runbooks for each frontend.
+- Observability & Cost Guardrails (Design)
+    - Priority: P1
+    - Owner: Infra/Backend
+    - Scope: Define cost/latency telemetry, quotas, caching
+strategy, and audit logging hooks for provider tasks.
+    - Acceptance: Observability plan; events/schema spec;
+dashboard wireframes.
+
+Sprint 1 — Quick Wins (2 weeks)
+
+- Student Toolkit v0 (Notes + Study Packs)
+    - Priority: P0
+    - Owner: Web, PM
+    - Scope: Time-coded bookmarks/highlights on transcript
+viewer; generate basic flashcards/MCQs with rationales;
+export CSV/Anki/Notion.
+    - Acceptance: User can create highlights; generate 10+
+flashcards/quiz items; export works; basic UX tests pass.
+- Frame OCR Search Integration
+    - Priority: P0
+    - Owner: Backend, Web
+    - Scope: Batch frame OCR (lower thirds/titles); index
+into search; surface quick-find in UI.
+    - Acceptance: For a sample video, OCR text indexed and
+retrievable; latency/cost logged; error handling documented.
+- Caption QC Toolkit
+    - Priority: P1
+    - Owner: Web
+    - Scope: Check reading speed, overlaps, timing gaps; show
+issues panel; export QC report.
+    - Acceptance: QC flags visible for sample caption; export
+as JSON/CSV; configurable thresholds.
+- Provider Hub MVP (Replicate/OpenRouter)
+    - Priority: P1
+    - Owner: Backend, Web, Infra
+    - Scope: Capability registry; Replicate image bg removal/
+upscale; OpenRouter multi-model summaries; admin config page.
+    - Acceptance: Two provider tasks operational with
+retries/caching; admin can enable/disable providers; costs
+logged.
+
+Sprint 2 — Platform Hardening (2 weeks)
+
+- API Prefix Consolidation (No breaking runtime change)
+    - Priority: P0
+    - Owner: Backend
+    - Scope: Implement safe aliases/redirects for /api/
+* → /api/v1/* where applicable; update OpenAPI; publish
+deprecation notes.
+    - Acceptance: Smoke tests pass for both prefixes; docs
+updated; clients unaffected.
+- Auth Refresh Implementation + Client Updates
+    - Priority: P0
+    - Owner: Backend, Mobile, Web
+    - Scope: Implement /api/v1/auth/refresh consistently;
+update RN/Expo to use /api/v1/auth/*.
+    - Acceptance: Refresh E2E works on all clients; legacy
+refresh code removed/flagged; tests pass.
+- WS Reconciliation (Phase 1)
+    - Priority: P1
+    - Owner: Backend, Web
+    - Scope: Implement or remove top 2 WS endpoints used by
+web (e.g., realtime transcription or collaboration); guard
+others behind feature flags.
+    - Acceptance: Clients connect reliably; errors downgraded
+to UI notices; docs updated.
+- Storage Lifecycle Policies UI (Phase 1)
+    - Priority: P2
+    - Owner: Web, Backend
+    - Scope: Basic rules (tier after X days, retain Y
+months), cost estimate preview, dry-run.
+    - Acceptance: User can create/view a rule; mock cost
+calculations; apply disabled until Phase 2.
+
+Backlog (Ready-To-Pull)
+
+- Expo Migration to /api/v1/transcriptions
+    - Priority: P1; Owner: Mobile
+    - Acceptance: List/detail/upload/export use /api/v1/*;
+basic tests pass.
+- React Native Presigned Uploads
+    - Priority: P1; Owner: Mobile, Backend
+    - Acceptance: Large file upload via multipart presigned;
+retries + resume; progress UI.
+- Electron Queue Service Decision
+    - Priority: P2; Owner: Desktop, Backend
+    - Acceptance: Decision doc: route via 8000 or ship
+worker:8001; URLs/envs updated accordingly.
+- Watermarked Review Links
+    - Priority: P2; Owner: Web, Backend
+    - Acceptance: Per-viewer links with forensic watermark;
+expiry; view analytics logged.
+- Rights Catalog (MVP)
+    - Priority: P2; Owner: Backend, PM
+    - Acceptance: CRUD for rights (territory/window/embargo),
+basic conflict checks; report export.
+
+Dependencies & Sequencing
+
+- Do Sprint 0 first (decisions unblock everything else).
+- Student Toolkit + Frame OCR can start in parallel with
+Provider Hub MVP.
+- API/Auth consolidation before RN/Expo/Electron changes to
+reduce rework.
+- WS reconciliation prioritized by user impact (choose the 1–
+2 endpoints the web app relies on most).
+
+Acceptance Criteria Patterns (per task)
+
+- Non-functional: “P95 latency < Xs; cost logged; feature
+flags present; docs updated; basic tests added.”
+- Integrations: “Endpoint covered by smoke test; env-config
+defined; error taxonomy consistent.”
+
+Owners (placeholders)
+
+- Backend: Alice (lead), Bob
+- Web: Carol
+- Mobile: Dev (RN), Eve (Expo)
+- Desktop: Frank
+- Infra/DevEx: Grace
+- PM: Priya
+
+Go/No-Go Criteria for Production Track
+
+- Single canonical API and auth; WS endpoints published and
+aligned.
+- Observability: cost/latency dashboards; quotas for provider
+calls; basic alerting.
+- Privacy/Compliance: consent + watermark hooks present;
+audit logs enabled.
+- Client env configs standardized and documented.
+
+If you want, I can convert this backlog into GitHub issues
+(or your tracker), grouped by epics and sprints, with
+templates for acceptance criteria and owner tags—still
+without touching any code.
+
+user
+you mentioned these but no mention of status of react?:Integration Reality
+
+- Streamlit: generally OK via api_client and wrappers.
+- React Native: partial; presigned uploads not adopted; auth paths mixed.
+- Expo app: legacy transcription paths likely to 404 against canonical API.
+- Electron: broad REST integration; queue service ambiguity.
+
+thinking
+Updating Integration Reality
+
+The user has pointed out that I need to include the status of React in the Integration Reality
+list. I’ll make sure to provide a concise update, mentioning that React has strong coverage
+but requires WS endpoint reconciliation and environment standardization. I should also include
+key action items and reference files like frontend/src/services/api.ts which uses /api and /
+api/v1. Additionally, I'll note that various WebSocket endpoints are referenced but not all are
+implemented yet. I'll avoid making tool calls or editing files, focusing solely on responding.
+
+Documenting React Web Status
+
+I need to keep the update concise while ensuring I cover the status and provide actionable
+next steps. Following the final answer formatting guidelines is essential, so I'll probably use
+minimal headers. It might work well to present the information as bullet points. A section header
+like React Web Status could be effective, as it clearly indicates the focus of the information.
+This will help in creating a structured and easy-to-read response for the user.
+
+Summarizing Integration Status and Risks
+
+I’m ready to produce a summary of the integration. The system is broadly integrated, using
+endpoints like /api/v1/uploads for uploads, along with /api for analytics. It utilizes multiple
+environment variables, with numerous WebSockets and a GraphQL subscriptions manager that expects
+a WebSocket path. There are presigned flows for uploads, but no presigned on mobile. I’ll unify
+base URLs and ensure proper CORS and token management.
+
+Risks include potential missing WS endpoints and mixing /api with /api/v1, plus ensuring
+that authorization headers are correctly handled in fetch calls. I need to be cautious not to
+overstate the issues.
+
+Ensuring Auth Consistency
+
+I've noticed that hooks/useApi.ts creates an Axios instance with interceptors, but many
+components are still using plain fetch through apiService. It’s important to ensure that
+authorization headers are consistently applied across the board.
+
+Next, I'll create a quick action items list to address this issue. This will help streamline the
+integration and maintain reliable authentication procedures throughout the application. Let's get
+this organized!
+
+
+
+
+codex
+Good catch — here’s the missing React Web status plus concrete actions.
+
+React Web Status
+
+- Coverage: Broad and mature. Uses:
+    - Uploads via presigned/multipart (/api/v1/uploads/*) in hooks/usePresignedUpload.ts.
+    - Analytics/search/emotion/hybrid/realtime APIs across src/api/* and src/services/api.ts.
+    - Cached transcription endpoints (/api/v1/transcription/cached/*) in services/
+cacheService.ts.
+    - GraphQL components present (subscriptions manager).
+- Prefix mix: Uses both /api (e.g., analytics in services/api.ts) and /api/v1 (most new
+features). This mirrors backend’s mixed mounts but increases drift risk.
+- WebSockets: Many WS endpoints referenced (collab, realtime transcription, notifications,
+distributed monitor, GraphQL). Not all have clear server handlers mapped; some paths likely 404
+without implementation.
+- GraphQL WS: GraphQLSubscriptionManager points to ws://localhost:8000/api/graphql/ws; Strawberry
+commonly upgrades on /api/graphql (no trailing /ws) — verify actual mount.
+which should be env-driven.
+- Auth headers: services/api.ts uses fetch with only Content-Type; token injection appears
+elsewhere (hooks/useApi.ts with axios). Risk of inconsistent auth across calls.
+
+React Web — Risks
+
+- WS runtime failures where handlers aren’t implemented or paths differ.
+- Mixed /api vs /api/v1 creating maintenance and auth/CORS inconsistencies.
+- Inconsistent auth header injection between fetch-based and axios-based calls.
+- Hardcoded WS URLs ignoring envs in some components.
+
+React Web — Actions
+
+- Standardize envs: set VITE_API_URL and VITE_WS_URL; remove hardcoded localhost in WS creation.
+- Publish WS matrix: confirm which of these exist and update code/flags accordingly:
+    - /api/v1/realtime-transcription/ws/{sessionId}
+    - /api/v1/collaboration/ws
+    - /api/v1/notifications/ws
+    - /api/distributed/monitor
+    - GraphQL WS path (likely /api/graphql)
+- Unify prefixes: prefer /api/v1 for public-facing calls; keep /api only where intentionally
+mounted (or plan deprecation).
+- Auth consistency: ensure all API calls (including services/api.ts fetch paths) attach
+Authorization; consider centralizing on a single client.
+- GraphQL: verify subscription path and add env-driven configuration.
+
+If you want, I can expand this into a React-specific checklist referencing exact files/lines to
+change (no code edits, just a targeted plan).
+
+
+user
+please do and expand to all
+
+thinking
+Creating a comprehensive checklist
+
+I’m working on producing a detailed checklist that the user requested, referencing exact files
+and lines for changes. I need to make sure to expand this checklist to cover the backend and
+all frontend technologies. The checklist will include items like backend API canonicalization,
+authentication reconciliation, and WebSockets updates. For React, I’ll provide file paths and
+suggestions, keeping in mind that I may not have captured exact line numbers previously. I'll
+mention the necessary changes as precisely as I can!
+
+Compiling file references for changes
+
+I need to compile a targeted plan for the user, focusing on specific files and their relevant
+lines regarding WebSocket URLs. For instance, I’ll mention the GraphQLSubscriptionManager.tsx
+where the URL is defined (line 186). I want to avoid exact line numbers due to potential
+drift, so I’ll suggest using search strings instead. I’ll highlight necessary files like
+websocketManager.ts, useAudioProcessing.ts, and others, noting their usage of WebSocket and the
+specific URLs they incorporate. Let’s ensure this checklist is thorough!
+
+Reviewing authentication and file changes
+
+I’m focusing on the authentication aspect for various code files. For instance, I’ll check the
+useApi.ts to ensure axios is being unified, or that fetch includes Authorization correctly. I
+noticed multiple occurrences in the mobile directory that require updates, like changing paths
+from '/api/auth/' to '/api/v1/auth/', and adjusting hardcoded URLs in the SpeakerDiarization
+component. I’ll also address references in Expo and Electron applications, providing targeted
+search strings for necessary replacements and overall improvements. Let's ensure clarity and
+consistency!
+
+Outlining tasks for implementation
+
+I’m creating a structured plan for implementing key tasks requested by the user. First,
+I’ll make sure to implement the '/api/v1/auth/refresh' endpoint consistently, as noted in
+auth_endpoints.py. I also need to review the analytics routes, deciding between '/api/v1/
+analytics' or keeping '/api/analytics' and documenting that.
+
+Next, for WebSocket implementations, I'll identify presence within api/enterprise_endpoints.py
+for updates, especially for missing endpoint tasks. I’ll ensure the GraphQL WebSocket path is
+consistent, using the correct configuration in api/main.py. Additionally, I’ll add examples for
+relevant environment variables. The observability documentation will guide further context, and
+I’ll produce this as a detailed checklist with ample bullet points.
+
+Structuring the output effectively
+
+I’m focusing on following the CLI guidelines to ensure clarity in my output. I need to include
+section headers and concise bullet points to organize information effectively. I’ll provide
+separate sections for each area of discussion, making sure that each bullet is to the point.
+It’s important to stick to the guideline of not calling tools; my task is strictly to present the
+information as requested. Let’s move forward with this structured approach!
+
+
+
+
+
+codex
+Here’s a targeted, file-level checklist for all surfaces. No code changes made — this is a
+precise plan you can hand to each team.
+
+Backend API
+
+- Canonical entrypoint
+    - File: api/app.py
+    - Action: Confirm as canonical server; document in ADR. Ensure all clients target this
+instance.
+- Prefix standardization
+    - Files: api/app.py, routers under api/endpoints/*
+    - Action: Standardize public routes under /api/v1/*. If keeping /api/*, publish a
+deprecation/alias plan and update OpenAPI.
+- Auth refresh consistency
+    - Files: api/endpoints/auth_endpoints.py (has /api/auth/refresh), api/main.py (placeholder
+501)
+    - Action: Implement /api/v1/auth/refresh (or alias /api/auth/refresh → /api/v1/auth/refresh)
+and document the one true scheme.
+- WebSockets support matrix
+    - Files: Backing routers for:
+    - `/api/v1/realtime-transcription/ws/{sessionId}`
+    - `/api/v1/collaboration/ws`
+    - `/api/v1/notifications/ws`
+    - `/api/distributed/monitor`
+    - GraphQL WS at `/api/graphql`
+- Action: Inventory/implement handlers or publish client updates to remove/flag unsupported WS.
+
+Streamlit
+
+- Base URL and auth
+    - File: api_client.py
+    - Action: Confirm base URL comes from st.secrets["API_URL"] (or env) and that auth scheme
+matches backend decision (prefer /api/v1/auth/*). If canonical is /api/auth/*, update login/me
+endpoints accordingly in a subsequent PR.
+
+React Web (Vite)
+
+- Environment config
+    - Files: frontend/.env (or .env.example), frontend/src/config/index.ts
+    - Action: Add VITE_API_URL and VITE_WS_URL; ensure defaults in code use these (replace
+hardcoded localhost in WS code).
+- WebSockets paths (verify/adjust)
+    - File: frontend/src/components/graphql/GraphQLSubscriptionManager.tsx (line ~186)
+    - Find: `url: 'ws://localhost:8000/api/graphql/ws'`
+    - Change plan: Use `(import.meta.env.VITE_WS_URL || 'ws://localhost:8000') + '/api/graphql'`
+- File: frontend/src/components/notifications/NotificationCenter.tsx (line ~152)
+    - Find: `ws://localhost:8000/api/v1/notifications/ws`
+    - Action: Confirm server endpoint or guard behind feature flag; use `VITE_WS_URL`
+- File: frontend/src/components/transcription/RealTimeTranscription.tsx (lines ~173–174)
+    - Find: `ws://localhost:8000/api/v1/realtime-transcription/ws/${sessionId}`
+    - Action: Confirm server endpoint exists; env-drive base URL
+- File: frontend/src/components/collaboration/CollaborativeEditor.tsx (lines ~221–222)
+    - Find: `ws://localhost:8000/api/v1/collaboration/ws`
+    - Action: Confirm server endpoint exists; env-drive
+- File: frontend/src/components/transcription/CollaborativeTranscriptEditor.tsx (lines ~76–77)
+    - Find: `ws://localhost:8000/ws/transcript/...`
+    - Action: Align to supported WS path (if not provided, flag/remove)
+- File: frontend/src/components/distributed/DistributedProcessingMonitor.tsx (line ~214)
+    - Find: `ws://localhost:8000/api/distributed/monitor`
+    - Action: Confirm server endpoint or guard/disable
+- File: frontend/src/components/translation/RealtimeTranslation.tsx (lines ~232–233)
+    - Find: `ws://localhost:8000/api/translation/stream`
+    - Action: Confirm server endpoint; env-drive base
+- Prefix consistency
+    - File: frontend/src/services/api.ts
+    - Find: `/api/analytics/*` (fetch)
+    - Action: Decide standard. If moving to `/api/v1/analytics/*`, plan a sweep and backend
+alias.
+- File: frontend/src/services/cacheService.ts
+    - Find: `/api/v1/transcription/cached/*` (OK)
+- Auth header consistency
+    - Files: frontend/src/services/api.ts (fetch) and frontend/src/hooks/useApi.ts (axios)
+    - Action: Ensure both inject Authorization uniformly (centralize token handling or wrap
+fetch).
+- Uploads (OK)
+    - File: frontend/src/hooks/usePresignedUpload.ts
+    - Uses `/api/v1/uploads/*` already; no change unless backend path changes.
+
+React Native
+
+- Auth path unification
+    - File: mobile/src/services/mobile_auth_service.js (lines ~82, ~107, ~129, ~150)
+    - Find: `/api/auth/login|register|logout|refresh`
+    - Change plan: `/api/v1/auth/*`
+- File: mobile/src/utils/mobile_api_client.js (line ~176)
+    - Find: `fetch(${this.baseURL}/api/auth/refresh`
+    - Change plan: `/api/v1/auth/refresh`
+- Presigned uploads adoption
+    - File: mobile/src/services/apiClient.ts
+    - Find: Direct POST to `/api/v1/transcriptions` with `FormData`
+    - Change plan: Use `/api/v1/uploads/presigned|/multipart` then create transcription
+referencing `file_key`
+- Base URL hygiene
+    - File: mobile/src/utils/mobile_api_client.js
+    - Find: dev base URL logic for iOS/Android/emulator
+    - Action: Document production API URL and configurable host for physical Android devices
+- Hardcoded API calls
+    - File: mobile/src/components/speaker/SpeakerDiarization.tsx (lines ~101, ~137)
+    - Find: `http://localhost:8000/api/...`
+    - Change plan: route via mobile API client/base URL
+Expo App
+
+- Legacy transcription paths
+    - File: mobile_app/src/services/TranscriptionService.js (lines ~85, ~135, ~180, ~246, ~331,
+~354)
+    - Find: `/api/transcribe`, `/api/transcription/{id}`, `/api/transcriptions`, `/api/
+transcription/{id}/export`
+    - Change plan: `/api/v1/transcriptions` CRUD and/or `/api/v1/transcription/cached/*` for
+processing; align export route to actual backend
+- Sync endpoints validity
+    - File: mobile_app/src/services/SyncService.js (lines ~112, ~140, ~156, ~198, ~212, ~279–280)
+    - Find: `/api/sync/*`
+    - Action: Verify server support or map to implemented equivalents (teams/settings/models)
+- Auth scheme alignment
+    - File: mobile_app/src/services/SyncService.js and TranscriptionService.js
+    - Action: Switch to /api/v1/auth/* consistently and ensure token propagation in axios
+instance
+
+Electron
+
+- Queue service URL decision
+    - File: desktop_app/src/renderer/src/screens/ProcessingQueue.tsx (lines ~50, ~65, ~94, ~109,
+~124)
+    - Find: `http://localhost:8001/api/queue/*`, `ws://localhost:8001/api/queue/ws`
+    - Change plan: Use `${process.env.DESKTOP_API_URL || 'http://localhost:8000'}` and
+`${process.env.DESKTOP_WS_URL || 'ws://localhost:8000'}` unless a separate worker (8001) is
+intentional; document either way
+- Centralize API base
+    - File: desktop_app/src/renderer/src/services/apiClient.ts
+    - Action: Ensure a single base URL across modules + Authorization injection
+- Health checks
+    - File: desktop_app/src/main.js (line ~223)
+    - Find: `/api/health`
+    - Action: Align to `/api/v1/health` if standardized (or keep alias)
+
+Environment & Docs
+
+- Env examples
+    - Files: Root .env.example; frontend/.env.example; Electron/desktop .env.example
+    - Add:
+    - `VITE_API_URL`, `VITE_WS_URL`
+    - `DESKTOP_API_URL`, `DESKTOP_WS_URL`
+    - `MOBILE_API_URL` (if centralizing on config)
+- WS matrix doc
+    - File: new WS_ENDPOINTS.md
+    - Action: List supported WS routes, auth requirements, sample connects, and client mapping
+    - Files: docs/adr/NN-api-canonicalization.md, docs/adr/NN-auth-scheme.md
+    - Action: Record decisions for long-term clarity
+
+Observability & Guardrails (Design tasks)
+
+- Cost/latency telemetry for provider calls
+- Quotas/rate limits per user/team for editing/gen tasks
+- Caching policy + result reuse
+- Consent gates + watermarking for edited/generative outputs
+- Audit logs for provider usage
+
+Quick Wins (ready-to-pick)
+
+- Student Toolkit v0 (Web)
+    - Files: frontend/src/components/transcription/*
+    - Action: Add time-coded highlights; generate flashcards/MCQs; CSV/Anki/Notion export
+- Frame OCR → Search (Backend+Web)
+    - Files: new OCR pipeline + frontend/src/api/search.ts
+    - Action: Extract frame text, index, expose filter in UI
+- Caption QC (Web)
+    - Files: new QC utility + panel in transcript/caption editor
+    - Action: Reading speed, overlap, timing checks + report export
+- Provider Hub MVP (Backend+Web)
+    - Files: new provider abstraction (adapters for Replicate/OpenRouter); admin config page
+    - Action: Thumbnails/B‑roll via Replicate; multi-model summaries via OpenRouter; costs logged
+
+If you want, I can convert this into a set of tracker issues per team with copy‑pasteable “Find/
+Change” snippets for each file and a WS endpoints matrix (no code changes, just the tickets).
+user
+ok, but when i give you such a task i want you to keep documenting all of that
+
+thinking
+Establishing documentation protocols
+
+I need to acknowledge the commitment to keeping proper documentation during tasks. I’ll maintain
+running documents like REVIEW_FINDINGS_SUMMARY.md and others. The plan includes updating
+CHANGELOG or TASK_NOTES.md for every change and ensuring that WS_ENDPOINTS.md and ADRs are
+well-maintained under docs/adr. I’ll propose a template for task logging and provide a checklist
+for ongoing documentation. My goal is to keep things concise but clear, adhering to the
+instructions for structured documents.
+
+Drafting documentation protocols
+
+I want to start with an acknowledgment and outline our documentation cadence and artifacts. This
+includes maintaining a running log file for each task, like TASK_LOG.md, and ensuring updates to
+the four existing documents. I’ll add paths for WS_ENDPOINTS.md and ADRs, create a change summary
+snippet template, and establish an issue/PR linking practice. I’ll suggest checkpoints per sprint
+to update docs, and I’ll propose a dedicated /docs structure but won’t create files right now.
+
+
+codex
+Got it. I’ll keep a running paper trail as we work. Here’s how I’ll document going forward,
+without touching code unless you ask.
+
+Documentation Cadence
+
+- Per task: create/update a task log with scope, assumptions, decisions, and outcomes.
+- Per change: record what/why/where; link to affected files and endpoints; note verification.
+- Per decision: add a short ADR entry (problem, options, decision, consequences).
+
+Where I’ll Update
+
+- REVIEW_FINDINGS_SUMMARY.md: running master summary of findings and status.
+- API_INTEGRATION_AUDIT.md: integration matrix and discrepancies across frontends.
+- KIRO_TASKS_GAP_AUDIT.md: gaps/opportunities (kept synced with broader view).
+- MEDIA_PLATFORM_EXPANSION_PLAN.md: non-KIRO roadmap and phases.
+- WS_ENDPOINTS.md (new on request): authoritative WS routes vs. client usage.
+- docs/adr/NN-*.md (on request): concise decision records.
+
+Per-Task Log Template
+- Title: 
+- Context: why we’re doing this
+- Scope: in/out, affected surfaces
+- Plan: steps and owners
+- Findings: what we learned
+- Decisions: chosen options + rationale
+- Actions: changes to make (no code unless approved)
+- Verification: how we’ll test/validate
+- Follow-ups: next tasks, risks
+
+Change Summary Snippet
+
+- What: short description
+- Why: user/system value
+- Files/Endpoints: list
+- Risk/Impact: low/med/high
+- Verification: steps or checks
+- Notes: deprecations, flags, rollout
+
+Checkpoints
+
+- Start: log scope/assumptions.
+- Mid-task: log findings/decisions.
+- End: log outcomes/verification and update the master summary.
+
+If you want, I can also add a /docs structure (task logs, ADRs, WS matrix) and keep everything
+there. Until you say so, I’ll keep updating the existing MDs and provide task logs inline in
+our thread.

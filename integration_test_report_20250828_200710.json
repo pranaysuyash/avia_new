@@ -1,0 +1,380 @@
+{
+  "summary": {
+    "total_tests": 4,
+    "passed_tests": 0,
+    "failed_tests": 4,
+    "error_tests": 0,
+    "success_rate": 0.0,
+    "total_assertions": 18,
+    "passed_assertions": 6,
+    "assertion_success_rate": 33.33333333333333,
+    "total_execution_time": 4.200192,
+    "average_execution_time": 1.050048
+  },
+  "test_results": [
+    {
+      "test_id": "api_gateway_health",
+      "name": "API Gateway Health Check",
+      "integration_type": "api_endpoint",
+      "status": "failed",
+      "execution_time": 0.887349,
+      "start_time": "2025-08-28T20:07:06.743283",
+      "end_time": "2025-08-28T20:07:07.630632",
+      "assertions": [
+        {
+          "assertion_id": "api_gateway_health_status",
+          "description": "HTTP status code validation",
+          "expected": 200,
+          "actual": 503,
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "api_gateway_health_header_content_type",
+          "description": "Header 'Content-Type' validation",
+          "expected": "application/json",
+          "actual": "text/html",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "api_gateway_health_header_x_content_type_options",
+          "description": "Header 'X-Content-Type-Options' validation",
+          "expected": "nosniff",
+          "actual": "Not present",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "api_gateway_health_header_x_frame_options",
+          "description": "Header 'X-Frame-Options' validation",
+          "expected": "DENY",
+          "actual": "Not present",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    },
+    {
+      "test_id": "api_user_creation",
+      "name": "User Creation API",
+      "integration_type": "api_endpoint",
+      "status": "failed",
+      "execution_time": 0.254254,
+      "start_time": "2025-08-28T20:07:07.630714",
+      "end_time": "2025-08-28T20:07:07.884968",
+      "assertions": [
+        {
+          "assertion_id": "api_user_creation_status",
+          "description": "HTTP status code validation",
+          "expected": 200,
+          "actual": 503,
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "api_user_creation_header_content_type",
+          "description": "Header 'Content-Type' validation",
+          "expected": "application/json",
+          "actual": "text/html",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "api_user_creation_header_x_content_type_options",
+          "description": "Header 'X-Content-Type-Options' validation",
+          "expected": "nosniff",
+          "actual": "Not present",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "api_user_creation_header_x_frame_options",
+          "description": "Header 'X-Frame-Options' validation",
+          "expected": "DENY",
+          "actual": "Not present",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    },
+    {
+      "test_id": "auth_data_integration",
+      "name": "Authentication-Data Service Integration",
+      "integration_type": "service_integration",
+      "status": "failed",
+      "execution_time": 3.057982,
+      "start_time": "2025-08-28T20:07:07.885096",
+      "end_time": "2025-08-28T20:07:10.943078",
+      "assertions": [
+        {
+          "assertion_id": "auth_data_integration_dep_auth_service",
+          "description": "Dependency 'auth_service' availability",
+          "expected": "Available",
+          "actual": "Unavailable",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": "Required dependency 'auth_service' is unavailable",
+      "response_data": null
+    },
+    {
+      "test_id": "database_operations",
+      "name": "Database Operations Test",
+      "integration_type": "database_integration",
+      "status": "failed",
+      "execution_time": 0.000607,
+      "start_time": "2025-08-28T20:07:10.943225",
+      "end_time": "2025-08-28T20:07:10.943832",
+      "assertions": [
+        {
+          "assertion_id": "database_operations_db_connection",
+          "description": "Database connection test",
+          "expected": "Connection successful",
+          "actual": "Connection successful",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_crud_insert",
+          "description": "Database INSERT operation",
+          "expected": "Successful insert",
+          "actual": "Successful insert",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_crud_select",
+          "description": "Database SELECT operation",
+          "expected": "User record found",
+          "actual": "User record found",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_crud_update",
+          "description": "Database UPDATE operation",
+          "expected": "Successful update",
+          "actual": "Successful update",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_crud_delete",
+          "description": "Database DELETE operation",
+          "expected": "Successful delete",
+          "actual": "Successful delete",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_transaction_rollback",
+          "description": "Transaction rollback test",
+          "expected": "Successful rollback",
+          "actual": "Error: cannot start a transaction within a transaction",
+          "status": "failed",
+          "error_message": "cannot start a transaction within a transaction",
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_transaction_commit",
+          "description": "Transaction commit test",
+          "expected": "Successful commit",
+          "actual": "Error: cannot start a transaction within a transaction",
+          "status": "failed",
+          "error_message": "cannot start a transaction within a transaction",
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_fk_valid",
+          "description": "Valid foreign key constraint",
+          "expected": "Successful insert with valid FK",
+          "actual": "Successful insert with valid FK",
+          "status": "passed",
+          "error_message": null,
+          "execution_time": 0.0
+        },
+        {
+          "assertion_id": "database_operations_fk_invalid",
+          "description": "Invalid foreign key constraint",
+          "expected": "Insert should fail with invalid FK",
+          "actual": "Insert succeeded with invalid FK",
+          "status": "failed",
+          "error_message": null,
+          "execution_time": 0.0
+        }
+      ],
+      "error_details": null,
+      "response_data": null
+    }
+  ],
+  "failure_analysis": {
+    "failure_patterns": {
+      "api_endpoint": [
+        {
+          "test_id": "api_gateway_health",
+          "error_details": null,
+          "failed_assertions": [
+            {
+              "assertion_id": "api_gateway_health_status",
+              "description": "HTTP status code validation",
+              "expected": 200,
+              "actual": 503,
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "api_gateway_health_header_content_type",
+              "description": "Header 'Content-Type' validation",
+              "expected": "application/json",
+              "actual": "text/html",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "api_gateway_health_header_x_content_type_options",
+              "description": "Header 'X-Content-Type-Options' validation",
+              "expected": "nosniff",
+              "actual": "Not present",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "api_gateway_health_header_x_frame_options",
+              "description": "Header 'X-Frame-Options' validation",
+              "expected": "DENY",
+              "actual": "Not present",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        },
+        {
+          "test_id": "api_user_creation",
+          "error_details": null,
+          "failed_assertions": [
+            {
+              "assertion_id": "api_user_creation_status",
+              "description": "HTTP status code validation",
+              "expected": 200,
+              "actual": 503,
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "api_user_creation_header_content_type",
+              "description": "Header 'Content-Type' validation",
+              "expected": "application/json",
+              "actual": "text/html",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "api_user_creation_header_x_content_type_options",
+              "description": "Header 'X-Content-Type-Options' validation",
+              "expected": "nosniff",
+              "actual": "Not present",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "api_user_creation_header_x_frame_options",
+              "description": "Header 'X-Frame-Options' validation",
+              "expected": "DENY",
+              "actual": "Not present",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        }
+      ],
+      "service_integration": [
+        {
+          "test_id": "auth_data_integration",
+          "error_details": "Required dependency 'auth_service' is unavailable",
+          "failed_assertions": [
+            {
+              "assertion_id": "auth_data_integration_dep_auth_service",
+              "description": "Dependency 'auth_service' availability",
+              "expected": "Available",
+              "actual": "Unavailable",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        }
+      ],
+      "database_integration": [
+        {
+          "test_id": "database_operations",
+          "error_details": null,
+          "failed_assertions": [
+            {
+              "assertion_id": "database_operations_transaction_rollback",
+              "description": "Transaction rollback test",
+              "expected": "Successful rollback",
+              "actual": "Error: cannot start a transaction within a transaction",
+              "status": "failed",
+              "error_message": "cannot start a transaction within a transaction",
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "database_operations_transaction_commit",
+              "description": "Transaction commit test",
+              "expected": "Successful commit",
+              "actual": "Error: cannot start a transaction within a transaction",
+              "status": "failed",
+              "error_message": "cannot start a transaction within a transaction",
+              "execution_time": 0.0
+            },
+            {
+              "assertion_id": "database_operations_fk_invalid",
+              "description": "Invalid foreign key constraint",
+              "expected": "Insert should fail with invalid FK",
+              "actual": "Insert succeeded with invalid FK",
+              "status": "failed",
+              "error_message": null,
+              "execution_time": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    "error_categories": {
+      "other": 1
+    },
+    "recommendations": [
+      "Review API endpoint implementations and response formats",
+      "Check database schema and constraint configurations"
+    ]
+  },
+  "generated_at": "2025-08-28T20:07:10.944688"
+}

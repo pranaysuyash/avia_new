@@ -1,0 +1,29 @@
+{
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 1,
+    "failed_tests": 4,
+    "error_tests": 0,
+    "success_rate": 20.0,
+    "total_assertions": 15,
+    "passed_assertions": 11,
+    "assertion_success_rate": 73.33333333333333,
+    "total_execution_time": 10.5,
+    "average_execution_time": 2.1
+  },
+  "test_results": [
+    {
+      "test_id": "test_0",
+      "name": "Sample Test 1",
+      "integration_type": "api_endpoint",
+      "status": "failed",
+      "execution_time": 1.5,
+      "start_time": "2025-08-28T16:10:48.750155",
+      "end_time": "2025-08-28T16:10:48.750156",
+      "assertions": [
+        {
+          "assertion_id": "test_0_assertion_0",
+          "description": "Assertion 1",
+          "expected": "Expected value",
+          "actual": "Different value",
+          "status": 
