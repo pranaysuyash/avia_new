@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ClockIcon, CheckCircleIcon, XCircleIcon, PlayIcon, PauseIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { logUxEvent } from '../services/uxTelemetry';
 
 interface QueueItem {
   id: string;
@@ -176,11 +177,20 @@ const ProcessingQueue: React.FC = () => {
             Monitor your transcription processing status
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_processing_queue_view', { href }); } catch {} }}
+            className="px-3 py-2 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+            title="Copy shareable link"
+          >
+            Share
+          </button>
+          <div className="flex items-center space-x-2">
           <div className={`h-3 w-3 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           <span className="text-sm text-gray-500">
             {wsConnected ? 'Live Updates' : 'Disconnected'}
           </span>
+          </div>
         </div>
       </div>
 

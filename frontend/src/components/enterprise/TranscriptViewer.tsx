@@ -473,6 +473,21 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={async () => {
+              try {
+                const u = new URL(window.location.href);
+                await navigator.clipboard.writeText(u.toString());
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const { logUxEvent } = require('../../../components/shared/uxTelemetry');
+                try { logUxEvent('share_view_copied', { page: 'transcript_viewer' }); } catch {}
+              } catch {}
+            }}
+          >
+            Share
+          </Button>
           {enableCollaboration && (
             <AvatarGroup max={4} sx={{ mr: 2 }}>
               {collaborators?.map((user: any) => (

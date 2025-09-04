@@ -57,7 +57,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 - ✅ Moved insights functionality from `elif enable_content_insights:` block
 - ✅ Integrated visual search and analytics features
 
-### Phase 4: Cleaned Up app_refactored.py ✅
+### Phase 4: Cleaned Up app.py ✅
 
 **Removed CSS Hack:**
 - ✅ No "EMERGENCY TEXT VISIBILITY FIX" in refactored version
@@ -315,7 +315,7 @@ def render_admin_and_settings_tab():
 - ✅ **Phase 1**: Established new tab-based navigation
 - ✅ **Phase 2**: Refactored and simplified sidebar
 - ✅ **Phase 3**: Created combined interface functions
-- ✅ **Phase 4**: Cleaned up app_refactored.py
+- ✅ **Phase 4**: Cleaned up app.py
 
 ### Additional Value Added
 - ✅ Comprehensive error handling and graceful degradation

@@ -14,6 +14,9 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Share } from 'react-native';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
 
 const { width } = Dimensions.get('window');
 
@@ -181,6 +184,13 @@ Plan: Advance diet, PT, discharge planning`
       <View style={styles.header}>
         <Icon name="local-hospital" size={32} color="#1976d2" />
         <Text style={styles.title}>HIPAA Medical Transcription</Text>
+        <TouchableOpacity
+          accessibilityLabel="Share medical transcription view"
+          onPress={async () => { const url = buildLink('medical'); try { await Share.share({ message: url }); await logUxEvent('share_medical_transcription_view', { url }); } catch (_) {} }}
+          style={{ marginLeft: 'auto' }}
+        >
+          <Icon name="ios-share" size={20} color="#1976d2" />
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.subtitle}>

@@ -1235,3 +1235,353 @@ testing with golden videos. Let's move forward!
 codex
 I’ll document the Frame OCR plan: add a task log, an ADR decision, and a detailed design/spec. No
 code changes.
+
+user
+review the files in this path based on your quick win doc
+me see what files are available and what I need to focus on next. It’s
+a straightforward task, but I want to make sure everything is in order!
+Let's get to it!
+
+codex
+I’ll scan the specified folder to see what exists, then map it against
+the Frame OCR design we documented.
+
+✓ Completed
+  └ 📂 frame-ocr-indexing-system
+    ⌨️ echo MISSING
+    🔎 . in frame-ocr-indexing-system
+
+Organizing project documents
+
+I see that we have design.md, requirements.md, and tasks.md to work with. I need to map these
+against our FRAME_OCR_INDEXING_DESIGN.md and the task log. I think the next step is to read
+through parts of design.md and tasks.md to make comparisons. This will help ensure everything
+aligns correctly, and we'll be on track with the project's goals. Keeping everything organized
+is key!
+
+
+thinking
+Structuring response on API alignment
+
+I'm working on a structured response focusing on alignment and divergences. For alignment, I
+need to highlight areas like batch frame extraction, OCR, indexing, APIs, UI, metrics, and job
+management.
+
+For the divergences, it's essential to note how the API prefix and routes differ; for
+instance, .kiro uses /api/frame-ocr/*, while our plan specifies /api/v1/ocr/... and integrates
+search through a source filter. I'll make sure this all comes together clearly.
+
+Summarizing API proposal and risks
+
+I'm suggesting we either adopt the /api/v1/frame-ocr or create an alias. For search
+integration, .kiro suggests extending the index, but we propose a simpler v1 table. Our initial
+engine would be Tesseract instead of EasyOCR.
+
+For sampling, we’re focusing on intervals only, and our v1 will have minimal telemetry compared
+to .kiro's heavy monitoring. I need to mention the risk of over-scoping for a quick win and
+suggest trimming the requirements to essentials for a more streamlined approach.
+
+
+codex
+Here’s a focused review of .kiro/specs/frame-ocr-indexing-system against our Frame OCR quick-win
+spec, highlighting alignments, divergences, and a trimmed v1 you can execute without scope creep.
+
+What’s There (Good Alignment)
+
+- Batch pipeline architecture: frame extraction → OCR → normalization → index → search → API →
+UI (design.md).
+- Sampling strategies: interval/keyframe/scene-change supported (design.md).
+- OCR engines + preprocessing: Tesseract/EasyOCR with OpenCV (design.md).
+- Job management: lifecycle, retries, throttling, metrics (design.md, tasks.md).
+- Data model: jobs + results with timecodes, confidence, optional bounding boxes; indices
+(design.md).
+- Search integration: source tagging, unified results, filtering, relevance scoring (design.md).
+- API surface: job create/status/cancel/retry; result fetch; search filter; config/metrics
+(design.md).
+- Requirements: accuracy, timecode precision, multi-language, batch controls, cost/latency,
+retention, QA flows (requirements.md).
+- Tasks: comprehensive plan from schema → services → APIs → UI → QA → compliance → perf/
+monitoring (tasks.md).
+
+Where It Diverges From the Quick-Win Spec
+
+- API prefix and route shape
+    - .kiro: unversioned, /api/frame-ocr/jobs, /api/frame-ocr/results/..., GET /api/search?
+source=ocr.
+    - Quick-win: versioned minimal surface under /api/v1/ocr/...:
+    - `POST /api/v1/ocr/index/{media_id}`
+    - `GET /api/v1/ocr/index/{job_id}/status`
+    - `GET /api/v1/ocr/results?media_id=&q=...`
+    - Optional: extend existing `/api/v1/search` with `source=ocr`.
+- Recommendation: adopt /api/v1 for client-facing endpoints; keep /api/frame-ocr/* only if
+aliased.
+Recommendation: adopt /api/v1 for client-facing endpoints; keep /api/frame-ocr/* only if aliased.
+- 
+Scope for v1
+    - .kiro includes scene-change detection, EasyOCR engine multiplexing, bbox storage, timeline
+viz, manual review queues, RBAC/SSO/GDPR, rich dashboards.
+    - Quick-win keeps v1 lean: interval sampling (1s) + caps; Tesseract-only; no bbox; simple
+substring search on hits table; basic list UI with time-jump; minimal telemetry.
+    - Recommendation: postpone scene-change, EasyOCR switching, bbox, timeline viz, review
+queues, RBAC/SSO/GDPR to v2+.
+- 
+Indexing strategy
+    - .kiro: full search index extension with source-tagging and fulltext index from day one.
+    - Quick-win: start with direct ocr_hits queries (ILIKE/trigram), then unify in search facade.
+    - Recommendation: use hits-table query in v1; add full index integration after proving value.
+- 
+Monitoring and cost management
+    - .kiro: full dashboards/alerting; GPU options; resource scheduling.
+    - Quick-win: basic metrics (frames processed, P50/P95 latency), caps/throttles; cost estimate
+logging.
+    - Recommendation: keep v1 observability minimal; evolve later.
+
+Concrete V1 Subset (Trimmed from .kiro)
+
+- Requirements to target now
+    - Req 1: 1.1 (interval/keys) → implement interval only; 1.2 (OCR accuracy goal), 1.3
+(normalize + confidence), 1.4 (±0.5s timecode), 1.5 (time-jump results).
+    - Req 2: 2.1 (batch jobs + status), 2.2 (throttle/caps), 2.4 (retry).
+    - Req 3: 3.1 (sampling strategies) → interval only; 3.2 (preprocessing), 3.3 (frame/time
+caps).
+    - Req 4: 4.1–4.3 (job create/status/results minimal).
+    - Req 5: 5.1–5.2 (UI display + time-jump).
+- Design choices (align with FRAME_OCR_INDEXING_DESIGN.md)
+    - API (v1): /api/v1/ocr/index/{media_id}, /api/v1/ocr/index/{job_id}/status, /api/v1/ocr/
+results?media_id=&q=...
+    - Data model: ocr_jobs, ocr_hits (no bbox initially). Fields: media_id, t_start/t_end, text,
+confidence, lang.
+    - Sampling: interval=1s default, max_frames cap per media (e.g., 5,000).
+    - Preprocessing: grayscale + adaptive threshold; optional ROI (bottom third) deferred to v2.
+    - UI: search tab “OCR” or filter; show snippet + timecode; seek on click.
+    - Observability: simple counters + duration; log cost estimates; feature flag toggle.
+    - Verification: golden video target >80% text hit; time-jump ±0.5s; load test with caps.
+    - Observability: simple counters + duration; log cost estimates; feature flag toggle.
+    - Verification: golden video target >80% text hit; time-jump ±0.5s; load test with caps.
+- 
+Tasks to prioritize (from tasks.md)
+    - 
+        1. Core data models and schema (jobs + hits) — minimal fields.
+    - 
+        2. Frame extraction service — implement interval sampling + validation.
+    - 
+        3. OCR processing engine — Tesseract + preprocessing; confidence normalization;
+single-language first.
+    - 
+        4. Job management — async queue + progress + retries + caps.
+    - 
+        5. REST endpoints — minimal set per above; omit config/metrics endpoints in v1 if needed.
+    - 
+        6. Search integration — v1 direct hits query + source=ocr filter in facade (optional).
+    - 
+        7. Web UI components — results list + time-jump; minimal job view for status (admin-only
+optional).
+       10. Monitoring — minimal metrics (no dashboards in v1).
+    - 
+       11. Testing — unit tests for sampler/OCR/manager; one e2e pipeline; golden video check.
+- 
+Tasks to defer (v2+)
+    - Scene-change/keyframe sampling; engine multiplexing (EasyOCR fallback).
+    - Bounding boxes and timeline density visualization.
+    - Manual review queues and corrections feedback loop.
+    - Full RBAC/SSO/GDPR, deep audit and compliance reports.
+    - Rich dashboards/alerting, GPU acceleration, resource scheduling.
+    - Enterprise-grade retention policies.
+
+Naming and Routing Consistency
+
+- Prefer /api/v1/ocr/... for job management/results to align with existing /api/v1 public routes.
+- When integrating with existing search, add a source=ocr parameter; keep OCR queries optional to
+not disrupt current UX.
+
+Acceptance and Metrics (v1)
+
+- Functionality: create job, track status, fetch hits, search by text, click to jump.
+- Accuracy: >80% on golden set; timecode ±0.5s.
+- Performance: P95 job latency targets documented; caps enforced; errors retried.
+- Safety: feature flag; logs include frames processed and basic cost estimates.
+
+If you want, I can produce a “v1 execution check-list” markdown next to the .kiro spec that
+selects the exact bullets from requirements/tasks to implement now and marks the rest as v2+,
+plus the API route diff mapping to /api/v1/ocr/*.
+
+user
+i would consider kiro to think long term and not mvp etc. so analyse based on that
+
+thinking
+Creating Documented Analysis
+
+I'm tasked with providing a scoring and ranking framework for search results, focusing on several
+technical aspects, but the user wants a more analytical, documentation-style response instead
+of code.
+
+So, I’ll organize my findings into a structured analysis with sections highlighting strengths,
+gaps, architectural recommendations, and more.
+
+It’s important to maintain clarity while addressing long-term goals, and to follow the formatting
+guidelines with bold headers and bullet points for keywords. Achieving conciseness and substance
+is key!
+
+I need to keep my response concise, ideally under 50-100 lines. The user appreciates markdown
+files from previous interactions, but they didn’t specifically request one now. Instead, they
+want an analysis based on the provided information. So, I think it's better to share my analysis
+directly within the message instead of offering to write a file. If they want an updated document
+later, I can propose that as an option. Let's move forward with the analysis!
+
+
+codex
+Here’s a long‑term (beyond MVP) analysis of the Frame OCR Indexing spec under .kiro/specs/
+frame-ocr-indexing-system, focused on completeness, scalability, and enterprise alignment.
+
+What’s Strong
+
+- Architecture: Batch pipeline with clear stages (extraction → OCR → normalization → index → API
+→ UI) and job lifecycle/metrics.
+- Requirements: Accuracy, timecode precision, multi-language, batching, throttling,
+configurability, search integration, QA, compliance.
+- Design depth: Sampling strategies (interval/keyframe/scene-change), preprocessing, confidence
+scoring, results schema (incl. optional bboxes), search source-tagging, error categories, testing
+strategy, performance and cost considerations.
+
+Key Long‑Term Enhancements
+
+- Detection/Recognition Separation
+    - Text detection: add dedicated detectors (EAST/CRAFT/DBNet/PaddleOCR) with perspective
+correction; handle curved/skewed text.
+    - Recognition: consider transformer-based OCR (TrOCR, Donut, PaddleOCR CRNN) for
+multilingual/complex scripts.
+    - Value: higher accuracy across broadcast graphics, stylized fonts, and non-Latin scripts.
+    - Value: higher accuracy across broadcast graphics, stylized fonts, and non-Latin scripts.
+- 
+Temporal Association & De‑duplication
+    - Track identical/near-identical text across frames; collapse into segments with start/end
+time and stability scores.
+    - Add tracking IDs for online/offline consolidation; reduce storage and noise; improve search
+ranking.
+- 
+Region Semantics (Visual Heuristics)
+    - Classify regions (lower-thirds, bugs/watermarks, banners, titles) using position + detector
+output + heuristic/learned models.
+    - Weight search/ranking by region importance and visual prominence (size/contrast/position).
+- 
+Multilingual & Script Support
+    - Auto language/script detection per region, not only per frame; mixed-language support in
+the same frame.
+    - Model routing by language; OCR engine fallback chain per script.
+- 
+Near‑Real‑Time & Live Workflows
+    - Low-latency path for live streams (RTMP/HLS/DASH) with throttled sampling; publish WS
+events for OCR hits.
+    - Integrate with clipping/highlights and SSAI metadata for ad-safety and compliance.
+- 
+Human‑In‑The‑Loop QA (At Scale)
+    - Review queues for low-confidence or high-value segments; UI to correct text with bounding
+box context.
+    - Active learning loops: use corrections to re-weight recognition models or retrain
+lightweight labelers.
+    - Quality analytics over time; per‑customer thresholds and SLAs.
+- 
+Indexing & Retrieval Beyond Substring
+    - Semantic indexing: embed OCR snippets; enable fuzzy/semantic search (BM25 + embeddings).
+    - Entity extraction + linking: names/orgs/products from OCR → link to transcripts, knowledge
+graph, and provider catalogs.
+    - Cross‑modal retrieval: queries that combine OCR + transcript + visual labels within a
+temporal window.
+- 
+Data Lineage & Reproducibility
+    - Store model/engine versions, parameters, preprocessing configs, sampling strategy per job.
+    - Deterministic reprocessing; auditability for compliance and regression testing.
+- 
+Storage & Lifecycle Strategy
+    - Compression/deduplication of OCR hits; summarize repeated banners; TTL per policy.
+    - Archive/restore flows (tiered storage) for large libraries; partial indexes for hot
+segments.
+- 
+Cost, Quotas, and FinOps
+    - Per-tenant budgets; per-asset cost estimates; preflight “cost simulation” based on duration
+and sampling config.
+    - Dynamic throttles, off-peak scheduling; cost dashboards; showback/chargeback.
+- 
+Security & Compliance Depth
+    - PII/PHI detection in OCR text with policy-based redaction; consent checks before processing
+sensitive content.
+    - Immutable audit logs for processing; GDPR deletion/portability on derived OCR outputs.
+    - Tenant isolation in compute/queue; RBAC across jobs/results; SSO/SCIM provisioning.
+- 
+Provider & Model Abstraction
+    - Plug provider OCRs (Google Vision, AWS Textract, Azure OCR) alongside open-source stack;
+policy‑driven routing (accuracy, cost, latency).
+    - Evaluate crowd-sourced QA or external verification when confidence critical.
+- 
+Observability & SLOs
+    - SLIs/SLOs: accuracy bands, latency (job P50/P95), failure rates, index freshness, dedupe
+ratio.
+    - Canary processing for new models/params; rollback if regressions detected.
+
+API & Contracts (Enterprise-Ready)
+
+- Versioning & Contracts
+    - Standardize under /api/v1/ocr/*; add OpenAPI/GraphQL exposure for integrations; include
+rate limiting headers.
+    - Webhooks for job status and new hits (opt-in); pagination standards; filters (confidence,
+region, language, time range).
+    - Webhooks for job status and new hits (opt-in); pagination standards; filters (confidence,
+region, language, time range).
+- 
+Search Integration
+    - Unified search facade that merges transcript + OCR + visual labels; source attribution
+and toggles.
+    - Ranking signals: confidence, region weight, repetition (downweight bug/watermark), temporal
+closeness to other cues (e.g., speaker names).
+
+UI/UX Roadmap
+
+- Timeline visualization: OCR density, labeled key regions; compare with transcript density.
+- Player overlays: highlight detected text region; hover to copy, report incorrect, request
+redaction.
+- Admin dashboards: job performance, cost, accuracy trends; top failing segments; language/script
+distribution.
+- Review tooling: bulk correction, keyboard workflows, diff view between model versions.
+
+Scalability & Deployment
+
+- Horizontal workers with distributed queues (e.g., Celery/RQ/SQS/Kafka); partition by tenant/
+library; backpressure control.
+- GPU/accelerator options for detection models; autoscaling; node affinity for GPU pools.
+- Model registries and feature stores for consistent deployments across environments.
+
+Testing & Evaluation
+
+- Golden datasets with diverse broadcast graphics, languages, and motion blur; periodic re‑evals
+by model/param versions.
+- Synthetic tests for edge cases (low contrast, perspective skew); confidence calibration curves
+(ECE).
+
+Integration With Broader Platform
+
+- Tie into Live/SSAI, Rights/Licensing (detect embargo/warnings in frames), Accessibility (derive
+captions from burned‑in), Moderation/Safety (red flags in banners), Education (auto lecture
+- Analytics: OCR coverage per library, new discoverable content found, engagement uplift from
+OCR-driven search.
+
+Long‑Term Risks & Mitigations
+
+- Accuracy variability across templates → template-specific detection; domain adapters per
+customer vertical.
+- Cost blowups on large libraries → strong quotas, tiering, preflight cost simulations, policy
+scheduling.
+- Model drift/regressions → canaries, regression dashboards, rollbacks, version pinning.
+
+Recommended Long‑Term Additions To The Spec
+
+- Add a “Text Detection” section decoupled from recognition; list supported detectors and
+perspective correction.
+- Introduce “Temporal Consolidation” for segments and de‑duplication with explicit schema
+(text_segment with t_start/t_end and stability).
+- Expand “Provider Abstraction & Routing” for cloud OCRs and policy routing.
+- Formalize “Data Lineage & Model Versioning” and “FinOps & Quotas” as first‑class requirements.
+- Define “SLIs/SLOs & Canary Strategy” for safe iteration.
+- Extend “Privacy & Compliance” with per-tenant consent policies and redaction hooks
+pre‑indexing.
+- Enrich “Search Ranking Strategy” with region weights, repetition penalties, and cross‑modal
+signals.

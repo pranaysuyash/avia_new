@@ -1,0 +1,50 @@
+[
+  {
+    "id": "tpl_qc_pack_v1",
+    "name": "QC Pack — Broadcast Basics",
+    "description": "Run flash/black/PSE and loudness checks, then export a consolidated QC report.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/qc_pack.png"
+  },
+  {
+    "id": "tpl_creator_pack_v1",
+    "name": "Creator Publish Pack — Shorts/Reels",
+    "description": "Generate titles/hashtags, thumbnails and B‑roll; burn-in captions; export platform-ready assets.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/creator_pack.png"
+  },
+  {
+    "id": "tpl_edu_lecture_v1",
+    "name": "Education — Lecture to Study Pack",
+    "description": "Produce chapters and study packs (flashcards/quizzes) from lectures; export to Anki/Notion.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/education_pack.png"
+  },
+  {
+    "id": "tpl_legal_ediscovery_v1",
+    "name": "Legal — eDiscovery Production Pack",
+    "description": "ASR+OCR with privilege detection and redaction; Bates stamp and export productions.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/legal_pack.png"
+  },
+  {
+    "id": "tpl_live_highlights_v1",
+    "name": "Live/SSAI — Highlights & Metadata Pack",
+    "description": "Detect live highlights, generate clips, publish SSAI metadata and real-time events.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/live_pack.png"
+  },
+  {
+    "id": "tpl_medical_intake_v1",
+    "name": "Medical Intake Pack — Forms to FHIR",
+    "description": "Classify forms, OCR printed/handwriting, validate rules, export JSON/CSV/FHIR.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/medical_pack.png"
+  },
+  {
+    "id": "tpl_invoice_ap_v1",
+    "name": "Invoice AP Pack — Header + Lines",
+    "description": "OCR invoices/receipts, extract header and lines, validate, export to AP.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/invoice_pack.png"
+  },
+  {
+    "id": "tpl_id_parse_v1",
+    "name": "ID Parse Pack — MRZ/PDF417",
+    "description": "Detect/alig­n ID card, decode MRZ/PDF417, OCR fields, fraud checks, export.",
+    "thumbnail": "docs/specs/pipeline-template-builder/examples/thumbnails/id_pack.png"
+  }
+]

@@ -10,6 +10,14 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta, date
 import json
 import numpy as np
+from streamlit_intent_utils import (
+    render_share_inline,
+    render_share_block,
+    log_ux_event,
+    get_params,
+    update_params,
+    render_skeleton_list,
+)
 
 # Page configuration
 st.set_page_config(
@@ -92,10 +100,29 @@ if 'churn_predictions' not in st.session_state:
 
 # Header
 st.markdown('<h1 class="main-header">📊 Business Intelligence & ROI Dashboard</h1>', unsafe_allow_html=True)
+try:
+    render_share_inline("Shareable view link")
+except Exception:
+    pass
 
 # Sidebar
 with st.sidebar:
     st.header("📅 Time Period")
+    # Share + reset controls
+    try:
+        render_share_block("Share BI Dashboard View")
+    except Exception:
+        pass
+    if st.button("Reset View/Filters"):
+        try:
+            st.experimental_set_query_params()
+        except Exception:
+            pass
+        try:
+            log_ux_event("st_filters_cleared", {"scope": "business_intelligence"})
+        except Exception:
+            pass
+        st.rerun()
     
     period_options = {
         "Last 7 days": 7,
@@ -104,22 +131,57 @@ with st.sidebar:
         "Last 365 days": 365,
         "Custom": 0
     }
-    
-    selected_period_text = st.selectbox("Select Period", list(period_options.keys()))
-    
+    # Deep-link period selection
+    params = get_params()
+    qp_period = params.get('bi_period')
+    options = list(period_options.keys())
+    idx = options.index(qp_period) if qp_period in options else 1
+    selected_period_text = st.selectbox("Select Period", options, index=idx)
+
     if selected_period_text == "Custom":
         col1, col2 = st.columns(2)
         with col1:
-            start_date = st.date_input("Start Date", value=date.today() - timedelta(days=30))
+            start_default = params.get('bi_start')
+            start_date = st.date_input(
+                "Start Date",
+                value=(date.fromisoformat(start_default) if start_default else date.today() - timedelta(days=30))
+            )
         with col2:
-            end_date = st.date_input("End Date", value=date.today())
+            end_default = params.get('bi_end')
+            end_date = st.date_input(
+                "End Date",
+                value=(date.fromisoformat(end_default) if end_default else date.today())
+            )
     else:
         days = period_options[selected_period_text]
         end_date = date.today()
         start_date = end_date - timedelta(days=days)
+
+    # Sync to URL
+    try:
+        update_params({
+            'bi_period': selected_period_text,
+            'bi_start': start_date.isoformat() if selected_period_text == 'Custom' else None,
+            'bi_end': end_date.isoformat() if selected_period_text == 'Custom' else None,
+        })
+    except Exception:
+        pass
     
     st.markdown("---")
-    
+    # Quick section selector synced to bi_tab
+    _labels = {k: v for k, v in _tab_map}
+    _keys = [k for k, _ in _tab_map]
+    _sel_idx = _keys.index(_current) if _current in _keys else 0
+    _sel = st.selectbox("Section", options=_keys, index=_sel_idx, format_func=lambda k: _labels[k])
+    if _sel != _current:
+        try:
+            update_params({'bi_tab': _sel})
+        except Exception:
+            pass
+        st.experimental_rerun()
+
+    st.markdown("---")
+
     st.header("🎯 Quick Actions")
     if st.button("📈 Generate Forecast"):
         st.session_state.generate_forecast = True
@@ -131,9 +193,21 @@ with st.sidebar:
         st.info("Generating comprehensive report...")
 
 # Main dashboard tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Executive Overview", "Revenue & ROI", "User Analytics", "Predictions", "Opportunities"])
+# Deep-linked tabs via bi_tab (exec|revenue|users|pred|ops)
+_tab_map = [
+    ("exec", "Executive Overview"),
+    ("revenue", "Revenue & ROI"),
+    ("users", "User Analytics"),
+    ("pred", "Predictions"),
+    ("ops", "Opportunities"),
+]
+_current = get_params().get('bi_tab', 'exec')
+_ordered = [x for x in _tab_map if x[0] == _current] + [x for x in _tab_map if x[0] != _current]
+_labels = [label for _, label in _ordered]
+_tabs = st.tabs(_labels)
+_key_to_tab = {k: _tabs[i] for i, (k, _) in enumerate(_ordered)}
 
-with tab1:
+with _key_to_tab["exec"]:
     st.header("🎯 Executive Overview")
     
     # Mock data for demonstration
@@ -240,7 +314,12 @@ with tab1:
     
     with col1:
         st.subheader("📈 Revenue Trend")
-        
+        sph = st.container()
+        with sph:
+            try:
+                render_skeleton_list(items=2)
+            except Exception:
+                pass
         # Generate sample data
         dates = pd.date_range(start=start_date, end=end_date, freq='D')
         revenue_data = pd.DataFrame({
@@ -254,10 +333,16 @@ with tab1:
         fig.update_traces(line_color='#3b82f6', line_width=3)
         fig.update_layout(showlegend=False, height=300)
         st.plotly_chart(fig, use_container_width=True)
+        sph.empty()
     
     with col2:
         st.subheader("👥 User Growth")
-        
+        sph2 = st.container()
+        with sph2:
+            try:
+                render_skeleton_list(items=2)
+            except Exception:
+                pass
         user_data = pd.DataFrame({
             'Date': dates,
             'Users': np.cumsum(np.random.poisson(5, len(dates))) + 1000
@@ -268,8 +353,9 @@ with tab1:
         fig.update_traces(fillcolor='rgba(139, 92, 246, 0.3)', line_color='#8b5cf6')
         fig.update_layout(showlegend=False, height=300)
         st.plotly_chart(fig, use_container_width=True)
+        sph2.empty()
 
-with tab2:
+with _key_to_tab["revenue"]:
     st.header("💰 Revenue & ROI Analysis")
     
     # ROI Calculator
@@ -330,20 +416,34 @@ with tab2:
     col1, col2 = st.columns(2)
     
     with col1:
+        sph3 = st.container()
+        with sph3:
+            try:
+                render_skeleton_list(items=2)
+            except Exception:
+                pass
         fig = px.pie(revenue_breakdown, values='Amount', names='Source',
                     title="Revenue by Source",
                     color_discrete_sequence=px.colors.qualitative.Set3)
         fig.update_traces(textposition='inside', textinfo='percent+label')
         st.plotly_chart(fig, use_container_width=True)
+        sph3.empty()
     
     with col2:
+        sph4 = st.container()
+        with sph4:
+            try:
+                render_skeleton_list(items=2)
+            except Exception:
+                pass
         fig = px.bar(revenue_breakdown, x='Source', y='Amount',
                     title="Revenue Comparison",
                     color='Amount',
                     color_continuous_scale='Blues')
         st.plotly_chart(fig, use_container_width=True)
+        sph4.empty()
 
-with tab3:
+with _key_to_tab["users"]:
     st.header("👥 User Analytics")
     
     # User segments
@@ -359,18 +459,32 @@ with tab3:
     col1, col2 = st.columns(2)
     
     with col1:
+        sph5 = st.container()
+        with sph5:
+            try:
+                render_skeleton_list(items=2)
+            except Exception:
+                pass
         fig = px.funnel(segments, y='Segment', x='Count',
                        title="User Funnel",
                        color='Count',
                        color_discrete_sequence=px.colors.sequential.Blues)
         st.plotly_chart(fig, use_container_width=True)
+        sph5.empty()
     
     with col2:
+        sph6 = st.container()
+        with sph6:
+            try:
+                render_skeleton_list(items=2)
+            except Exception:
+                pass
         fig = px.scatter(segments, x='Count', y='Revenue',
                         size='Avg_LTV', color='Segment',
                         title="Segment Value Analysis",
                         hover_data=['Avg_LTV'])
         st.plotly_chart(fig, use_container_width=True)
+        sph6.empty()
     
     # Cohort analysis
     st.subheader("📅 Cohort Retention")
@@ -386,6 +500,12 @@ with tab3:
         'Month 5': [52, None, None, None]
     })
     
+    sph7 = st.container()
+    with sph7:
+        try:
+            render_skeleton_list(items=2)
+        except Exception:
+            pass
     fig = go.Figure()
     
     for col in cohorts.columns[1:]:
@@ -404,6 +524,7 @@ with tab3:
         hovermode='x unified'
     )
     st.plotly_chart(fig, use_container_width=True)
+    sph7.empty()
     
     # User activity heatmap
     st.subheader("🔥 User Activity Heatmap")
@@ -413,6 +534,12 @@ with tab3:
     days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     activity_data = np.random.randint(10, 100, size=(7, 24))
     
+    sph8 = st.container()
+    with sph8:
+        try:
+            render_skeleton_list(items=2)
+        except Exception:
+            pass
     fig = px.imshow(activity_data,
                    labels=dict(x="Hour of Day", y="Day of Week", color="Activity"),
                    x=hours,
@@ -420,8 +547,9 @@ with tab3:
                    color_continuous_scale="Viridis",
                    title="Weekly Activity Pattern")
     st.plotly_chart(fig, use_container_width=True)
+    sph8.empty()
 
-with tab4:
+with _key_to_tab["pred"]:
     st.header("🔮 Predictions & Forecasting")
     
     # Revenue forecast
@@ -437,6 +565,12 @@ with tab4:
         scenario = st.selectbox("Scenario", ["Most Likely", "Best Case", "Worst Case"])
     
     if st.button("Generate Forecast", type="primary"):
+        sphp = st.container()
+        with sphp:
+            try:
+                render_skeleton_list(items=3)
+            except Exception:
+                pass
         # Generate mock forecast data
         future_dates = pd.date_range(start=date.today(), periods=forecast_months, freq='M')
         
@@ -496,6 +630,7 @@ with tab4:
         )
         
         st.plotly_chart(fig, use_container_width=True)
+        sphp.empty()
         
         # Forecast summary
         total_forecasted = forecast_df['Predicted'].sum()
@@ -559,7 +694,7 @@ with tab4:
         high_risk_display.columns = ['User ID', 'Churn Risk', 'Days Inactive', 'Revenue at Risk']
         st.dataframe(high_risk_display, use_container_width=True)
 
-with tab5:
+with _key_to_tab["ops"]:
     st.header("💡 Growth Opportunities")
     
     # Opportunity cards
@@ -642,6 +777,12 @@ with tab5:
     recommendations_df = pd.DataFrame(recommendations)
     
     # Impact vs Effort matrix
+    sph9 = st.container()
+    with sph9:
+        try:
+            render_skeleton_list(items=2)
+        except Exception:
+            pass
     fig = px.scatter(recommendations_df, x='effort', y='impact',
                     size='potential_value',
                     hover_data=['recommendation', 'potential_value'],
@@ -654,6 +795,7 @@ with tab5:
     fig.add_vline(x="Medium", line_dash="dash", line_color="gray", opacity=0.5)
     
     st.plotly_chart(fig, use_container_width=True)
+    sph9.empty()
     
     # Recommendations table
     st.markdown("**Detailed Recommendations:**")

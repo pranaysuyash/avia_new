@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: ID Card Reader API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/ids/parse:
+    post:
+      summary: Parse an ID (front/back)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                front: { type: string, format: binary }
+                back: { type: string, format: binary }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/ids/{id}:
+    get:
+      summary: Get parsed ID result
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/ids/{id}/verify-selfie:
+    post:
+      summary: Compare ID photo to a selfie (v2)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                selfie: { type: string, format: binary }
+      responses:
+        '200': { description: OK }

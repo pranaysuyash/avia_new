@@ -1,0 +1,63 @@
+openapi: 3.0.3
+info:
+  title: Invoice Processing Automation API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/invoices:
+    post:
+      summary: Create an invoice processing job
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                vendor_hint:
+                  type: string
+                  description: Optional vendor template hint
+      responses:
+        '202': { description: Accepted }
+  /api/v1/invoices/{job_id}/status:
+    get:
+      summary: Get job status
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/invoices/{invoice_id}/results:
+    get:
+      summary: Get extracted header and line items
+      parameters:
+        - in: path
+          name: invoice_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/invoices/{invoice_id}/export:
+    post:
+      summary: Export invoice results
+      parameters:
+        - in: path
+          name: invoice_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format: { type: string, enum: [json, csv, xlsx, netsuite, sap, quickbooks], default: json }
+      responses:
+        '200': { description: OK }

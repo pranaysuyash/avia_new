@@ -1,0 +1,59 @@
+{
+  "id": "tpl_legal_ediscovery_v1",
+  "name": "Legal — eDiscovery Production Pack",
+  "version": "1.0.0",
+  "description": "ASR+OCR with privilege detection and redaction; Bates stamp and export productions.",
+  "io": {
+    "inputs": [{"name": "case_media", "type": "Video|Audio"}],
+    "outputs": [
+      {"name": "production_set", "type": "Folder"},
+      {"name": "case_timeline", "type": "JSON"}
+    ]
+  },
+  "parameters": {
+    "bates_prefix": "CASE-2025",
+    "export_format": "tiff",
+    "privilege_threshold": 0.7,
+    "redact_pii": true
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "bates_prefix": {"type": "string", "minLength": 3, "maxLength": 32},
+      "export_format": {"type": "string", "enum": ["tiff", "pdf"]},
+      "privilege_threshold": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+      "redact_pii": {"type": "boolean"}
+    },
+    "required": ["bates_prefix", "export_format", "privilege_threshold", "redact_pii"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      {"id": "ingest", "def": "Ingest", "params": {}, "io": {"in": ["None"], "out": ["Video|Audio"]}},
+      {"id": "ocr", "def": "OCR.Frames", "params": {"interval_s": 1}, "io": {"in": ["Video"], "out": ["Text[]"]}},
+      {"id": "asr", "def": "ASR.Whisper", "params": {"model": "large"}, "io": {"in": ["Audio"], "out": ["Text.Segments"]}},
+      {"id": "priv", "def": "Analyze.PrivilegeDetect", "params": {"threshold": "${privilege_threshold}"}, "io": {"in": ["Text.Segments", "Text[]"], "out": ["Meta.Flags"]}},
+      {"id": "pii", "def": "Redact.Privacy", "params": {"enabled": "${redact_pii}"}, "io": {"in": ["Video|Audio", "Meta.Flags"], "out": ["Video|Audio"]}},
+      {"id": "timeline", "def": "Index.CaseTimeline", "params": {}, "io": {"in": ["Text.Segments", "Text[]"], "out": ["JSON"]}},
+      {"id": "bates", "def": "Export.BatesStamp", "params": {"prefix": "${bates_prefix}"}, "io": {"in": ["Video|Audio"], "out": ["Video|Audio"]}},
+      {"id": "export", "def": "Export.Production", "params": {"format": "${export_format}"}, "io": {"in": ["Video|Audio", "JSON"], "out": ["Folder"]}}
+    ],
+    "edges": [
+      {"from": "ingest.out", "to": "ocr.in"},
+      {"from": "ingest.out", "to": "asr.in"},
+      {"from": "asr.out", "to": "priv.in_0"},
+      {"from": "ocr.out", "to": "priv.in_1"},
+      {"from": "priv.out", "to": "pii.in_1"},
+      {"from": "ingest.out", "to": "pii.in_0"},
+      {"from": "asr.out", "to": "timeline.in_0"},
+      {"from": "ocr.out", "to": "timeline.in_1"},
+      {"from": "pii.out", "to": "bates.in"},
+      {"from": "bates.out", "to": "export.in_0"},
+      {"from": "timeline.out", "to": "export.in_1"}
+    ]
+  },
+  "policies": [
+    {"id": "gate_privilege_review", "checks": [{"type": "requires_review", "node": "priv"}], "severity": "block"}
+  ]
+}
+

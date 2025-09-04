@@ -15,6 +15,8 @@ import { Audio } from 'expo-av';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import styles from './styles';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
 
 interface Entity {
   text: string;
@@ -356,6 +358,17 @@ const TranscriptionResults: React.FC<TranscriptionResultsProps> = ({
           <Text style={styles.actionButtonText}>Export</Text>
         </TouchableOpacity>
         
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={async () => {
+            const url = buildLink('transcription', { id: transcriptId });
+            try { await Share.share({ message: url }); await logUxEvent('share_transcription_view', { url, transcriptId }); } catch (_) {}
+          }}
+        >
+          <Icon name="ios-share" size={20} color="#007AFF" />
+          <Text style={styles.actionButtonText}>Share</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.actionButton}>
           <Icon name="analytics" size={20} color="#007AFF" />
           <Text style={styles.actionButtonText}>Insights</Text>

@@ -128,6 +128,14 @@ const AdminDashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval]);
 
+  // Deep-link current tab and time range
+  useEffect(() => {
+    try { const url = new URL(window.location.href); url.searchParams.set('admin_tab', activeTab); window.history.replaceState({}, '', url.toString()); } catch {}
+  }, [activeTab]);
+  useEffect(() => {
+    try { const url = new URL(window.location.href); url.searchParams.set('admin_range', selectedTimeRange); window.history.replaceState({}, '', url.toString()); } catch {}
+  }, [selectedTimeRange]);
+
   const renderMetricCard = (title: string, value: string | number, delta: string, deltaType: 'positive' | 'negative' | 'neutral', icon: React.ReactNode) => (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-4">
@@ -271,6 +279,14 @@ const AdminDashboard: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
             
             <div className="flex items-center space-x-4">
+              {/* Share */}
+              <button
+                onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_admin_dashboard_view', { href }); } catch {} }}
+                className="px-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                title="Copy shareable link"
+              >
+                Share
+              </button>
               {/* Time range selector */}
               <select
                 value={selectedTimeRange}

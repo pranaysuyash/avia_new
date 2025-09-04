@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import WaveformPlayer from '../components/transcription/WaveformPlayer';
 import TranscriptEditor from '../components/workspace/TranscriptEditor';
+import { logUxEvent } from '../services/uxTelemetry';
 import EntityPanel from '../components/workspace/EntityPanel';
 import ProcessingModal from '../components/workspace/ProcessingModal';
 import { StructuredAnalysis, ContentInsights } from '../components/analysis';
@@ -22,7 +23,10 @@ import { transcriptionAPI, TranscriptionResult } from '../services/transcription
 const TranscriptionWorkspace: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'transcript' | 'entities' | 'insights' | 'analysis'>('transcript');
+  const [activeTab, setActiveTab] = useState<'transcript' | 'entities' | 'insights' | 'analysis'>(() => {
+    try { const url = new URL(window.location.href); const t = url.searchParams.get('tw_tab'); if (t && ['transcript','entities','insights','analysis'].includes(t)) return t as any; } catch {}
+    return 'transcript';
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [transcriptionResult, setTranscriptionResult] = useState<TranscriptionResult | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('auto');
@@ -104,6 +108,11 @@ const TranscriptionWorkspace: React.FC = () => {
     { id: 'analysis', label: 'Analysis', icon: DocumentTextIcon }
   ];
 
+  // Sync active tab to query param
+  React.useEffect(() => {
+    try { const url = new URL(window.location.href); url.searchParams.set('tw_tab', activeTab); window.history.replaceState({}, '', url.toString()); } catch {}
+  }, [activeTab]);
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -136,7 +145,7 @@ const TranscriptionWorkspace: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <button className="btn-secondary">
+            <button className="btn-secondary" onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_workspace_view', { href }); } catch {} }}>
               <UserGroupIcon className="h-5 w-5 mr-2" />
               Share
             </button>

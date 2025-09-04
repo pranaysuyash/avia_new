@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/common/JobStatus.schema.json",
+  "title": "JobStatus",
+  "type": "object",
+  "properties": {
+    "job_id": {"type": "string"},
+    "status": {"type": "string", "enum": ["queued", "processing", "completed", "failed"]},
+    "progress": {"type": "number", "minimum": 0, "maximum": 1},
+    "error": {"type": "string"}
+  },
+  "required": ["job_id", "status"],
+  "additionalProperties": false
+}
+

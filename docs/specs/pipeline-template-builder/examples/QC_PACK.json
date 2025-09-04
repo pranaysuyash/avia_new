@@ -1,0 +1,54 @@
+{
+  "id": "tpl_qc_pack_v1",
+  "name": "QC Pack — Broadcast Basics",
+  "version": "1.0.0",
+  "description": "Run flash/black/PSE and loudness checks, then export a consolidated QC report.",
+  "io": {
+    "inputs": [{"name": "media", "type": "Video"}],
+    "outputs": [
+      {"name": "qc_report", "type": "PDF"},
+      {"name": "qc_results", "type": "JSON"}
+    ]
+  },
+  "parameters": {
+    "max_flash_threshold": 3,
+    "min_black_duration_s": 1.0,
+    "pse_check": true,
+    "loudness_target_lufs": -23.0
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "max_flash_threshold": {"type": "integer", "minimum": 1, "maximum": 10},
+      "min_black_duration_s": {"type": "number", "minimum": 0.1, "maximum": 10},
+      "pse_check": {"type": "boolean"},
+      "loudness_target_lufs": {"type": "number", "minimum": -35, "maximum": -10}
+    },
+    "required": ["max_flash_threshold", "min_black_duration_s", "pse_check", "loudness_target_lufs"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      { "id": "ingest1", "def": "Ingest", "params": {"storage_class": "standard"}, "io": {"in": ["None"], "out": ["Video"]}},
+      { "id": "qc_flash", "def": "QC.FlashFrames", "params": {"threshold": "${max_flash_threshold}"}, "io": {"in": ["Video"], "out": ["Meta.QC"]}},
+      { "id": "qc_black", "def": "QC.BlackFrames", "params": {"min_duration_s": "${min_black_duration_s}"}, "io": {"in": ["Video"], "out": ["Meta.QC"]}},
+      { "id": "qc_pse", "def": "QC.PSE", "params": {"enabled": "${pse_check}"}, "io": {"in": ["Video"], "out": ["Meta.QC"]}},
+      { "id": "qc_loud", "def": "Audio.LoudnessAnalyze", "params": {"target_lufs": "${loudness_target_lufs}"}, "io": {"in": ["Audio"], "out": ["Meta.QC"]}},
+      { "id": "report", "def": "Export.Report", "params": {"format": "pdf"}, "io": {"in": ["Meta.QC"], "out": ["PDF", "JSON"]}}
+    ],
+    "edges": [
+      {"from": "ingest1.out", "to": "qc_flash.in"},
+      {"from": "ingest1.out", "to": "qc_black.in"},
+      {"from": "ingest1.out", "to": "qc_pse.in"},
+      {"from": "ingest1.out_audio", "to": "qc_loud.in"},
+      {"from": "qc_flash.out", "to": "report.in"},
+      {"from": "qc_black.out", "to": "report.in"},
+      {"from": "qc_pse.out", "to": "report.in"},
+      {"from": "qc_loud.out", "to": "report.in"}
+    ]
+  },
+  "policies": [
+    {"id": "gate_no_pse_fail", "checks": [{"type": "result_ok", "node": "qc_pse"}], "severity": "block"}
+  ]
+}
+

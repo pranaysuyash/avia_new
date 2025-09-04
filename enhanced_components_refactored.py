@@ -366,3 +366,94 @@ def create_download_section(
                 mime=mime_type,
                 use_container_width=True
             )
+
+# --- Navigation & Page Helpers ---
+
+def _merge_query_params(updated: Dict[str, str]) -> None:
+    """Merge and set query params without dropping existing keys."""
+    try:
+        current = st.experimental_get_query_params() or {}
+        merged = {**current}
+        for k, v in updated.items():
+            merged[k] = [v] if not isinstance(v, list) else v
+        st.experimental_set_query_params(**merged)
+    except Exception:
+        # In environments where query params are not available
+        pass
+
+def enhanced_tabs(
+    tabs: List[str],
+    key: str,
+    query_param: Optional[str] = None,
+    default: Optional[str] = None
+) -> str:
+    """
+    Tab selector with internal state and optional query-param sync.
+    Returns the selected tab label from the provided list.
+    """
+    # Resolve initial selection from query param or session
+    selected = st.session_state.get(key)
+    if query_param:
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_val = qp.get(query_param, [None])[0]
+            if qp_val in tabs:
+                selected = qp_val
+        except Exception:
+            pass
+    if not selected or selected not in tabs:
+        selected = default or tabs[0]
+
+    # Render tab buttons horizontally via columns
+    cols = st.columns(len(tabs))
+    new_selected = selected
+    for idx, label in enumerate(tabs):
+        with cols[idx]:
+            if st.button(label, key=f"{key}_{idx}", type=("primary" if label == selected else "secondary"), use_container_width=True):
+                new_selected = label
+
+    if new_selected != selected:
+        st.session_state[key] = new_selected
+        if query_param:
+            _merge_query_params({query_param: new_selected})
+        try:
+            log_ux_event("tab_change", key=key, tab=new_selected)
+        except Exception:
+            pass
+    return new_selected
+
+def render_page_frame(
+    title: str,
+    subtitle: Optional[str] = None,
+    breadcrumb: Optional[List[str]] = None,
+    env_label: Optional[str] = None,
+    role_label: Optional[str] = None
+) -> None:
+    """Standard page header: breadcrumb, title, subtitle, env/role chips."""
+    # Breadcrumb
+    if breadcrumb:
+        st.caption(" / ".join(breadcrumb))
+    # Title row with optional chips
+    title_cols = st.columns([0.8, 0.2])
+    with title_cols[0]:
+        st.title(title)
+        if subtitle:
+            st.caption(subtitle)
+    with title_cols[1]:
+        chip_texts = []
+        if env_label:
+            chip_texts.append(f"🛠️ {env_label}")
+        if role_label:
+            chip_texts.append(f"👤 {role_label}")
+        if chip_texts:
+            st.markdown("\n".join([f"- {t}" for t in chip_texts]))
+
+# --- UX Observability ---
+
+def log_ux_event(event: str, **kwargs) -> None:
+    """Append a simple UX event to session state for later analysis or upload."""
+    try:
+        ts = int(time.time())
+        st.session_state.setdefault("ux_events", []).append({"ts": ts, "event": event, **kwargs})
+    except Exception:
+        pass

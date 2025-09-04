@@ -1,0 +1,52 @@
+{
+  "info": {
+    "name": "Invoice Processing Automation API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.example.com"},
+    {"key": "job_id", "value": "{{job_id}}"},
+    {"key": "invoice_id", "value": "{{invoice_id}}"}
+  ],
+  "item": [
+    {
+      "name": "Create Job (multipart)",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {"key": "file", "type": "file", "src": []},
+            {"key": "vendor_hint", "type": "text", "value": ""}
+          ]
+        },
+        "url": {"raw": "{{baseUrl}}/api/v1/invoices", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invoices"]}
+      }
+    },
+    {
+      "name": "Get Status",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{baseUrl}}/api/v1/invoices/{{job_id}}/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invoices", "{{job_id}}", "status"]}
+      }
+    },
+    {
+      "name": "Get Results",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{baseUrl}}/api/v1/invoices/{{invoice_id}}/results", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invoices", "{{invoice_id}}", "results"]}
+      }
+    },
+    {
+      "name": "Export Results",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"format\": \"json\"\n}"},
+        "url": {"raw": "{{baseUrl}}/api/v1/invoices/{{invoice_id}}/export", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invoices", "{{invoice_id}}", "export"]}
+      }
+    }
+  ]
+}
+

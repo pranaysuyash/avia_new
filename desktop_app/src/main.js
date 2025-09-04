@@ -380,6 +380,49 @@ function createMenu() {
       label: 'Tools',
       submenu: [
         {
+          label: 'UX Telemetry Overlay',
+          click: () => {
+            try {
+              // Toggle dev_telemetry overlay in the renderer by modifying URL params
+              mainWindow.webContents.executeJavaScript(`
+                (function(){
+                  try {
+                    const url = new URL(window.location.href);
+                    const isOn = url.searchParams.get('dev_telemetry') === '1';
+                    if (isOn) { url.searchParams.delete('dev_telemetry'); }
+                    else { url.searchParams.set('dev_telemetry','1'); }
+                    window.history.replaceState({}, '', url.toString());
+                    window.dispatchEvent(new Event('dev_telemetry_toggle'));
+                  } catch(e) { console.error(e); }
+                })();
+              `);
+            } catch (e) {
+              log.error('Failed to toggle dev telemetry overlay', e);
+            }
+          }
+        },
+        {
+          label: 'Open UX Events File',
+          click: () => {
+            try {
+              shell.showItemInFolder(uxEventsPath);
+            } catch (e) {
+              log.error('Failed to open ux_events.jsonl', e);
+            }
+          }
+        },
+        {
+          label: 'Clear UX Events',
+          click: () => {
+            try {
+              fs.writeFileSync(uxEventsPath, '', { encoding: 'utf8' });
+              log.info('Cleared UX events file');
+            } catch (e) {
+              log.error('Failed to clear ux_events.jsonl', e);
+            }
+          }
+        },
+        {
           label: 'AI Customization',
           click: () => {
             // Navigate to AI customization in Streamlit
@@ -557,6 +600,20 @@ app.on('before-quit', () => {
   }
 });
 
+// UX telemetry file sink
+const uxEventsPath = path.join(app.getPath('userData'), 'ux_events.jsonl');
+
+function appendUxEvent(ev) {
+  try {
+    const line = JSON.stringify(ev) + '\n';
+    fs.appendFileSync(uxEventsPath, line, { encoding: 'utf8' });
+    return true;
+  } catch (err) {
+    log.error('Failed to append UX event:', err);
+    return false;
+  }
+}
+
 // IPC handlers
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
@@ -574,6 +631,19 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
 
 ipcMain.handle('open-external', async (event, url) => {
   shell.openExternal(url);
+});
+
+// UX telemetry logging
+ipcMain.handle('ux:log', async (event, uxEvent) => {
+  try {
+    // Attach a server-side timestamp as well
+    const ev = { srv_ts: Date.now(), ...uxEvent };
+    appendUxEvent(ev);
+    return { ok: true };
+  } catch (err) {
+    log.error('ux:log failed', err);
+    return { ok: false, error: String(err) };
+  }
 });
 
 // Auto-updater events

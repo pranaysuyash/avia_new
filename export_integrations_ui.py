@@ -112,6 +112,10 @@ def render_interactive_reports_tab(export_data: ExportData):
             help="Optimize for mobile and tablet viewing"
         )
     
+    # Privacy confirmation
+    st.warning("Reports may include PII (names, emails, phone numbers). Confirm before generating or downloading.")
+    confirm_pii = st.checkbox("I confirm I am authorized to generate and download reports that may include PII.")
+
     # Generate report button
     if st.button("🚀 Generate Interactive Report", type="primary"):
         with st.spinner("Generating interactive HTML report..."):
@@ -130,13 +134,16 @@ def render_interactive_reports_tab(export_data: ExportData):
                 st.success("✅ Interactive report generated successfully!")
                 
                 # Create download button
-                st.download_button(
-                    label="📥 Download HTML Report",
-                    data=html_content,
-                    file_name=f"transcription_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                    mime="text/html",
-                    help="Download the complete interactive HTML report"
-                )
+                if confirm_pii:
+                    st.download_button(
+                        label="📥 Download HTML Report",
+                        data=html_content,
+                        file_name=f"transcription_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                        mime="text/html",
+                        help="Download the complete interactive HTML report"
+                    )
+                else:
+                    st.info("Confirm PII authorization to enable downloads.")
                 
                 # Preview option
                 with st.expander("👀 Preview Report", expanded=False):
@@ -191,12 +198,15 @@ def render_interactive_reports_tab(export_data: ExportData):
                 
                 st.success("✅ Export package created successfully!")
                 
-                st.download_button(
-                    label="📥 Download Export Package (ZIP)",
-                    data=package_bytes,
-                    file_name=f"transcription_package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
-                    mime="application/zip"
-                )
+                if confirm_pii:
+                    st.download_button(
+                        label="📥 Download Export Package (ZIP)",
+                        data=package_bytes,
+                        file_name=f"transcription_package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+                        mime="application/zip"
+                    )
+                else:
+                    st.info("Confirm PII authorization to enable downloads.")
                 
             except Exception as e:
                 st.error(f"❌ Error creating export package: {str(e)}")

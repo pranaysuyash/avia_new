@@ -23,6 +23,7 @@ import {
   FiPause
 } from 'react-icons/fi';
 import { ThemeProvider } from '../../shared/theme';
+import { logUxEvent } from '../shared/uxTelemetry';
 
 // Interfaces
 interface UploadedFile {
@@ -248,6 +249,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       });
     }
     
+    try { logUxEvent('upload_files_selected', { count: newFiles.length }); } catch {}
     announceToScreenReader(`${newFiles.length} file(s) added`);
   }, [files.length, maxFiles, validateFile, autoUpload, showPreview, onFileSelect, onUpload]);
   
@@ -282,6 +284,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           : f
       ));
       
+      try { logUxEvent('upload_completed', { name: uploadedFile.name, size: uploadedFile.size }); } catch {}
       announceToScreenReader(`${uploadedFile.name} uploaded successfully`);
     } catch (error) {
       setFiles(prev => prev.map(f => 
@@ -290,6 +293,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           : f
       ));
       
+      try { logUxEvent('upload_failed', { name: uploadedFile.name }); } catch {}
       onError?.(error instanceof Error ? error.message : 'Upload failed', uploadedFile.file);
       announceToScreenReader(`Upload failed for ${uploadedFile.name}`);
     }

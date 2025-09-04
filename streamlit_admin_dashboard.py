@@ -19,7 +19,9 @@ from enhanced_components_refactored import (
     enhanced_card,
     enhanced_progress_indicator,
     enhanced_metric,
-    enhanced_tabs
+    enhanced_tabs,
+    render_page_frame,
+    log_ux_event,
 )
 
 # Import specialized admin components
@@ -70,7 +72,13 @@ class AdminDashboard:
             layout="wide"
         )
         
-        st.title("👑 Admin Dashboard")
+        render_page_frame(
+            title="👑 Admin Dashboard",
+            subtitle="Unified administrative interface for system management",
+            breadcrumb=["Admin"],
+            env_label=st.session_state.get('env', 'Demo'),
+            role_label=st.session_state.get('user', {}).get('role', 'guest')
+        )
         
         # Apply theme
         apply_theme(st.session_state.get('theme', 'light'))
@@ -87,10 +95,32 @@ class AdminDashboard:
             st.header("Navigation")
             
             # Main sections
+            sections = ["Dashboard", "Users", "Teams", "Subscriptions", "System", "Reports", "Telemetry"]
+            # Read selected section from query params if present
+            selected_section = None
+            try:
+                qp = st.experimental_get_query_params() or {}
+                qp_sel = qp.get("admin_section", [None])[0]
+                if qp_sel in sections:
+                    selected_section = qp_sel
+            except Exception:
+                selected_section = None
+            # Compute index for radio
+            index = sections.index(selected_section) if (selected_section in sections) else 0
             main_section = st.radio(
                 "Main Section",
-                ["Dashboard", "Users", "Teams", "Subscriptions", "System", "Reports"]
+                sections,
+                index=index,
+                key="admin_main_section"
             )
+            # Sync back to query params if changed
+            if main_section != selected_section:
+                try:
+                    current = st.experimental_get_query_params() or {}
+                    current["admin_section"] = [main_section]
+                    st.experimental_set_query_params(**current)
+                except Exception:
+                    pass
             
             st.divider()
             
@@ -124,9 +154,17 @@ class AdminDashboard:
             self._render_system_section()
         elif main_section == "Reports":
             self._render_reports_section()
+        elif main_section == "Telemetry":
+            self._render_telemetry_section()
         
         # Modals
         self._render_modals()
+        # Log screen view
+        try:
+            qp = st.experimental_get_query_params() or {}
+            log_ux_event("screen_view", screen="admin", section=main_section, tab=qp.get("admin_tab", [None])[0])
+        except Exception:
+            pass
     
     def _render_quick_stats(self):
         """Render quick statistics in sidebar"""
@@ -150,12 +188,13 @@ class AdminDashboard:
             with col2:
                 st.metric("Active", "892")
                 st.metric("Revenue", "$25,600")
+            st.caption("Demo data — API unavailable or running in demo mode")
     
     def _render_dashboard_section(self):
         """Render main dashboard section"""
-        # Tab selection
+        # Tab selection with deep link
         tabs = ["Overview", "Analytics", "Activity", "Alerts"]
-        selected_tab = enhanced_tabs(tabs, key="dashboard_tabs")
+        selected_tab = enhanced_tabs(tabs, key="dashboard_tabs", query_param="admin_tab", default="Overview")
         
         if selected_tab == "Overview":
             self._render_overview_tab()
@@ -228,17 +267,40 @@ class AdminDashboard:
         # Search and filters
         col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
         
+        # Deep-linkable filters
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_query = qp.get("admin_user_query", [""])[0]
+            qp_role = qp.get("admin_user_role", ["All"])[0]
+            qp_status = qp.get("admin_user_status", ["All"])[0]
+            qp_plan = qp.get("admin_user_plan", ["All"])[0]
+        except Exception:
+            qp_query, qp_role, qp_status, qp_plan = "", "All", "All", "All"
+
         with col1:
-            search = st.text_input("Search users", placeholder="Name, email, or username...")
-        
+            search = st.text_input("Search users", value=qp_query, placeholder="Name, email, or username...")
         with col2:
-            role_filter = st.selectbox("Role", ["All", "Admin", "User", "Viewer"])
-        
+            role_filter = st.selectbox("Role", ["All", "Admin", "User", "Viewer"], index=["All","Admin","User","Viewer"].index(qp_role) if qp_role in ["All","Admin","User","Viewer"] else 0)
         with col3:
-            status_filter = st.selectbox("Status", ["All", "Active", "Inactive", "Suspended"])
-        
+            status_filter = st.selectbox("Status", ["All", "Active", "Inactive", "Suspended"], index=["All","Active","Inactive","Suspended"].index(qp_status) if qp_status in ["All","Active","Inactive","Suspended"] else 0)
         with col4:
-            plan_filter = st.selectbox("Plan", ["All", "Free", "Basic", "Pro", "Enterprise"])
+            plan_filter = st.selectbox("Plan", ["All", "Free", "Basic", "Pro", "Enterprise"], index=["All","Free","Basic","Pro","Enterprise"].index(qp_plan) if qp_plan in ["All","Free","Basic","Pro","Enterprise"] else 0)
+
+        # Persist changes to query params
+        try:
+            current = st.experimental_get_query_params() or {}
+            def set_or_pop(key, val, default=""):
+                if val and val != default:
+                    current[key] = [val]
+                else:
+                    current.pop(key, None)
+            set_or_pop("admin_user_query", search)
+            set_or_pop("admin_user_role", role_filter, "All")
+            set_or_pop("admin_user_status", status_filter, "All")
+            set_or_pop("admin_user_plan", plan_filter, "All")
+            st.experimental_set_query_params(**current)
+        except Exception:
+            pass
         
         # Action buttons
         col1, col2, col3, col4 = st.columns(4)
@@ -262,6 +324,29 @@ class AdminDashboard:
         # Users table
         st.subheader("Users")
         self._render_users_table(search, role_filter, status_filter, plan_filter)
+
+        # Shareable filters
+        st.caption("Shareable user filters")
+        try:
+            qp = st.experimental_get_query_params() or {}
+            parts = []
+            for k in ["admin_user_query","admin_user_role","admin_user_status","admin_user_plan"]:
+                if qp.get(k):
+                    parts.append(f"{k}={qp[k][0]}")
+            st.text_input("URL params", value=("?"+"&".join(parts)) if parts else "", key="admin_users_share")
+        except Exception:
+            pass
+
+        # Reset filters
+        if enhanced_button("Reset User Filters", "secondary", key="reset_user_filters"):
+            try:
+                current = st.experimental_get_query_params() or {}
+                for k in ["admin_user_query","admin_user_role","admin_user_status","admin_user_plan"]:
+                    current.pop(k, None)
+                st.experimental_set_query_params(**current)
+                st.experimental_rerun()
+            except Exception:
+                pass
     
     def _render_teams_section(self):
         """Render teams management section"""
@@ -355,7 +440,7 @@ class AdminDashboard:
         st.header("System Management")
         
         tabs = ["Health", "Configuration", "Integrations", "Logs", "Backup"]
-        selected_tab = enhanced_tabs(tabs, key="system_tabs")
+        selected_tab = enhanced_tabs(tabs, key="system_tabs", query_param="admin_system_tab", default="Health")
         
         if selected_tab == "Health":
             self._render_system_health()
@@ -367,39 +452,178 @@ class AdminDashboard:
             self._render_system_logs()
         elif selected_tab == "Backup":
             self._render_backup_restore()
+
+        # Shareable system tab state
+        st.caption("Shareable system tab")
+        try:
+            qp = st.experimental_get_query_params() or {}
+            tab = qp.get('admin_system_tab', [None])[0]
+            st.text_input("URL params", value=(f"?admin_system_tab={tab}" if tab else ""), key="admin_system_share")
+        except Exception:
+            pass
     
     def _render_reports_section(self):
         """Render reports section"""
         st.header("Reports & Analytics")
         
         # Report types
+        # Sync report type with query param
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_report_type = qp.get("admin_report_type", [None])[0]
+        except Exception:
+            qp_report_type = None
         report_type = st.selectbox(
             "Select Report Type",
-            ["User Activity", "Revenue Report", "Usage Analytics", "System Performance", "Audit Log"]
+            ["User Activity", "Revenue Report", "Usage Analytics", "System Performance", "Audit Log"],
+            index=( ["User Activity", "Revenue Report", "Usage Analytics", "System Performance", "Audit Log"].index(qp_report_type) if qp_report_type in ["User Activity", "Revenue Report", "Usage Analytics", "System Performance", "Audit Log"] else 0 )
         )
+        try:
+            current = st.experimental_get_query_params() or {}
+            if current.get("admin_report_type", [None])[0] != report_type:
+                current["admin_report_type"] = [report_type]
+                st.experimental_set_query_params(**current)
+        except Exception:
+            pass
         
         # Date range
         col1, col2 = st.columns(2)
         with col1:
-            start_date = st.date_input("Start Date", datetime.now() - timedelta(days=30))
+            try:
+                qp = st.experimental_get_query_params() or {}
+                qp_start = qp.get("admin_report_start", [None])[0]
+                start_default = datetime.now() - timedelta(days=30)
+                start_date = st.date_input("Start Date", datetime.fromisoformat(qp_start) if qp_start else start_default)
+            except Exception:
+                start_date = st.date_input("Start Date", datetime.now() - timedelta(days=30))
         with col2:
-            end_date = st.date_input("End Date", datetime.now())
+            try:
+                qp = st.experimental_get_query_params() or {}
+                qp_end = qp.get("admin_report_end", [None])[0]
+                end_default = datetime.now()
+                end_date = st.date_input("End Date", datetime.fromisoformat(qp_end) if qp_end else end_default)
+            except Exception:
+                end_date = st.date_input("End Date", datetime.now())
+        try:
+            current = st.experimental_get_query_params() or {}
+            if current.get("admin_report_start", [None])[0] != start_date.isoformat():
+                current["admin_report_start"] = [start_date.isoformat()]
+            if current.get("admin_report_end", [None])[0] != end_date.isoformat():
+                current["admin_report_end"] = [end_date.isoformat()]
+            st.experimental_set_query_params(**current)
+        except Exception:
+            pass
+
+        # Shareable link params for Reports
+        st.caption("Shareable report filters")
+        try:
+            qp = st.experimental_get_query_params() or {}
+            parts = []
+            for k in ["admin_report_type","admin_report_start","admin_report_end"]:
+                if k in qp:
+                    parts.append(f"{k}={qp[k][0]}")
+            st.text_input("URL params", value=("?"+"&".join(parts)) if parts else "", key="admin_reports_share_params")
+        except Exception:
+            pass
         
         # Generate report button
         if enhanced_button("Generate Report", "primary", key="generate_report"):
-            st.info(f"Generating {report_type} report...")
-            
-            # Mock report generation
-            if report_type == "User Activity":
-                self._generate_user_activity_report(start_date, end_date)
-            elif report_type == "Revenue Report":
-                self._generate_revenue_report(start_date, end_date)
-            elif report_type == "Usage Analytics":
-                self.usage_dashboard._render_reports_tab()
+            with st.spinner(f"Generating {report_type} report..."):
+                # Mock report generation
+                if report_type == "User Activity":
+                    self._generate_user_activity_report(start_date, end_date)
+                elif report_type == "Revenue Report":
+                    self._generate_revenue_report(start_date, end_date)
+                elif report_type == "Usage Analytics":
+                    self.usage_dashboard._render_reports_tab()
         
         # Scheduled reports
         st.subheader("Scheduled Reports")
         self._render_scheduled_reports()
+
+        # Reset report filters
+        if st.button("Reset Report Filters"):
+            try:
+                current = st.experimental_get_query_params() or {}
+                for k in ["admin_report_type", "admin_report_start", "admin_report_end"]:
+                    current.pop(k, None)
+                st.experimental_set_query_params(**current)
+                st.experimental_rerun()
+            except Exception:
+                pass
+
+        # UX Telemetry (session)
+        st.markdown("---")
+        st.subheader("UX Telemetry (Current Session)")
+        events = st.session_state.get("ux_events", [])
+        if not events:
+            st.info("No UX events recorded in this session yet.")
+        else:
+            import pandas as pd
+            df = pd.DataFrame(events)
+            # Summary counters
+            st.caption("Summary (this session)")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Events", len(df))
+            with col2:
+                st.metric("Tab Changes", int((df['event'] == 'tab_change').sum()) if 'event' in df else 0)
+            with col3:
+                st.metric("Screen Views", int((df['event'] == 'screen_view').sum()) if 'event' in df else 0)
+            # Quick bar chart by event type
+            try:
+                import plotly.express as px
+                counts = df['event'].value_counts().reset_index()
+                counts.columns = ['event', 'count']
+                fig = px.bar(counts, x='event', y='count', title='UX Events by Type')
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception:
+                pass
+            st.dataframe(df, use_container_width=True)
+            # Export as JSON
+            import json
+            st.download_button(
+                label="📥 Download UX Events (JSON)",
+                data=json.dumps(events, indent=2),
+                file_name="ux_events_session.json",
+                mime="application/json",
+                use_container_width=True
+            )
+
+    def _render_telemetry_section(self):
+        """Render standalone UX telemetry section"""
+        st.header("UX Telemetry")
+        events = st.session_state.get("ux_events", [])
+        if not events:
+            st.info("No UX events recorded in this session yet.")
+            return
+        import pandas as pd
+        try:
+            import plotly.express as px
+        except Exception:
+            px = None
+        df = pd.DataFrame(events)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Events", len(df))
+        with col2:
+            st.metric("Tab Changes", int((df['event'] == 'tab_change').sum()) if 'event' in df else 0)
+        with col3:
+            st.metric("Screen Views", int((df['event'] == 'screen_view').sum()) if 'event' in df else 0)
+        if px is not None and 'event' in df:
+            counts = df['event'].value_counts().reset_index()
+            counts.columns = ['event', 'count']
+            fig = px.bar(counts, x='event', y='count', title='UX Events by Type')
+            st.plotly_chart(fig, use_container_width=True)
+        st.dataframe(df, use_container_width=True)
+        import json
+        st.download_button(
+            label="📥 Download UX Events (JSON)",
+            data=json.dumps(events, indent=2),
+            file_name="ux_events_session.json",
+            mime="application/json",
+            use_container_width=True
+        )
     
     def _render_user_growth_chart(self):
         """Render user growth chart"""

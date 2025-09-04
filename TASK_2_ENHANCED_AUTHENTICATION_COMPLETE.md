@@ -241,10 +241,10 @@ The authentication system is production-ready with:
 ### Deployment Commands
 ```bash
 # Run production app with auth
-uvicorn api.production_app_with_auth:app --host 0.0.0.0 --port 8000
+uvicorn examples.api_with_enhanced_auth_example:app --host 0.0.0.0 --port 8000
 
 # With environment variables
-JWT_SECRET_KEY=secret uvicorn api.production_app_with_auth:app
+JWT_SECRET_KEY=secret uvicorn examples.api_with_enhanced_auth_example:app
 
 # Docker deployment
 docker build -t production-api-auth .

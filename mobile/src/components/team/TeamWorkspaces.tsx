@@ -14,6 +14,10 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Share } from 'react-native';
+import { SkeletonList } from '../shared/Skeleton';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { width } = Dimensions.get('window');
@@ -67,7 +71,7 @@ const TeamWorkspaces: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [activeTab, setActiveTab] = useState<'workspaces' | 'members' | 'invitations'>('workspaces');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
   // Modal states
@@ -213,6 +217,14 @@ const TeamWorkspaces: React.FC = () => {
     setRefreshing(true);
     await loadTeams();
     setRefreshing(false);
+  };
+
+  const shareTeamsLink = async () => {
+    const url = buildLink('team');
+    try {
+      await Share.share({ message: url });
+      await logUxEvent('share_team_view', { url });
+    } catch (_) {}
   };
 
   const handleCreateTeam = async () => {
@@ -493,25 +505,34 @@ const TeamWorkspaces: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Team Workspaces</Text>
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => setCreateTeamModal(true)}
-          >
-            <Icon name="add" size={24} color="#fff" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity onPress={shareTeamsLink} accessibilityLabel="Share teams view" style={{ padding: 8, marginRight: 6 }}>
+              <Icon name="ios-share" size={22} color="#007AFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={() => setCreateTeamModal(true)}
+            >
+              <Icon name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Teams List */}
         <View style={styles.teamsSection}>
           <Text style={styles.sectionTitle}>Your Teams</Text>
-          <FlatList
-            data={teams}
-            renderItem={renderTeamCard}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.teamsList}
-          />
+          {loading ? (
+            <SkeletonList rows={2} />
+          ) : (
+            <FlatList
+              data={teams}
+              renderItem={renderTeamCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.teamsList}
+            />
+          )}
         </View>
 
         {/* Selected Team Content */}

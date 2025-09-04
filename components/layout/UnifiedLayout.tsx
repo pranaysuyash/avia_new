@@ -10,6 +10,7 @@ import { ThemeProvider } from '../../shared/theme';
 import { UnifiedHeader } from '../navigation/UnifiedHeader';
 import { UnifiedSidebar } from '../navigation/UnifiedSidebar';
 import { UnifiedBreadcrumbs, AutoBreadcrumbs } from '../navigation/UnifiedBreadcrumbs';
+import { logUxEvent } from '../shared/uxTelemetry';
 
 // Re-export navigation interfaces for convenience
 export type { NavigationItem } from '../navigation/UnifiedHeader';
@@ -35,6 +36,9 @@ interface LayoutProps {
   sidebarCategories?: any[];
   sidebarCollapsed?: boolean;
   onSidebarCollapseToggle?: (collapsed: boolean) => void;
+  
+  // Dev tools
+  showDevToolsToggle?: boolean;
   
   // Breadcrumb props
   breadcrumbs?: any[];
@@ -137,7 +141,8 @@ export const UnifiedLayout: React.FC<LayoutProps> = ({
   headerClassName = '',
   sidebarClassName = '',
   mainClassName = '',
-  contentClassName = ''
+  contentClassName = '',
+  showDevToolsToggle = true
 }) => {
   // State
   const [sidebarCollapsed, setSidebarCollapsed] = useState(initialSidebarCollapsed);
@@ -207,6 +212,11 @@ export const UnifiedLayout: React.FC<LayoutProps> = ({
   
   const variantClasses = getVariantClasses();
   
+  // Log page views when path changes
+  useEffect(() => {
+    try { logUxEvent('page_view', { path: currentPath, layout: variant }); } catch {}
+  }, [currentPath, variant]);
+
   return (
     <div className={`min-h-screen flex flex-col ${variantClasses.container} ${className}`}>
       {/* Skip Link */}
@@ -221,6 +231,7 @@ export const UnifiedLayout: React.FC<LayoutProps> = ({
           sticky={stickyHeader}
           variant={variant === 'marketing' ? 'transparent' : 'full'}
           className={`${variantClasses.header} ${headerClassName}`}
+          showDevToolsToggle={showDevToolsToggle}
           onSearch={(query) => {
             // Handle global search
             console.log('Global search:', query);

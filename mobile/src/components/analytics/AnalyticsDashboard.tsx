@@ -23,6 +23,10 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Share } from 'react-native';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
+import { SkeletonList } from '../shared/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -94,7 +98,7 @@ const chartConfig = {
 
 export const AnalyticsDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
   // Trend Analysis State
@@ -120,6 +124,26 @@ export const AnalyticsDashboard: React.FC = () => {
     { id: 2, title: 'Compare', icon: 'compare' },
     { id: 3, title: 'Search', icon: 'search' }
   ];
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        await new Promise(res => setTimeout(res, 600));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const shareAnalyticsLink = async () => {
+    const url = buildLink('analytics');
+    try {
+      await Share.share({ message: url });
+      await logUxEvent('share_analytics_view', { url });
+    } catch (_) {}
+  };
 
   const analyzeTrends = async () => {
     setLoading(true);
@@ -319,6 +343,12 @@ export const AnalyticsDashboard: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+          <TouchableOpacity onPress={shareAnalyticsLink} accessibilityLabel="Share analytics view" style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Icon name="ios-share" size={18} color="#007AFF" />
+            <Text style={{ color: '#007AFF', marginLeft: 6 }}>Share</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Trend Analysis Configuration</Text>
           
@@ -447,6 +477,12 @@ export const AnalyticsDashboard: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <TouchableOpacity onPress={shareAnalyticsLink} accessibilityLabel="Share analytics view" style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Icon name="ios-share" size={18} color="#007AFF" />
+          <Text style={{ color: '#007AFF', marginLeft: 6 }}>Share</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Topic Modeling Configuration</Text>
         
@@ -495,6 +531,11 @@ export const AnalyticsDashboard: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {loading && !topicModel && (
+        <View style={{ padding: 16 }}>
+          <SkeletonList rows={5} />
+        </View>
+      )}
       {topicModel && (
         <>
           <View style={styles.card}>
@@ -566,6 +607,12 @@ export const AnalyticsDashboard: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <TouchableOpacity onPress={shareAnalyticsLink} accessibilityLabel="Share analytics view" style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Icon name="ios-share" size={18} color="#007AFF" />
+          <Text style={{ color: '#007AFF', marginLeft: 6 }}>Share</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Source Comparison</Text>
         
@@ -600,6 +647,11 @@ export const AnalyticsDashboard: React.FC = () => {
         )}
       </View>
 
+      {loading && !comparisonResult && (
+        <View style={{ padding: 16 }}>
+          <SkeletonList rows={5} />
+        </View>
+      )}
       {comparisonResult && (
         <>
           <View style={styles.card}>

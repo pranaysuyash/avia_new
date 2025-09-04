@@ -15,10 +15,13 @@ import {
   RefreshControl,
   Slider
 } from 'react-native';
+import { Share } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -292,6 +295,20 @@ export const AdvancedSearch: React.FC = () => {
 
   const renderSearchInterface = () => (
     <View style={styles.searchContainer}>
+      {/* Header with share action */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#333' }}>Advanced Search</Text>
+        <TouchableOpacity
+          accessibilityLabel="Share search view"
+          onPress={async () => {
+            const url = buildLink('search', { q: query, sort: options.sortBy, strat: options.strategy });
+            try { await Share.share({ message: url }); await logUxEvent('share_search_view', { url }); } catch {}
+          }}
+          style={{ padding: 6 }}
+        >
+          <Icon name="ios-share" size={20} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
       <View style={styles.searchInputContainer}>
         <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput

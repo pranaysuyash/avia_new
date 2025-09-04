@@ -1,0 +1,179 @@
+openapi: 3.0.3
+info:
+  title: Pipeline & Template Builder API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/pipelines/templates:
+    get:
+      summary: List templates
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: owner
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './TEMPLATE_SCHEMA.json'
+      responses:
+        '201': { description: Created }
+  /api/v1/pipelines/templates/{id}:
+    get:
+      summary: Get template
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+    put:
+      summary: Update template
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './TEMPLATE_SCHEMA.json'
+      responses:
+        '200': { description: OK }
+    delete:
+      summary: Delete template
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: No Content }
+  /api/v1/pipelines/templates/{id}/versions:
+    get:
+      summary: List template versions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/pipelines/compile:
+    post:
+      summary: Compile template to execution plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template_id: { type: string }
+                version: { type: string }
+                parameters: { type: object }
+      responses:
+        '200': { description: OK }
+  /api/v1/pipelines/run:
+    post:
+      summary: Run a compiled pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template_id: { type: string }
+                version: { type: string }
+                trigger_id: { type: string }
+                parameters: { type: object }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/pipelines/runs:
+    get:
+      summary: List runs
+      parameters:
+        - in: query
+          name: template_id
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/pipelines/runs/{run_id}:
+    get:
+      summary: Get run detail
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/pipelines/triggers:
+    get:
+      summary: List triggers
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create trigger
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string, enum: [upload, label, webhook, cron, manual] }
+                filter: { type: object }
+                template_id: { type: string }
+                enabled: { type: boolean }
+      responses:
+        '201': { description: Created }
+  /api/v1/pipelines/triggers/{id}:
+    put:
+      summary: Update trigger
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200': { description: OK }
+  /api/v1/pipelines/policies:
+    get:
+      summary: List policies
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201': { description: Created }
+

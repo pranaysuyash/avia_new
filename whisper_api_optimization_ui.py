@@ -15,6 +15,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 import time
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event
 
 from whisper_api_optimization import (
     WhisperAPIOptimizer,
@@ -22,6 +23,7 @@ from whisper_api_optimization import (
     create_optimizer,
     create_whisper_request
 )
+from streamlit_intent_utils import get_params, update_params
 
 # Page configuration
 st.set_page_config(
@@ -54,6 +56,21 @@ def render_sidebar():
     """Render sidebar configuration."""
     st.sidebar.title("🎙️ Whisper API Optimizer")
     st.sidebar.markdown("---")
+    # Share + reset controls
+    try:
+        render_share_block("Share Whisper Optimization View")
+    except Exception:
+        pass
+    if st.sidebar.button("Reset View/Filters"):
+        try:
+            st.experimental_set_query_params()
+        except Exception:
+            pass
+        try:
+            log_ux_event("st_filters_cleared", {"scope": "whisper_api_optimization"})
+        except Exception:
+            pass
+        st.rerun()
     
     # API Configuration
     st.sidebar.subheader("🔧 Configuration")
@@ -66,20 +83,47 @@ def render_sidebar():
     
     # Redis Configuration
     st.sidebar.subheader("💾 Cache Settings")
-    use_redis = st.sidebar.checkbox("Use Redis Cache", value=True)
+    params = get_params()
+    use_redis = st.sidebar.checkbox(
+        "Use Redis Cache",
+        value=(params.get('wao_redis', '1') == '1')
+    )
     
     if use_redis:
-        redis_host = st.sidebar.text_input("Redis Host", value="localhost")
-        redis_port = st.sidebar.number_input("Redis Port", value=6379, min_value=1, max_value=65535)
+        redis_host = st.sidebar.text_input("Redis Host", value=params.get('wao_rhost', 'localhost'))
+        redis_port_default = int(params.get('wao_rport', '6379')) if params.get('wao_rport', '').isdigit() else 6379
+        redis_port = st.sidebar.number_input("Redis Port", value=redis_port_default, min_value=1, max_value=65535)
     else:
         redis_host = "nonexistent"  # Force memory cache
         redis_port = 6379
     
     # Optimization Settings
     st.sidebar.subheader("⚡ Optimization")
-    batch_size = st.sidebar.slider("Batch Size", min_value=1, max_value=10, value=5)
-    rate_limit = st.sidebar.slider("Rate Limit (req/min)", min_value=10, max_value=100, value=50)
-    cache_ttl = st.sidebar.slider("Cache TTL (hours)", min_value=1, max_value=72, value=24)
+    batch_size = st.sidebar.slider(
+        "Batch Size", min_value=1, max_value=10,
+        value=(int(params.get('wao_batch', '5')) if params.get('wao_batch', '').isdigit() else 5)
+    )
+    rate_limit = st.sidebar.slider(
+        "Rate Limit (req/min)", min_value=10, max_value=100,
+        value=(int(params.get('wao_rate', '50')) if params.get('wao_rate', '').isdigit() else 50)
+    )
+    cache_ttl = st.sidebar.slider(
+        "Cache TTL (hours)", min_value=1, max_value=72,
+        value=(int(params.get('wao_ttl', '24')) if params.get('wao_ttl', '').isdigit() else 24)
+    )
+
+    # Sync updates to query params
+    try:
+        update_params({
+            'wao_redis': '1' if use_redis else '0',
+            'wao_rhost': redis_host if use_redis else None,
+            'wao_rport': str(redis_port) if use_redis else None,
+            'wao_batch': str(batch_size),
+            'wao_rate': str(rate_limit),
+            'wao_ttl': str(cache_ttl),
+        })
+    except Exception:
+        pass
     
     # Initialize optimizer
     if api_key and st.sidebar.button("Initialize Optimizer"):
@@ -104,6 +148,10 @@ def render_sidebar():
 def render_dashboard():
     """Render main dashboard with metrics."""
     st.title("📊 Whisper API Optimization Dashboard")
+    try:
+        render_share_inline("Shareable view link")
+    except Exception:
+        pass
     
     if not st.session_state.optimizer:
         st.warning("⚠️ Please configure and initialize the optimizer in the sidebar first.")

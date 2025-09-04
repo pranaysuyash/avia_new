@@ -1,0 +1,102 @@
+openapi: 3.0.3
+info:
+  title: Creator Publish Packs API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/publish/packs/creator:
+    post:
+      summary: Create a Creator Publish Pack job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [media_id, platforms]
+              additionalProperties: false
+              properties:
+                media_id: { type: string }
+                platforms:
+                  type: array
+                  minItems: 1
+                  items: { type: string, enum: [youtube_shorts, instagram_reels, tiktok] }
+                caption_burn_in: { type: boolean, default: true }
+                thumbnail_style: { type: string, enum: [bold_text_center, clean_lower_third, image_overlay], default: bold_text_center }
+                hashtags_count: { type: integer, minimum: 0, maximum: 30, default: 10 }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+  /api/v1/publish/packs/creator/{job_id}/status:
+    get:
+      summary: Get Creator Pack job status
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+                  status: { type: string, enum: [queued, running, completed, failed, cancelled] }
+                  progress: { type: number }
+                  error: { type: string, nullable: true }
+  /api/v1/publish/packs/creator/{job_id}/assets:
+    get:
+      summary: List generated assets and metadata
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind: { type: string, enum: [video, thumbnail, metadata] }
+                        url: { type: string }
+                        platform: { type: string }
+                        info: { type: object }
+  /api/v1/publish/packs/creator/{job_id}/post:
+    post:
+      summary: Post generated assets to selected platforms
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platforms:
+                  type: array
+                  items: { type: string }
+      responses:
+        '202': { description: Accepted }
+

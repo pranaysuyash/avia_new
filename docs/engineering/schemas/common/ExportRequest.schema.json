@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/common/ExportRequest.schema.json",
+  "title": "ExportRequest",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "enum": ["json", "csv", "xlsx", "fhir", "netsuite", "sap", "quickbooks"],
+      "default": "json"
+    }
+  },
+  "required": ["format"],
+  "additionalProperties": false
+}
+

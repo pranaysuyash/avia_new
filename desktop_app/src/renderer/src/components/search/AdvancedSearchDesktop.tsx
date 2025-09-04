@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { logUxEvent } from '../../services/uxTelemetry';
 import {
   Search,
   Filter,
@@ -141,6 +142,13 @@ interface SearchResponse {
   };
 }
 
+function getQP(key: string): string | null {
+  try { const url = new URL(window.location.href); return url.searchParams.get(key); } catch { return null; }
+}
+function setQP(key: string, val: string | null) {
+  try { const url = new URL(window.location.href); if (!val) url.searchParams.delete(key); else url.searchParams.set(key, val); window.history.replaceState({}, '', url.toString()); } catch {}
+}
+
 const AdvancedSearchDesktop: React.FC = () => {
   // State management
   const [searchQuery, setSearchQuery] = useState<SearchQuery>({
@@ -203,11 +211,39 @@ const AdvancedSearchDesktop: React.FC = () => {
     };
   }, []);
 
+  // Initialize state from deep-link
+  useEffect(() => {
+    const q = getQP('q');
+    const strat = getQP('strategy');
+    const scope = getQP('scope');
+    const sort = getQP('sort');
+    const tab = getQP('tab') as any;
+    const adv = getQP('adv') === '1';
+    setSearchQuery(prev => ({
+      ...prev,
+      query: q ?? prev.query,
+      strategy: (strat as any) || prev.strategy,
+      scope: (scope as any) || prev.scope,
+      sortOrder: (sort as any) || prev.sortOrder,
+    }));
+    if (tab && ['search','analytics','settings','help','index'].includes(tab)) setActiveTab(tab);
+    setShowAdvanced(adv);
+  }, []);
+
+  // Sync state to URL on changes
+  useEffect(() => { setQP('q', searchQuery.query || null); }, [searchQuery.query]);
+  useEffect(() => { setQP('strategy', searchQuery.strategy); }, [searchQuery.strategy]);
+  useEffect(() => { setQP('scope', searchQuery.scope); }, [searchQuery.scope]);
+  useEffect(() => { setQP('sort', searchQuery.sortOrder); }, [searchQuery.sortOrder]);
+  useEffect(() => { setQP('tab', activeTab); }, [activeTab]);
+  useEffect(() => { setQP('adv', showAdvanced ? '1' : null); }, [showAdvanced]);
+
   // Perform search using Electron's main process
   const performSearch = useCallback(async () => {
     if (!searchQuery.query.trim()) return;
 
     setLoading(true);
+    try { logUxEvent('search_executed', { q: searchQuery.query, strategy: searchQuery.strategy, scope: searchQuery.scope, sort: searchQuery.sortOrder }); } catch {}
     try {
       // Send search request to main process
       await window.electronAPI?.performAdvancedSearch?.(searchQuery);
@@ -359,6 +395,14 @@ const AdvancedSearchDesktop: React.FC = () => {
               <span>Export</span>
             </button>
           )}
+          <button
+            onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_view_copied', { href }); } catch {} }}
+            className="px-4 py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 flex items-center space-x-2"
+            title="Copy shareable link"
+          >
+            <Share2 className="w-5 h-5" />
+            <span>Share</span>
+          </button>
         </div>
 
         {/* Advanced options toggle */}

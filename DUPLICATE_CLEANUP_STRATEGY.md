@@ -129,7 +129,7 @@ from production_text_classification_system import ProductionTextClassificationSy
    - `automated_meeting_communication_system.py` → Archive (covered by production_meeting_system)
 
 4. **Authentication**:
-   - Multiple `app_with_auth.py`, `user_authentication.py` → Archive (covered by production_auth_system)
+   - Multiple `user_authentication.py` → Archive (covered by production_auth_system)
 
 ### Medium Priority (Review and Consolidate)
 

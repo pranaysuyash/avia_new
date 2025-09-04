@@ -12,6 +12,8 @@ import pandas as pd
 from typing import Optional, Dict, Any, List
 
 from content_insights import ContentInsightsAnalyzer, ContentInsights
+from streamlit_intent_utils import get_params, update_params
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event
 
 
 class ContentInsightsUI:
@@ -25,6 +27,13 @@ class ContentInsightsUI:
                                speaker_segments: List[Dict[str, Any]] = None) -> Optional[ContentInsights]:
         """Render content insights analysis interface"""
         st.header("🧠 AI Content Insights")
+        # Inline share UI
+        try:
+            render_share_inline("Shareable view link")
+        except Exception:
+            pass
+        # Sidebar share/reset
+        self._render_share_sidebar()
         
         if not transcript:
             # Text input for analysis
@@ -38,17 +47,28 @@ class ContentInsightsUI:
             st.info("Enter transcript text to generate AI-powered insights")
             return None
         
-        # Analysis options
+        # Analysis options (deep-linked)
         st.subheader("Analysis Options")
         col1, col2 = st.columns(2)
-        
+        params = get_params()
+
         with col1:
-            include_sentiment = st.checkbox("Sentiment Analysis", value=True)
-            include_topics = st.checkbox("Topic Extraction", value=True)
+            include_sentiment = st.checkbox("Sentiment Analysis", value=(params.get('ci_sent', '1') == '1'))
+            include_topics = st.checkbox("Topic Extraction", value=(params.get('ci_topics', '1') == '1'))
         
         with col2:
-            include_summary = st.checkbox("Content Summary", value=True)
-            include_speakers = st.checkbox("Speaker Analysis", value=bool(speaker_segments))
+            include_summary = st.checkbox("Content Summary", value=(params.get('ci_sum', '1') == '1'))
+            include_speakers = st.checkbox("Speaker Analysis", value=(params.get('ci_speakers', '1') == '1' if speaker_segments is None else bool(speaker_segments)))
+
+        try:
+            update_params({
+                'ci_sent': '1' if include_sentiment else '0',
+                'ci_topics': '1' if include_topics else '0',
+                'ci_sum': '1' if include_summary else '0',
+                'ci_speakers': '1' if include_speakers else '0',
+            })
+        except Exception:
+            pass
         
         # Run analysis
         if st.button("Generate Insights", type="primary"):
@@ -69,6 +89,22 @@ class ContentInsightsUI:
                     return None
         
         return None
+
+    def _render_share_sidebar(self):
+        try:
+            render_share_block("Share Content Insights View")
+        except Exception:
+            pass
+        if st.button("Reset View/Filters"):
+            try:
+                st.experimental_set_query_params()
+            except Exception:
+                pass
+            try:
+                log_ux_event("st_filters_cleared", {"scope": "content_insights"})
+            except Exception:
+                pass
+            st.rerun()
     
     def _display_insights(self, 
                          insights: ContentInsights,

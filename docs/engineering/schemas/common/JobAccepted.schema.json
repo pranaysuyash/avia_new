@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/common/JobAccepted.schema.json",
+  "title": "JobAccepted",
+  "type": "object",
+  "properties": {
+    "job_id": {"type": "string"},
+    "status": {"type": "string", "enum": ["accepted", "queued"]}
+  },
+  "required": ["job_id", "status"],
+  "additionalProperties": false
+}
+

@@ -256,7 +256,7 @@ BLACKBOARD_API_TOKEN=...
 ## 🚀 Integration with Main App
 
 ### App Refactoring
-- **File**: `app_refactored.py` updated
+- **File**: `app.py` updated
 - **Integration**: Seamless integration with tab-based UI
 - **Location**: Video & Media Tools → Export & Integrations tab
 - **Access**: Available after processing any audio/video content

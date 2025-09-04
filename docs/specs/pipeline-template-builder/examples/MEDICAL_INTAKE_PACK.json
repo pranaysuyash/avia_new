@@ -1,0 +1,57 @@
+{
+  "id": "tpl_medical_intake_v1",
+  "name": "Medical Intake Pack — Forms to FHIR",
+  "version": "1.0.0",
+  "description": "Classify forms, OCR printed/handwriting, validate medical rules, and export JSON/CSV/FHIR.",
+  "io": {
+    "inputs": [
+      {"name": "document", "type": "Document"}
+    ],
+    "outputs": [
+      {"name": "fields_json", "type": "JSON"},
+      {"name": "fields_csv", "type": "CSV"},
+      {"name": "fhir_bundle", "type": "FHIR"}
+    ]
+  },
+  "parameters": {
+    "form_type": "",
+    "enable_handwriting": true,
+    "confidence_threshold": 0.5,
+    "export_format": "json"
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "form_type": {"type": "string", "description": "Optional template hint (registration, consent, intake)"},
+      "enable_handwriting": {"type": "boolean"},
+      "confidence_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+      "export_format": {"type": "string", "enum": ["json", "csv", "fhir"], "default": "json"}
+    },
+    "required": ["enable_handwriting", "confidence_threshold", "export_format"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      { "id": "ingest", "def": "Ingest.Document", "params": {"storage_class": "standard"}, "io": {"in": ["None"], "out": ["Document"]} },
+      { "id": "classify", "def": "Classify.FormType", "params": {"hint": "${form_type}"}, "io": {"in": ["Document"], "out": ["Meta.FormType"]} },
+      { "id": "zone", "def": "Layout.ZoneFromTemplate", "params": {}, "io": {"in": ["Document"], "out": ["Regions"]} },
+      { "id": "ocr_print", "def": "OCR.Printed", "params": {}, "io": {"in": ["Regions"], "out": ["Text.Spans"]} },
+      { "id": "ocr_hand", "def": "OCR.Handwriting", "params": {"enabled": "${enable_handwriting}"}, "io": {"in": ["Regions"], "out": ["Text.Spans"]} },
+      { "id": "validate", "def": "Validate.MedicalRules", "params": {"confidence_min": "${confidence_threshold}"}, "io": {"in": ["Text.Spans"], "out": ["Issues", "Fields"]} },
+      { "id": "export", "def": "Export.Results", "params": {"format": "${export_format}"}, "io": {"in": ["Fields", "Issues"], "out": ["JSON", "CSV", "FHIR"]} }
+    ],
+    "edges": [
+      {"from": "ingest.out", "to": "classify.in"},
+      {"from": "ingest.out", "to": "zone.in"},
+      {"from": "zone.out", "to": "ocr_print.in"},
+      {"from": "zone.out", "to": "ocr_hand.in"},
+      {"from": "ocr_print.out", "to": "validate.in"},
+      {"from": "ocr_hand.out", "to": "validate.in"},
+      {"from": "validate.out", "to": "export.in"}
+    ]
+  },
+  "policies": [
+    {"id": "gate_confidence_min", "checks": [{"type": "min_confidence", "node": "validate", "value": "${confidence_threshold}"}], "severity": "warn"}
+  ]
+}
+

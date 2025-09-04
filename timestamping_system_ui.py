@@ -27,6 +27,17 @@ from timestamping_system import (
     TimeCode, Bookmark, TranscriptSegment
 )
 
+# Intent-First utilities: deep-linking, share UI, skeletons, telemetry
+from streamlit_intent_utils import (
+    get_params,
+    update_params,
+    render_share_block,
+    render_share_inline,
+    log_ux_event,
+    render_skeleton_block,
+    render_skeleton_list,
+)
+
 class TimestampingSystemUI:
     """Streamlit UI for the Timestamping System"""
     
@@ -51,18 +62,96 @@ class TimestampingSystemUI:
         """Render the main timestamping interface"""
         st.title("🕒 Comprehensive Timestamping System")
         st.markdown("Advanced timestamp management with word-level precision and audio synchronization")
-        
+
+        # Inline share at top for quick copying
+        render_share_inline("Shareable view link")
+
+        # Deep-link params sync
+        params = get_params()
+        # Support deep-link for content id
+        dl_content = params.get("ts_content")
+        if dl_content and dl_content != st.session_state.get("selected_content_id"):
+            st.session_state.selected_content_id = dl_content
+            try:
+                log_ux_event("ts_content_set", {"content_id": dl_content, "source": "query_param"})
+            except Exception:
+                pass
+            self.load_content_data(dl_content)
+        # Support deep-link for current time
+        dl_time = params.get("ts_time")
+        if dl_time and str(dl_time).replace(".", "", 1).isdigit():
+            try:
+                st.session_state.current_audio_time = float(dl_time)
+            except Exception:
+                pass
+        # View selector with deep-link
+        view_options = {
+            "transcript": "📝 Clickable Transcript",
+            "timeline": "📊 Timeline View",
+            "word": "🔍 Word Analysis",
+            "segments": "📑 Segments",
+            "export": "📤 Export",
+        }
+
         # Sidebar for content selection and controls
         with st.sidebar:
             self.render_content_selector()
+            # Deep-linked view selector
+            current_view_key = params.get("ts_tab", "transcript")
+            try:
+                current_idx = list(view_options.keys()).index(current_view_key) if current_view_key in view_options else 0
+            except Exception:
+                current_idx = 0
+            selected_label = st.selectbox(
+                "View",
+                options=list(view_options.values()),
+                index=current_idx,
+                help="Switch between timestamping views",
+            )
+            # Map back to key and update query params if changed
+            selected_key = [k for k, v in view_options.items() if v == selected_label][0]
+            if selected_key != current_view_key:
+                update_params({"ts_tab": selected_key})
+                try:
+                    log_ux_event("ts_view_change", {"tab": selected_key})
+                except Exception:
+                    pass
             self.render_audio_controls()
             self.render_bookmark_manager()
-        
+
+            # Share block and Reset
+            render_share_block("Share Timestamping View")
+            if st.button("Reset View/Filters"):
+                update_params({
+                    "ts_tab": None,
+                    "ts_content": None,
+                    "ts_time": None,
+                })
+                try:
+                    log_ux_event("st_filters_cleared", {"scope": "timestamping"})
+                except Exception:
+                    pass
+                st.rerun()
+
         # Main content area
-        if st.session_state.selected_content_id:
-            self.render_timestamp_interface()
-        else:
+        if not st.session_state.selected_content_id:
             self.render_welcome_screen()
+            return
+
+        # Route by deep-linked view
+        tab_key = get_params().get("ts_tab", "transcript")
+        if tab_key == "transcript":
+            self.render_clickable_transcript()
+        elif tab_key == "timeline":
+            self.render_timeline_view()
+        elif tab_key == "word":
+            self.render_word_analysis()
+        elif tab_key == "segments":
+            self.render_segment_view()
+        elif tab_key == "export":
+            self.render_export_interface()
+        else:
+            self.render_clickable_transcript()
     
     def render_content_selector(self):
         """Render content selection interface"""
@@ -74,9 +163,14 @@ class TimestampingSystemUI:
             value=st.session_state.selected_content_id or "",
             help="Enter the unique identifier for your audio/video content"
         )
-        
+
         if content_id and content_id != st.session_state.selected_content_id:
             st.session_state.selected_content_id = content_id
+            update_params({"ts_content": content_id})
+            try:
+                log_ux_event("ts_content_set", {"content_id": content_id, "source": "text_input"})
+            except Exception:
+                pass
             self.load_content_data(content_id)
         
         # File upload for new content
@@ -110,9 +204,14 @@ class TimestampingSystemUI:
                 step=0.1,
                 format="%.1fs"
             )
-            
+
             if new_time != current_time:
                 st.session_state.current_audio_time = new_time
+                update_params({"ts_time": f"{new_time:.1f}"})
+                try:
+                    log_ux_event("ts_seek", {"time": new_time})
+                except Exception:
+                    pass
                 st.rerun()
         
         # Quick navigation buttons
@@ -120,15 +219,29 @@ class TimestampingSystemUI:
         with col1:
             if st.button("⏪ -10s"):
                 st.session_state.current_audio_time = max(0, current_time - 10)
+                update_params({"ts_time": f"{st.session_state.current_audio_time:.1f}"})
+                try:
+                    log_ux_event("ts_nudge", {"direction": "back", "delta": -10})
+                except Exception:
+                    pass
                 st.rerun()
         
         with col2:
             if st.button("⏸️ Pause"):
                 st.info("Audio paused")
+                try:
+                    log_ux_event("ts_pause", None)
+                except Exception:
+                    pass
         
         with col3:
             if st.button("⏩ +10s"):
                 st.session_state.current_audio_time = current_time + 10
+                update_params({"ts_time": f"{st.session_state.current_audio_time:.1f}"})
+                try:
+                    log_ux_event("ts_nudge", {"direction": "forward", "delta": 10})
+                except Exception:
+                    pass
                 st.rerun()
     
     def render_bookmark_manager(self):
@@ -155,6 +268,10 @@ class TimestampingSystemUI:
                     )
                     
                     st.success(f"Bookmark created at {self.format_time(bookmark.timestamp)}")
+                    try:
+                        log_ux_event("ts_bookmark_create", {"content_id": st.session_state.selected_content_id, "ts": bookmark.timestamp})
+                    except Exception:
+                        pass
                     self.load_bookmarks()
                     st.rerun()
         
@@ -176,6 +293,11 @@ class TimestampingSystemUI:
                     with col2:
                         if st.button("Go", key=f"goto_{bookmark['id']}"):
                             st.session_state.current_audio_time = bookmark['timestamp']
+                            update_params({"ts_time": f"{st.session_state.current_audio_time:.1f}"})
+                            try:
+                                log_ux_event("ts_bookmark_jump", {"bookmark_id": bookmark['id'], "ts": bookmark['timestamp']})
+                            except Exception:
+                                pass
                             st.rerun()
                     
                     st.divider()
@@ -211,9 +333,13 @@ class TimestampingSystemUI:
     def render_clickable_transcript(self):
         """Render clickable transcript with audio synchronization"""
         st.subheader("📝 Interactive Transcript")
-        
+
         if not st.session_state.transcript_segments:
-            st.info("No transcript segments available. Upload content to generate timestamps.")
+            # Skeleton state when content selected but no segments loaded
+            if st.session_state.get("selected_content_id"):
+                render_skeleton_list(items=4)
+            else:
+                st.info("No transcript segments available. Upload content to generate timestamps.")
             return
         
         # Current word highlight
@@ -249,6 +375,11 @@ class TimestampingSystemUI:
                             help=f"Click to jump to {self.format_time(segment['start_time'])}"
                         ):
                             st.session_state.current_audio_time = segment['start_time']
+                            update_params({"ts_time": f"{segment['start_time']:.1f}"})
+                            try:
+                                log_ux_event("ts_jump_segment", {"start": segment['start_time'], "end": segment['end_time']})
+                            except Exception:
+                                pass
                             st.rerun()
                     
                     with col2:
@@ -267,6 +398,11 @@ class TimestampingSystemUI:
                                     help=f"Jump to {self.format_time(word['start_time'])}"
                                 ):
                                     st.session_state.current_audio_time = word['start_time']
+                                    update_params({"ts_time": f"{word['start_time']:.1f}"})
+                                    try:
+                                        log_ux_event("ts_jump_word", {"ts": word['start_time']})
+                                    except Exception:
+                                        pass
                                     st.rerun()
                 
                 st.divider()
@@ -274,9 +410,13 @@ class TimestampingSystemUI:
     def render_timeline_view(self):
         """Render timeline visualization"""
         st.subheader("📊 Timeline Visualization")
-        
+
         if not st.session_state.word_timestamps:
-            st.info("No timestamp data available.")
+            if st.session_state.get("selected_content_id"):
+                render_skeleton_block(height=260)
+                render_skeleton_block(height=120)
+            else:
+                st.info("No timestamp data available.")
             return
         
         # Create timeline chart
@@ -323,9 +463,12 @@ class TimestampingSystemUI:
     def render_word_analysis(self):
         """Render word-level analysis interface"""
         st.subheader("🔍 Word-Level Analysis")
-        
+
         if not st.session_state.word_timestamps:
-            st.info("No word timestamp data available.")
+            if st.session_state.get("selected_content_id"):
+                render_skeleton_list(items=5)
+            else:
+                st.info("No word timestamp data available.")
             return
         
         # Word statistics
@@ -374,6 +517,11 @@ class TimestampingSystemUI:
                     with col3:
                         if st.button("Go", key=f"search_{word['start_time']}"):
                             st.session_state.current_audio_time = word['start_time']
+                            update_params({"ts_time": f"{word['start_time']:.1f}"})
+                            try:
+                                log_ux_event("ts_jump_search", {"ts": word['start_time'], "word": word['word']})
+                            except Exception:
+                                pass
                             st.rerun()
             else:
                 st.info("No matches found.")
@@ -406,9 +554,12 @@ class TimestampingSystemUI:
     def render_segment_view(self):
         """Render segment management interface"""
         st.subheader("📑 Segment Management")
-        
+
         if not st.session_state.segment_timestamps:
-            st.info("No segment data available.")
+            if st.session_state.get("selected_content_id"):
+                render_skeleton_list(items=4)
+            else:
+                st.info("No segment data available.")
             return
         
         # Segment statistics
@@ -465,10 +616,20 @@ class TimestampingSystemUI:
                 with col2:
                     if st.button("Jump to Start", key=f"seg_start_{i}"):
                         st.session_state.current_audio_time = segment['start_time']
+                        update_params({"ts_time": f"{segment['start_time']:.1f}"})
+                        try:
+                            log_ux_event("ts_jump_segment_start", {"start": segment['start_time']})
+                        except Exception:
+                            pass
                         st.rerun()
                     
                     if st.button("Jump to End", key=f"seg_end_{i}"):
                         st.session_state.current_audio_time = segment['end_time']
+                        update_params({"ts_time": f"{segment['end_time']:.1f}"})
+                        try:
+                            log_ux_event("ts_jump_segment_end", {"end": segment['end_time']})
+                        except Exception:
+                            pass
                         st.rerun()
     
     def render_export_interface(self):
@@ -515,6 +676,10 @@ class TimestampingSystemUI:
                         file_name=f"{content_id}_timestamps.csv",
                         mime="text/csv"
                     )
+                    try:
+                        log_ux_event("ts_export", {"format": "csv", "include_words": include_words, "include_segments": include_segments, "include_bookmarks": include_bookmarks, "include_confidence": include_confidence})
+                    except Exception:
+                        pass
                 else:
                     # Use timestamping system export
                     export_data = self.ts_system.export_timestamps(
@@ -539,6 +704,10 @@ class TimestampingSystemUI:
                         )
                         
                         st.success(f"Export ready! Click the download button above.")
+                        try:
+                            log_ux_event("ts_export", {"format": file_extension, "include_words": include_words, "include_segments": include_segments, "include_bookmarks": include_bookmarks, "include_confidence": include_confidence})
+                        except Exception:
+                            pass
                     else:
                         st.error("Export failed. Please try again.")
                         
@@ -553,6 +722,10 @@ class TimestampingSystemUI:
                 
                 if preview_data:
                     st.code(preview_data[:1000] + "..." if len(preview_data) > 1000 else preview_data)
+                    try:
+                        log_ux_event("ts_export_preview", {"content_id": content_id})
+                    except Exception:
+                        pass
                 else:
                     st.info("No data to preview.")
                     
@@ -646,6 +819,10 @@ class TimestampingSystemUI:
             
             # Simulate timestamp generation process
             status_text.text("Analyzing audio...")
+            try:
+                log_ux_event("ts_upload_begin", {"filename": uploaded_file.name})
+            except Exception:
+                pass
             progress_bar.progress(25)
             
             # This would call the actual timestamp generation
@@ -672,6 +849,7 @@ class TimestampingSystemUI:
             
             # Update session state
             st.session_state.selected_content_id = content_id
+            update_params({"ts_content": content_id})
             st.session_state.word_timestamps = [w.to_dict() for w in word_timestamps]
             st.session_state.segment_timestamps = [s.to_dict() for s in segment_timestamps]
             
@@ -682,6 +860,10 @@ class TimestampingSystemUI:
             
             status_text.text("✅ Processing complete!")
             st.success(f"Timestamps generated for {uploaded_file.name}")
+            try:
+                log_ux_event("ts_upload_complete", {"content_id": content_id})
+            except Exception:
+                pass
             
         except Exception as e:
             st.error(f"File processing error: {str(e)}")

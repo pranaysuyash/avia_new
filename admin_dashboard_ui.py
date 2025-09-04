@@ -16,6 +16,14 @@ from admin_dashboard import (
     AdminDashboardSystem, AdminUser, SupportTicket, UserStatus, SubscriptionTier,
     TicketStatus, TicketPriority
 )
+from streamlit_intent_utils import (
+    get_params,
+    update_params,
+    render_share_block,
+    log_ux_event,
+    render_share_inline,
+    render_skeleton_list,
+)
 
 class AdminDashboardUI:
     """UI components for admin dashboard functionality"""
@@ -41,14 +49,14 @@ class AdminDashboardUI:
         )
         
         st.title("🏢 Admin Dashboard & Business Analytics")
+        render_share_inline()
         
         # Sidebar navigation
         with st.sidebar:
             st.header("Navigation")
             
-            page = st.selectbox(
-                "Select Page:",
-                [
+            params = get_params()
+            pages = [
                     "📊 Overview",
                     "👥 User Management", 
                     "💰 Revenue Analytics",
@@ -58,11 +66,30 @@ class AdminDashboardUI:
                     "📋 Executive Reports",
                     "📋 Audit Log"
                 ]
+            initial_index = pages.index(params.get('admin_page', pages[0])) if params.get('admin_page', pages[0]) in pages else 0
+            page = st.selectbox(
+                "Select Page:",
+                pages,
+                index=initial_index
             )
+            update_params({'admin_page': page})
+            try:
+                log_ux_event('admin_page_change', {'page': page})
+            except Exception:
+                pass
             
             # Refresh data button
             if st.button("🔄 Refresh Data"):
                 st.session_state.dashboard_data = {}
+                st.rerun()
+
+            render_share_block("Share Admin View")
+            if st.button("Reset Admin View"):
+                update_params({'admin_page': None, 'admin_user_query': None, 'admin_user_status': None, 'admin_user_tier': None, 'admin_user_sort': None, 'admin_user_dir': None, 'admin_user_size': None})
+                try:
+                    log_ux_event('st_filters_cleared', {'scope': 'admin_dashboard'})
+                except Exception:
+                    pass
                 st.rerun()
         
         # Route to appropriate page
@@ -207,24 +234,33 @@ class AdminDashboardUI:
         col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
         
         with col1:
+            params = get_params()
             search_query = st.text_input(
                 "Search Users:",
+                value=params.get('admin_user_query', ''),
                 placeholder="Search by username, email, or name..."
             )
+            update_params({'admin_user_query': search_query or None})
         
         with col2:
+            status_options = ["All", "Active", "Inactive", "Suspended", "Pending"]
+            status_default = params.get('admin_user_status', 'All')
             status_filter = st.selectbox(
                 "Status Filter:",
-                options=["All", "Active", "Inactive", "Suspended", "Pending"],
-                index=0
+                options=status_options,
+                index=(status_options.index(status_default) if status_default in status_options else 0)
             )
+            update_params({'admin_user_status': status_filter if status_filter != 'All' else None})
         
         with col3:
+            tier_options = ["All", "Free", "Pro", "Enterprise"]
+            tier_default = params.get('admin_user_tier', 'All')
             tier_filter = st.selectbox(
                 "Subscription Tier:",
-                options=["All", "Free", "Pro", "Enterprise"],
-                index=0
+                options=tier_options,
+                index=(tier_options.index(tier_default) if tier_default in tier_options else 0)
             )
+            update_params({'admin_user_tier': tier_filter if tier_filter != 'All' else None})
         
         with col3:
             sort_by = st.selectbox(
@@ -238,6 +274,7 @@ class AdminDashboardUI:
                 options=["Descending", "Ascending"],
                 index=0
             )
+            update_params({'admin_user_sort': sort_by, 'admin_user_dir': 'desc' if sort_order == 'Descending' else 'asc'})
         
         # Create filters dictionary
         filters = {}
@@ -250,7 +287,10 @@ class AdminDashboardUI:
         col1, col2, col3 = st.columns([1, 1, 2])
         
         with col1:
-            page_size = st.selectbox("Items per page:", [10, 25, 50, 100], index=2)
+            size_options = [10, 25, 50, 100]
+            size_default = int(params.get('admin_user_size', '50')) if str(params.get('admin_user_size', '')).isdigit() else 50
+            page_size = st.selectbox("Items per page:", size_options, index=(size_options.index(size_default) if size_default in size_options else 2))
+            update_params({'admin_user_size': str(page_size)})
         
         with col2:
             # Get total count for pagination
@@ -260,22 +300,34 @@ class AdminDashboardUI:
             # Calculate total pages
             total_pages = max(1, (total_users + page_size - 1) // page_size)
             
-            # Current page (stored in session state)
+            # Current page (stored in session state, deep-linked)
+            qp_page = int(params.get('admin_user_page', '1')) if str(params.get('admin_user_page', '')).isdigit() else 1
             if 'user_page' not in st.session_state:
-                st.session_state.user_page = 1
-            
+                st.session_state.user_page = qp_page
             current_page = st.number_input(
                 "Page", 
                 min_value=1, 
                 max_value=total_pages, 
                 value=st.session_state.user_page
             )
-            
-            # Update session state
+            # Update session state and URL
             st.session_state.user_page = current_page
+            try:
+                update_params({'admin_user_page': str(current_page)})
+            except Exception:
+                pass
         
         with col3:
             st.write(f"Showing {min(page_size, total_users)} of {total_users} users")
+
+        st.caption("Shareable filters: query/status/tier/sort/page size are reflected in the URL.")
+        if st.button("Reset User Filters"):
+            update_params({'admin_user_query': None, 'admin_user_status': None, 'admin_user_tier': None, 'admin_user_sort': None, 'admin_user_dir': None, 'admin_user_size': None, 'admin_user_page': None})
+            try:
+                log_ux_event('st_filters_cleared', {'scope': 'admin_users'})
+            except Exception:
+                pass
+            st.rerun()
         
         # Calculate offset
         offset = (current_page - 1) * page_size
@@ -292,6 +344,13 @@ class AdminDashboardUI:
         sort_column = sort_column_map.get(sort_by, "created_at")
         sort_order_db = "DESC" if sort_order == "Descending" else "ASC"
         
+        # Lightweight skeletons while fetching
+        ph = st.container()
+        with ph:
+            try:
+                render_skeleton_list(items=5)
+            except Exception:
+                pass
         # Get users with pagination and sorting
         if search_query:
             users = self.admin_system.user_management.search_users(
@@ -310,6 +369,7 @@ class AdminDashboardUI:
                 sort_by=sort_column,
                 sort_order=sort_order_db
             )
+        ph.empty()
         
         # User statistics
         col1, col2, col3, col4 = st.columns(4)
@@ -392,13 +452,16 @@ class AdminDashboardUI:
         st.header("💰 Revenue Analytics")
         
         # Time period selector
+        params = get_params()
         col1, col2 = st.columns([1, 3])
         
         with col1:
+            options = ["Last 7 days", "Last 30 days", "Last 90 days", "Last year", "Custom"]
+            qp_period = params.get('admin_rev_period')
             period = st.selectbox(
                 "Analysis Period:",
-                options=["Last 7 days", "Last 30 days", "Last 90 days", "Last year"],
-                index=1
+                options=options,
+                index=(options.index(qp_period) if qp_period in options else 1)
             )
             
             days_map = {
@@ -407,11 +470,31 @@ class AdminDashboardUI:
                 "Last 90 days": 90,
                 "Last year": 365
             }
-            days = days_map[period]
+            if period == "Custom":
+                from datetime import date, timedelta as _td
+                col_s, col_e = st.columns(2)
+                with col_s:
+                    _s_default = params.get('admin_rev_start')
+                    start_date = st.date_input("Start", value=(date.fromisoformat(_s_default) if _s_default else date.today() - _td(days=30)))
+                with col_e:
+                    _e_default = params.get('admin_rev_end')
+                    end_date = st.date_input("End", value=(date.fromisoformat(_e_default) if _e_default else date.today()))
+                days = (end_date - start_date).days + 1
+                update_params({'admin_rev_period': period, 'admin_rev_start': start_date.isoformat(), 'admin_rev_end': end_date.isoformat()})
+            else:
+                days = days_map[period]
+                update_params({'admin_rev_period': period, 'admin_rev_start': None, 'admin_rev_end': None})
         
-        # Get revenue data
+        # Get revenue data with skeletons
+        ph = st.container()
+        with ph:
+            try:
+                render_skeleton_list(items=4)
+            except Exception:
+                pass
         revenue_overview = self.admin_system.revenue_tracking.get_revenue_overview(days)
         subscription_metrics = self.admin_system.revenue_tracking.get_subscription_metrics()
+        ph.empty()
         
         # Revenue metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -663,35 +746,43 @@ class AdminDashboardUI:
         st.header("🎫 Support Ticket Management")
         
         # Ticket filters
+        params = get_params()
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
+            _status_opts = ["All", "Open", "In Progress", "Resolved", "Closed"]
             status_filter = st.selectbox(
                 "Status Filter:",
-                options=["All", "Open", "In Progress", "Resolved", "Closed"],
-                index=0
+                options=_status_opts,
+                index=(_status_opts.index(params.get('admin_tk_status', 'All')) if params.get('admin_tk_status', 'All') in _status_opts else 0)
             )
+            update_params({'admin_tk_status': status_filter if status_filter != 'All' else None})
         
         with col2:
+            _pri_opts = ["All", "Low", "Medium", "High", "Critical"]
             priority_filter = st.selectbox(
                 "Priority Filter:",
-                options=["All", "Low", "Medium", "High", "Critical"],
-                index=0
+                options=_pri_opts,
+                index=(_pri_opts.index(params.get('admin_tk_pri', 'All')) if params.get('admin_tk_pri', 'All') in _pri_opts else 0)
             )
+            update_params({'admin_tk_pri': priority_filter if priority_filter != 'All' else None})
         
         with col3:
+            _sort_opts = ["Created Date", "Updated Date", "Priority", "Status"]
             sort_by = st.selectbox(
                 "Sort By:",
-                options=["Created Date", "Updated Date", "Priority", "Status"],
-                index=0
+                options=_sort_opts,
+                index=(_sort_opts.index(params.get('admin_tk_sort', 'Created Date')) if params.get('admin_tk_sort', 'Created Date') in _sort_opts else 0)
             )
             
+            _dir_opts = ["Descending", "Ascending"]
             sort_order = st.selectbox(
                 "Order:",
-                options=["Descending", "Ascending"],
-                index=0,
+                options=_dir_opts,
+                index=(_dir_opts.index(params.get('admin_tk_dir', 'Descending')) if params.get('admin_tk_dir', 'Descending') in _dir_opts else 0),
                 key="ticket_sort_order"
             )
+            update_params({'admin_tk_sort': sort_by, 'admin_tk_dir': sort_order})
         
         with col4:
             if st.button("➕ Create New Ticket"):
@@ -701,8 +792,18 @@ class AdminDashboardUI:
         col1, col2, col3 = st.columns([1, 1, 2])
         
         with col1:
-            page_size = st.selectbox("Items per page:", [10, 25, 50, 100], index=2, key="ticket_page_size")
+            _size_opts = [10, 25, 50, 100]
+            _size_default = int(params.get('admin_tk_size', '50')) if str(params.get('admin_tk_size', '')).isdigit() else 50
+            page_size = st.selectbox("Items per page:", _size_opts, index=(_size_opts.index(_size_default) if _size_default in _size_opts else 2), key="ticket_page_size")
+            update_params({'admin_tk_size': str(page_size)})
         
+        # Build filters for querying
+        filters = {}
+        if status_filter != "All":
+            filters['status'] = status_filter.lower().replace(' ', '_')
+        if priority_filter != "All":
+            filters['priority'] = priority_filter.lower()
+
         with col2:
             # Get total count for pagination
             all_tickets = self.admin_system.support_system.get_tickets(
@@ -714,10 +815,10 @@ class AdminDashboardUI:
             # Calculate total pages
             total_pages = max(1, (total_tickets + page_size - 1) // page_size)
             
-            # Current page (stored in session state)
+            # Current page (stored in session state; deep-linked)
+            qp_page = int(params.get('admin_tk_page', '1')) if str(params.get('admin_tk_page', '')).isdigit() else 1
             if 'ticket_page' not in st.session_state:
-                st.session_state.ticket_page = 1
-            
+                st.session_state.ticket_page = qp_page
             current_page = st.number_input(
                 "Page", 
                 min_value=1, 
@@ -728,6 +829,10 @@ class AdminDashboardUI:
             
             # Update session state
             st.session_state.ticket_page = current_page
+            try:
+                update_params({'admin_tk_page': str(current_page)})
+            except Exception:
+                pass
         
         with col3:
             st.write(f"Showing {min(page_size, total_tickets)} of {total_tickets} tickets")
@@ -735,13 +840,14 @@ class AdminDashboardUI:
         # Calculate offset
         offset = (current_page - 1) * page_size
         
+        # Loading skeletons while fetching tickets
+        tph = st.container()
+        with tph:
+            try:
+                render_skeleton_list(items=4)
+            except Exception:
+                pass
         # Get tickets
-        filters = {}
-        if status_filter != "All":
-            filters['status'] = status_filter.lower().replace(' ', '_')
-        if priority_filter != "All":
-            filters['priority'] = priority_filter.lower()
-        
         # Map sort options to database columns
         sort_column_map = {
             "Created Date": "created_at",
@@ -761,6 +867,7 @@ class AdminDashboardUI:
             sort_by=sort_column,
             sort_order=sort_order_db
         )
+        tph.empty()
         
         # Support metrics
         support_metrics = self.admin_system.support_system.get_support_metrics()

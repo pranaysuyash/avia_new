@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/common/ReportLocation.schema.json",
+  "title": "ReportLocation",
+  "type": "object",
+  "properties": {
+    "url": {"type": "string", "format": "uri"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  },
+  "required": ["url"],
+  "additionalProperties": false
+}
+

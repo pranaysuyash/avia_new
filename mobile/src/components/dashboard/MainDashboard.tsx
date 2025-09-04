@@ -8,7 +8,8 @@ import {
   Dimensions,
   RefreshControl,
   ActivityIndicator,
-  Alert
+  Alert,
+  Share,
 } from 'react-native';
 import {
   LineChart,
@@ -18,6 +19,9 @@ import {
 } from 'react-native-chart-kit';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
+import { SkeletonList } from '../shared/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -214,12 +218,20 @@ export const MainDashboard: React.FC = () => {
         <Text style={styles.headerTitle}>Dashboard</Text>
         <Text style={styles.headerSubtitle}>Welcome back!</Text>
       </View>
-      <TouchableOpacity style={styles.notificationButton}>
-        <Icon name="notifications" size={24} color="#007AFF" />
-        <View style={styles.notificationBadge}>
-          <Text style={styles.notificationBadgeText}>3</Text>
-        </View>
-      </TouchableOpacity>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity onPress={async () => {
+          const url = buildLink('dashboard');
+          try { await Share.share({ message: url }); await logUxEvent('share_dashboard_view', { url }); } catch {}
+        }} style={{ padding: 8, marginRight: 4 }} accessibilityLabel="Share dashboard">
+          <Icon name="ios-share" size={20} color="#007AFF" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.notificationButton}>
+          <Icon name="notifications" size={24} color="#007AFF" />
+          <View style={styles.notificationBadge}>
+            <Text style={styles.notificationBadgeText}>3</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -298,7 +310,9 @@ export const MainDashboard: React.FC = () => {
   const renderRecentTranscripts = () => (
     <View style={styles.recentContainer}>
       <Text style={styles.sectionTitle}>Recent Transcripts</Text>
-      {recentTranscripts.map((transcript) => (
+      {loading ? (
+        <SkeletonList rows={4} />
+      ) : recentTranscripts.map((transcript) => (
         <TouchableOpacity key={transcript.id} style={styles.transcriptItem}>
           <View style={styles.transcriptIcon}>
             <Icon

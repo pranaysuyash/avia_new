@@ -443,6 +443,21 @@ export const AnalyticsDashboard: React.FC = () => {
           </Box>
           
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={async () => {
+                try {
+                  const u = new URL(window.location.href);
+                  await navigator.clipboard.writeText(u.toString());
+                  // eslint-disable-next-line @typescript-eslint/no-var-requires
+                  const { logUxEvent } = require('../../../components/shared/uxTelemetry');
+                  try { logUxEvent('share_view_copied', { page: 'enterprise_analytics' }); } catch {}
+                } catch {}
+              }}
+            >
+              Share
+            </Button>
             {/* Time Range Selector */}
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>Time Range</InputLabel>

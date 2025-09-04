@@ -54,6 +54,10 @@ import { GestureHandlerRootView, PinchGestureHandler, State } from 'react-native
 import ViewShot from 'react-native-view-shot';
 import ImageEditor from '@react-native-community/image-editor';
 import { manipulateAsync, FlipType, SaveFormat } from 'expo-image-manipulator';
+import { Share } from 'react-native';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
+import { SkeletonList } from '../shared/Skeleton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -117,7 +121,7 @@ const ImagePreprocessingMobile: React.FC = () => {
   const [imageFiles, setImageFiles] = useState<ImageFile[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [currentImage, setCurrentImage] = useState<ImageFile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [processingQueue, setProcessingQueue] = useState<string[]>([]);
   
   const [settings, setSettings] = useState<ProcessingSettings>({
@@ -155,6 +159,26 @@ const ImagePreprocessingMobile: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'processed' | 'unprocessed'>('all');
   const [cropMode, setCropMode] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        await new Promise(res => setTimeout(res, 500));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const sharePreprocessingLink = async () => {
+    const url = buildLink('preprocessing');
+    try {
+      await Share.share({ message: url });
+      await logUxEvent('share_preprocessing_view', { url });
+    } catch (_) {}
+  };
 
   // Animation values
   const imageScale = useRef(new Animated.Value(1)).current;
@@ -911,6 +935,14 @@ const ImagePreprocessingMobile: React.FC = () => {
             <View style={styles.headerContent}>
               <Title>Image Preprocessing</Title>
               <View style={styles.headerActions}>
+                <IconButton
+                  icon="share-variant"
+                  onPress={async () => {
+                    const url = buildLink('preprocessing');
+                    try { await Share.share({ message: url }); await logUxEvent('share_preprocessing_view', { url }); } catch {}
+                  }}
+                  accessibilityLabel="Share preprocessing view"
+                />
                 <Badge visible={selectedFiles.length > 0} style={styles.selectionBadge}>
                   {selectedFiles.length}
                 </Badge>

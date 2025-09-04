@@ -14,6 +14,10 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import DocumentPicker from 'react-native-document-picker';
 import RNFS from 'react-native-fs';
+import { Share } from 'react-native';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
+import { SkeletonList } from '../shared/Skeleton';
 
 interface LegalEntity {
   type: string;
@@ -53,6 +57,7 @@ const LegalTranscriptionMobile: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcriptionResult, setTranscriptionResult] = useState<TranscriptionResult | null>(null);
+  const [loading, setLoading] = useState(false);
   
   // Form state
   const [caseNumber, setCaseNumber] = useState('');
@@ -90,6 +95,7 @@ const LegalTranscriptionMobile: React.FC = () => {
     }
 
     setIsProcessing(true);
+    setLoading(true);
 
     try {
       const formData = new FormData();
@@ -126,6 +132,7 @@ const LegalTranscriptionMobile: React.FC = () => {
       Alert.alert('Error', err instanceof Error ? err.message : 'An error occurred during transcription');
     } finally {
       setIsProcessing(false);
+      setLoading(false);
     }
   };
 
@@ -140,6 +147,14 @@ const LegalTranscriptionMobile: React.FC = () => {
       </Text>
     </TouchableOpacity>
   );
+
+  const shareLegalLink = async () => {
+    const url = buildLink('legal');
+    try {
+      await Share.share({ message: url });
+      await logUxEvent('share_legal_view', { url, tab: activeTab });
+    } catch (_) {}
+  };
 
   const renderUploadTab = () => (
     <ScrollView style={styles.tabContent}>
@@ -243,6 +258,13 @@ const LegalTranscriptionMobile: React.FC = () => {
   );
 
   const renderResultsTab = () => {
+    if (loading) {
+      return (
+        <View style={{ padding: 16 }}>
+          <SkeletonList rows={6} />
+        </View>
+      );
+    }
     if (!transcriptionResult) {
       return (
         <View style={styles.emptyState}>
@@ -432,11 +454,16 @@ const LegalTranscriptionMobile: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚖️ Legal Transcription</Text>
-        <Text style={styles.headerSubtitle}>
-          Professional legal document processing
-        </Text>
+      <View style={[styles.header, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }] }>
+        <View>
+          <Text style={styles.headerTitle}>⚖️ Legal Transcription</Text>
+          <Text style={styles.headerSubtitle}>
+            Professional legal document processing
+          </Text>
+        </View>
+        <TouchableOpacity onPress={shareLegalLink} accessibilityLabel="Share legal view" style={{ padding: 6 }}>
+          <Text style={{ color: '#fff' }}>Share</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.tabContainer}>

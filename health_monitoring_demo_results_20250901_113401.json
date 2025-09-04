@@ -1,0 +1,191 @@
+{
+  "timestamp": "2025-09-01T06:03:32.113392",
+  "overall_status": "degraded",
+  "overall_healthy": 3,
+  "overall_total": 11,
+  "check_types": {
+    "http": {
+      "healthy": 1,
+      "total": 2,
+      "percentage": 50.0,
+      "results": [
+        {
+          "service_name": "fastapi",
+          "status": "unhealthy",
+          "response_time_ms": 6103.7609577178955,
+          "timestamp": "2025-09-01T06:03:26.000379",
+          "details": null,
+          "error_message": "HTTP 404",
+          "check_type": "http"
+        },
+        {
+          "service_name": "streamlit",
+          "status": "healthy",
+          "response_time_ms": 6108.728885650635,
+          "timestamp": "2025-09-01T06:03:26.001754",
+          "details": {
+            "status_code": 200
+          },
+          "error_message": null,
+          "check_type": "http"
+        }
+      ]
+    },
+    "database": {
+      "healthy": 1,
+      "total": 1,
+      "percentage": 100.0,
+      "results": [
+        {
+          "service_name": "postgresql",
+          "status": "healthy",
+          "response_time_ms": 69.51403617858887,
+          "timestamp": "2025-09-01T06:03:26.001998",
+          "details": {
+            "connection_status": "healthy",
+            "query_response_time_ms": 69.51403617858887,
+            "active_connections": 1,
+            "max_connections": 100,
+            "database_size_mb": 0.0,
+            "error_message": null
+          },
+          "error_message": null,
+          "check_type": "database"
+        }
+      ]
+    },
+    "cache": {
+      "healthy": 1,
+      "total": 1,
+      "percentage": 100.0,
+      "results": [
+        {
+          "service_name": "redis",
+          "status": "healthy",
+          "response_time_ms": 2.0799636840820312,
+          "timestamp": "2025-09-01T06:03:26.071579",
+          "details": {
+            "connection_status": "healthy",
+            "memory_usage_mb": 1.258636474609375,
+            "memory_max_mb": 0,
+            "connected_clients": 1,
+            "hit_rate_percent": 0.0,
+            "error_message": null
+          },
+          "error_message": null,
+          "check_type": "cache"
+        }
+      ]
+    },
+    "storage": {
+      "healthy": 0,
+      "total": 1,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "minio",
+          "status": "unhealthy",
+          "response_time_ms": 6024.40881729126,
+          "timestamp": "2025-09-01T06:03:26.073723",
+          "details": null,
+          "error_message": "HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1214cd580>: Failed to establish a new connection: [Errno 61] Connection refused'))",
+          "check_type": "storage"
+        }
+      ]
+    },
+    "frontend": {
+      "healthy": 0,
+      "total": 1,
+      "percentage": 0.0,
+      "results": [
+        {
+          "service_name": "frontend",
+          "status": "unhealthy",
+          "response_time_ms": 2.9001235961914062,
+          "timestamp": "2025-09-01T06:03:32.098173",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:3000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 3000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 3000)]",
+          "check_type": "frontend"
+        }
+      ]
+    },
+    "connectivity": {
+      "healthy": 4,
+      "total": 5,
+      "percentage": 80.0,
+      "results": [
+        {
+          "service_name": "frontend->backend",
+          "status": "healthy",
+          "response_time_ms": 0.4761219024658203,
+          "timestamp": "2025-09-01T06:03:32.111392",
+          "details": {
+            "source": "frontend",
+            "target": "backend",
+            "target_url": "http://localhost:8000/health",
+            "connection_result": "success"
+          },
+          "error_message": null,
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "frontend->backend",
+          "status": "healthy",
+          "response_time_ms": 0.4432201385498047,
+          "timestamp": "2025-09-01T06:03:32.111907",
+          "details": {
+            "source": "frontend",
+            "target": "backend",
+            "target_url": "http://localhost:8501/health",
+            "connection_result": "success"
+          },
+          "error_message": null,
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "backend->database",
+          "status": "healthy",
+          "response_time_ms": 0.3190040588378906,
+          "timestamp": "2025-09-01T06:03:32.112354",
+          "details": {
+            "source": "backend",
+            "target": "database",
+            "target_url": "postgresql://localhost:5432",
+            "connection_result": "success"
+          },
+          "error_message": null,
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "backend->cache",
+          "status": "healthy",
+          "response_time_ms": 0.3771781921386719,
+          "timestamp": "2025-09-01T06:03:32.112723",
+          "details": {
+            "source": "backend",
+            "target": "cache",
+            "target_url": "redis://localhost:6379",
+            "connection_result": "success"
+          },
+          "error_message": null,
+          "check_type": "connectivity"
+        },
+        {
+          "service_name": "backend->storage",
+          "status": "unhealthy",
+          "response_time_ms": 0.2491474151611328,
+          "timestamp": "2025-09-01T06:03:32.113092",
+          "details": null,
+          "error_message": "Connection failed: 61",
+          "check_type": "connectivity"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "services_healthy": 3,
+    "services_total": 6,
+    "connectivity_healthy": 4,
+    "connectivity_total": 5
+  }
+}

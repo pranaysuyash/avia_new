@@ -1,683 +1,715 @@
 #!/usr/bin/env python3
 """
 Advanced Document Analysis System
-Professional document analysis, classification, and insights extraction
+Enhanced document processing with AI-powered analysis, classification, and insights
 """
 
 import os
-import logging
-import tempfile
+import re
 import json
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Union, Tuple
+import logging
+from typing import Dict, List, Any, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
 from datetime import datetime
-import hashlib
-import base64
-
-# Core processing libraries
-import pandas as pd
+from pathlib import Path
 import numpy as np
-
-# Document processing
-try:
-    import fitz  # PyMuPDF
-    HAS_PYMUPDF = True
-except ImportError:
-    HAS_PYMUPDF = False
-    logging.warning("PyMuPDF not available - PDF processing will be limited")
-
-try:
-    import PIL.Image
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-    logging.warning("PIL not available - image processing will be limited")
-
-# Text processing
-import re
 from collections import Counter
+import spacy
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+import cv2
+from PIL import Image
+import fitz  # PyMuPDF
 
-# ML and NLP
-try:
-    import spacy
-    HAS_SPACY = True
-except ImportError:
-    HAS_SPACY = False
-    logging.warning("spaCy not available - using basic text processing")
+# Import our existing OCR system
+from image_ocr_processor import OCRManager, OCRResult, DocumentResult
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+@dataclass
+class DocumentClassification:
+    """Document classification result"""
+    document_type: str
+    confidence: float
+    categories: List[Dict[str, float]]
+    metadata: Dict[str, Any]
 
 @dataclass
-class DocumentMetadata:
-    """Document metadata and properties"""
-    filename: str
-    file_size: int
-    file_type: str
-    pages: int = 0
-    creation_date: Optional[datetime] = None
-    modification_date: Optional[datetime] = None
-    author: Optional[str] = None
-    title: Optional[str] = None
-    subject: Optional[str] = None
-    keywords: List[str] = None
-    language: str = "en"
-    
-    def __post_init__(self):
-        if self.keywords is None:
-            self.keywords = []
-
-
-@dataclass
-class DocumentAnalysisResult:
-    """Complete document analysis results"""
-    metadata: DocumentMetadata
-    text_content: str
-    word_count: int
-    page_count: int
-    entities: List[Dict[str, Any]]
-    key_phrases: List[str]
-    topics: List[Dict[str, Any]]
-    sentiment_score: float
+class DocumentInsights:
+    """Advanced document insights"""
+    key_entities: List[Dict[str, Any]]
+    topics: List[Dict[str, float]]
+    sentiment: Dict[str, float]
     readability_score: float
-    classification: Dict[str, Any]
-    structure_analysis: Dict[str, Any]
-    timestamp: datetime
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization"""
-        result = asdict(self)
-        result['timestamp'] = self.timestamp.isoformat()
-        result['metadata'] = asdict(self.metadata)
-        return result
+    language_detected: str
+    document_structure: Dict[str, Any]
+    compliance_flags: List[Dict[str, Any]]
 
+@dataclass
+class FormField:
+    """Extracted form field"""
+    field_name: str
+    field_value: str
+    field_type: str
+    confidence: float
+    bbox: List[int]
 
-class AdvancedDocumentAnalyzer:
-    """Advanced document analysis with ML-powered insights"""
+@dataclass
+class TableData:
+    """Extracted table data"""
+    table_id: int
+    headers: List[str]
+    rows: List[List[str]]
+    bbox: List[int]
+    confidence: float
+
+@dataclass
+class AdvancedDocumentResult:
+    """Complete advanced document analysis result"""
+    filename: str
+    ocr_result: Union[OCRResult, DocumentResult]
+    classification: DocumentClassification
+    insights: DocumentInsights
+    form_fields: List[FormField]
+    tables: List[TableData]
+    processing_time: float
+    metadata: Dict[str, Any]
+
+class DocumentClassifier:
+    """AI-powered document classification system"""
     
-    def __init__(self, config: Dict[str, Any] = None):
-        self.config = config or self._get_default_config()
-        self.nlp_model = None
-        self._initialize_nlp()
-        
-        # Document cache
-        self.document_cache = {}
-        
-        # Analysis statistics
-        self.stats = {
-            'documents_processed': 0,
-            'total_pages': 0,
-            'total_words': 0,
-            'processing_time': 0.0
+    def __init__(self):
+        self.document_types = {
+            'invoice': ['invoice', 'bill', 'payment', 'amount due', 'total', 'tax'],
+            'contract': ['agreement', 'contract', 'terms', 'conditions', 'party', 'signature'],
+            'receipt': ['receipt', 'purchase', 'transaction', 'paid', 'change'],
+            'legal': ['court', 'legal', 'law', 'attorney', 'plaintiff', 'defendant'],
+            'medical': ['patient', 'doctor', 'medical', 'diagnosis', 'treatment', 'prescription'],
+            'financial': ['bank', 'account', 'balance', 'statement', 'transaction', 'credit'],
+            'academic': ['university', 'student', 'grade', 'course', 'transcript', 'degree'],
+            'government': ['government', 'official', 'department', 'license', 'permit', 'certificate'],
+            'business': ['company', 'business', 'corporate', 'meeting', 'report', 'proposal'],
+            'personal': ['personal', 'private', 'individual', 'family', 'home']
         }
+        
+        # Try to load a pre-trained classification model
+        try:
+            self.classifier = pipeline(
+                "text-classification",
+                model="microsoft/DialoGPT-medium",
+                return_all_scores=True
+            )
+            self.model_available = True
+        except Exception as e:
+            logger.warning(f"Could not load classification model: {e}")
+            self.model_available = False
     
-    def _get_default_config(self) -> Dict[str, Any]:
-        """Default configuration for document analysis"""
-        return {
-            'max_file_size': 50 * 1024 * 1024,  # 50MB
-            'supported_formats': ['.pdf', '.txt', '.docx', '.doc'],
-            'extract_entities': True,
-            'extract_topics': True,
-            'analyze_sentiment': True,
-            'analyze_structure': True,
-            'cache_results': True,
-            'language_detection': True
-        }
-    
-    def _initialize_nlp(self):
-        """Initialize NLP models"""
-        if HAS_SPACY:
-            try:
-                # Try to load English model
-                self.nlp_model = spacy.load("en_core_web_sm")
-                logger.info("Loaded spaCy English model")
-            except OSError:
-                logger.warning("spaCy English model not found - using basic processing")
-                self.nlp_model = None
-        else:
-            logger.info("Using basic text processing (spaCy not available)")
-    
-    def analyze_document(self, file_path: Union[str, Path], 
-                        options: Dict[str, Any] = None) -> DocumentAnalysisResult:
-        """Comprehensive document analysis"""
-        start_time = datetime.now()
-        file_path = Path(file_path)
-        
-        # Check cache first
-        cache_key = self._get_cache_key(file_path)
-        if self.config.get('cache_results') and cache_key in self.document_cache:
-            logger.info(f"Returning cached results for {file_path.name}")
-            return self.document_cache[cache_key]
-        
-        # Extract document content and metadata
-        metadata = self._extract_metadata(file_path)
-        text_content = self._extract_text(file_path)
-        
-        if not text_content.strip():
-            raise ValueError(f"No text content extracted from {file_path.name}")
-        
-        # Perform analysis
-        analysis_options = {**self.config, **(options or {})}
-        
-        # Basic text statistics
-        word_count = len(text_content.split())
-        
-        # Entity extraction
-        entities = []
-        if analysis_options.get('extract_entities'):
-            entities = self._extract_entities(text_content)
-        
-        # Key phrase extraction
-        key_phrases = self._extract_key_phrases(text_content)
-        
-        # Topic analysis
-        topics = []
-        if analysis_options.get('extract_topics'):
-            topics = self._extract_topics(text_content)
-        
-        # Sentiment analysis
-        sentiment_score = 0.0
-        if analysis_options.get('analyze_sentiment'):
-            sentiment_score = self._analyze_sentiment(text_content)
-        
-        # Readability analysis
-        readability_score = self._calculate_readability(text_content)
-        
-        # Document classification
-        classification = self._classify_document(text_content, metadata)
-        
-        # Structure analysis
-        structure_analysis = {}
-        if analysis_options.get('analyze_structure'):
-            structure_analysis = self._analyze_structure(text_content, file_path)
-        
-        # Create result
-        result = DocumentAnalysisResult(
-            metadata=metadata,
-            text_content=text_content,
-            word_count=word_count,
-            page_count=metadata.pages,
-            entities=entities,
-            key_phrases=key_phrases,
-            topics=topics,
-            sentiment_score=sentiment_score,
-            readability_score=readability_score,
-            classification=classification,
-            structure_analysis=structure_analysis,
-            timestamp=datetime.now()
-        )
-        
-        # Cache result
-        if self.config.get('cache_results'):
-            self.document_cache[cache_key] = result
-        
-        # Update statistics
-        processing_time = (datetime.now() - start_time).total_seconds()
-        self.stats['documents_processed'] += 1
-        self.stats['total_pages'] += metadata.pages
-        self.stats['total_words'] += word_count
-        self.stats['processing_time'] += processing_time
-        
-        logger.info(f"Analyzed {file_path.name} in {processing_time:.2f}s")
-        
-        return result
-    
-    def _get_cache_key(self, file_path: Path) -> str:
-        """Generate cache key for document"""
-        stat = file_path.stat()
-        content = f"{file_path.name}_{stat.st_size}_{stat.st_mtime}"
-        return hashlib.md5(content.encode()).hexdigest()
-    
-    def _extract_metadata(self, file_path: Path) -> DocumentMetadata:
-        """Extract document metadata"""
-        stat = file_path.stat()
-        
-        metadata = DocumentMetadata(
-            filename=file_path.name,
-            file_size=stat.st_size,
-            file_type=file_path.suffix.lower(),
-            creation_date=datetime.fromtimestamp(stat.st_ctime),
-            modification_date=datetime.fromtimestamp(stat.st_mtime)
-        )
-        
-        # PDF-specific metadata
-        if file_path.suffix.lower() == '.pdf' and HAS_PYMUPDF:
-            try:
-                doc = fitz.open(file_path)
-                metadata.pages = doc.page_count
+    def classify_document(self, text: str, filename: str = "") -> DocumentClassification:
+        """Classify document type based on content"""
+        try:
+            # Rule-based classification
+            text_lower = text.lower()
+            filename_lower = filename.lower()
+            
+            scores = {}
+            for doc_type, keywords in self.document_types.items():
+                score = 0
+                for keyword in keywords:
+                    # Count occurrences in text
+                    score += text_lower.count(keyword) * 2
+                    # Bonus for filename match
+                    if keyword in filename_lower:
+                        score += 5
                 
-                # Extract PDF metadata
-                pdf_metadata = doc.metadata
-                metadata.title = pdf_metadata.get('title', '')
-                metadata.author = pdf_metadata.get('author', '')
-                metadata.subject = pdf_metadata.get('subject', '')
-                metadata.keywords = pdf_metadata.get('keywords', '').split(',') if pdf_metadata.get('keywords') else []
-                
-                doc.close()
-            except Exception as e:
-                logger.warning(f"Failed to extract PDF metadata: {e}")
-                metadata.pages = 1
-        else:
-            metadata.pages = 1
-        
-        return metadata
+                # Normalize by text length
+                if len(text) > 0:
+                    scores[doc_type] = score / (len(text) / 1000)
+                else:
+                    scores[doc_type] = 0
+            
+            # Find best match
+            if scores:
+                best_type = max(scores, key=scores.get)
+                confidence = min(scores[best_type] / 10, 1.0)  # Normalize to 0-1
+            else:
+                best_type = "unknown"
+                confidence = 0.0
+            
+            # Create categories list
+            categories = [{"type": k, "score": v} for k, v in sorted(scores.items(), key=lambda x: x[1], reverse=True)]
+            
+            return DocumentClassification(
+                document_type=best_type,
+                confidence=confidence,
+                categories=categories[:5],  # Top 5 categories
+                metadata={
+                    "method": "rule_based",
+                    "total_keywords_found": sum(scores.values()),
+                    "text_length": len(text)
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error classifying document: {e}")
+            return DocumentClassification(
+                document_type="unknown",
+                confidence=0.0,
+                categories=[],
+                metadata={"error": str(e)}
+            )
+
+class DocumentInsightExtractor:
+    """Extract advanced insights from documents"""
     
-    def _extract_text(self, file_path: Path) -> str:
-        """Extract text content from document"""
-        file_type = file_path.suffix.lower()
+    def __init__(self):
+        # Load spaCy model for NER
+        try:
+            self.nlp = spacy.load("en_core_web_sm")
+            self.spacy_available = True
+        except Exception as e:
+            logger.warning(f"spaCy model not available: {e}")
+            self.spacy_available = False
         
-        if file_type == '.txt':
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                return f.read()
-        
-        elif file_type == '.pdf' and HAS_PYMUPDF:
-            try:
-                doc = fitz.open(file_path)
-                text = ""
-                for page in doc:
-                    text += page.get_text()
-                doc.close()
-                return text
-            except Exception as e:
-                logger.error(f"Failed to extract PDF text: {e}")
-                return ""
-        
-        else:
-            # Fallback: try to read as text
-            try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    return f.read()
-            except Exception as e:
-                logger.error(f"Failed to extract text from {file_path}: {e}")
-                return ""
+        # Try to load sentiment analysis
+        try:
+            self.sentiment_analyzer = pipeline("sentiment-analysis")
+            self.sentiment_available = True
+        except Exception as e:
+            logger.warning(f"Sentiment analysis not available: {e}")
+            self.sentiment_available = False
+    
+    def extract_insights(self, text: str) -> DocumentInsights:
+        """Extract comprehensive insights from document text"""
+        try:
+            # Extract entities
+            entities = self._extract_entities(text)
+            
+            # Extract topics
+            topics = self._extract_topics(text)
+            
+            # Analyze sentiment
+            sentiment = self._analyze_sentiment(text)
+            
+            # Calculate readability
+            readability = self._calculate_readability(text)
+            
+            # Detect language
+            language = self._detect_language(text)
+            
+            # Analyze document structure
+            structure = self._analyze_structure(text)
+            
+            # Check compliance flags
+            compliance_flags = self._check_compliance(text)
+            
+            return DocumentInsights(
+                key_entities=entities,
+                topics=topics,
+                sentiment=sentiment,
+                readability_score=readability,
+                language_detected=language,
+                document_structure=structure,
+                compliance_flags=compliance_flags
+            )
+            
+        except Exception as e:
+            logger.error(f"Error extracting insights: {e}")
+            return DocumentInsights(
+                key_entities=[],
+                topics=[],
+                sentiment={"compound": 0.0, "positive": 0.0, "negative": 0.0, "neutral": 1.0},
+                readability_score=0.0,
+                language_detected="unknown",
+                document_structure={},
+                compliance_flags=[]
+            )
     
     def _extract_entities(self, text: str) -> List[Dict[str, Any]]:
         """Extract named entities from text"""
         entities = []
         
-        if self.nlp_model:
-            # Use spaCy for entity extraction
-            doc = self.nlp_model(text[:1000000])  # Limit text size
-            for ent in doc.ents:
+        if self.spacy_available and text.strip():
+            try:
+                doc = self.nlp(text[:1000000])  # Limit text length for processing
+                
+                for ent in doc.ents:
+                    entities.append({
+                        "text": ent.text,
+                        "label": ent.label_,
+                        "description": spacy.explain(ent.label_),
+                        "start": ent.start_char,
+                        "end": ent.end_char,
+                        "confidence": 0.8  # spaCy doesn't provide confidence scores
+                    })
+            except Exception as e:
+                logger.warning(f"Entity extraction failed: {e}")
+        
+        # Add regex-based entity extraction for common patterns
+        regex_entities = self._extract_regex_entities(text)
+        entities.extend(regex_entities)
+        
+        return entities
+    
+    def _extract_regex_entities(self, text: str) -> List[Dict[str, Any]]:
+        """Extract entities using regex patterns"""
+        entities = []
+        
+        patterns = {
+            "EMAIL": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+            "PHONE": r'\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b',
+            "SSN": r'\b\d{3}-\d{2}-\d{4}\b',
+            "DATE": r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',
+            "CURRENCY": r'\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?',
+            "URL": r'https?://(?:[-\w.])+(?:[:\d]+)?(?:/(?:[\w/_.])*(?:\?(?:[\w&=%.])*)?(?:#(?:[\w.])*)?)?'
+        }
+        
+        for entity_type, pattern in patterns.items():
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
                 entities.append({
-                    'text': ent.text,
-                    'label': ent.label_,
-                    'start': ent.start_char,
-                    'end': ent.end_char,
-                    'confidence': 1.0
-                })
-        else:
-            # Basic regex-based entity extraction
-            # Email addresses
-            emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
-            for email in emails:
-                entities.append({
-                    'text': email,
-                    'label': 'EMAIL',
-                    'start': text.find(email),
-                    'end': text.find(email) + len(email),
-                    'confidence': 0.9
-                })
-            
-            # Phone numbers (basic pattern)
-            phones = re.findall(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', text)
-            for phone in phones:
-                entities.append({
-                    'text': phone,
-                    'label': 'PHONE',
-                    'start': text.find(phone),
-                    'end': text.find(phone) + len(phone),
-                    'confidence': 0.8
+                    "text": match.group(),
+                    "label": entity_type,
+                    "description": f"Regex-detected {entity_type.lower()}",
+                    "start": match.start(),
+                    "end": match.end(),
+                    "confidence": 0.9
                 })
         
         return entities
     
-    def _extract_key_phrases(self, text: str) -> List[str]:
-        """Extract key phrases from text"""
-        # Simple approach: most frequent multi-word phrases
-        words = re.findall(r'\b\w+\b', text.lower())
-        
-        # Create bigrams and trigrams
-        phrases = []
-        for i in range(len(words) - 1):
-            bigram = f"{words[i]} {words[i+1]}"
-            phrases.append(bigram)
-        
-        for i in range(len(words) - 2):
-            trigram = f"{words[i]} {words[i+1]} {words[i+2]}"
-            phrases.append(trigram)
-        
-        # Count frequencies and return top phrases
-        phrase_counts = Counter(phrases)
-        return [phrase for phrase, count in phrase_counts.most_common(10)]
-    
-    def _extract_topics(self, text: str) -> List[Dict[str, Any]]:
-        """Extract topics from text"""
-        # Simple topic extraction based on keyword frequency
-        words = re.findall(r'\b\w+\b', text.lower())
-        word_counts = Counter(words)
-        
-        # Filter out common words
-        stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should'}
-        
+    def _extract_topics(self, text: str) -> List[Dict[str, float]]:
+        """Extract main topics from text"""
         topics = []
-        for word, count in word_counts.most_common(20):
-            if word not in stop_words and len(word) > 3:
-                topics.append({
-                    'topic': word,
-                    'weight': count / len(words),
-                    'frequency': count
-                })
         
-        return topics[:10]
+        # Simple keyword-based topic extraction
+        topic_keywords = {
+            "finance": ["money", "payment", "cost", "price", "budget", "financial", "bank", "credit"],
+            "legal": ["law", "legal", "court", "contract", "agreement", "terms", "liability"],
+            "medical": ["health", "medical", "doctor", "patient", "treatment", "diagnosis", "medicine"],
+            "business": ["business", "company", "corporate", "meeting", "project", "strategy", "market"],
+            "technology": ["software", "computer", "digital", "online", "internet", "system", "data"],
+            "education": ["education", "school", "student", "learning", "course", "academic", "university"],
+            "government": ["government", "public", "official", "policy", "regulation", "department", "agency"]
+        }
+        
+        text_lower = text.lower()
+        for topic, keywords in topic_keywords.items():
+            score = sum(text_lower.count(keyword) for keyword in keywords)
+            if score > 0:
+                # Normalize by text length
+                normalized_score = min(score / (len(text) / 1000), 1.0)
+                topics.append({"topic": topic, "score": normalized_score})
+        
+        # Sort by score
+        topics.sort(key=lambda x: x["score"], reverse=True)
+        return topics[:5]  # Top 5 topics
     
-    def _analyze_sentiment(self, text: str) -> float:
-        """Analyze sentiment of text"""
-        # Simple sentiment analysis based on word lists
-        positive_words = {'good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'positive', 'happy', 'love', 'like', 'best', 'perfect', 'outstanding', 'brilliant', 'awesome'}
-        negative_words = {'bad', 'terrible', 'awful', 'horrible', 'worst', 'hate', 'dislike', 'poor', 'negative', 'sad', 'angry', 'disappointed', 'frustrated', 'annoying'}
+    def _analyze_sentiment(self, text: str) -> Dict[str, float]:
+        """Analyze document sentiment"""
+        if self.sentiment_available and text.strip():
+            try:
+                # Truncate text for processing
+                sample_text = text[:512]  # Most models have token limits
+                result = self.sentiment_analyzer(sample_text)[0]
+                
+                return {
+                    "label": result["label"].lower(),
+                    "score": result["score"],
+                    "compound": result["score"] if result["label"] == "POSITIVE" else -result["score"]
+                }
+            except Exception as e:
+                logger.warning(f"Sentiment analysis failed: {e}")
         
-        words = re.findall(r'\b\w+\b', text.lower())
-        
-        positive_count = sum(1 for word in words if word in positive_words)
-        negative_count = sum(1 for word in words if word in negative_words)
-        
-        if positive_count + negative_count == 0:
-            return 0.0
-        
-        # Return sentiment score between -1 and 1
-        return (positive_count - negative_count) / (positive_count + negative_count)
+        return {"label": "neutral", 
+"score": 0.5, "compound": 0.0}
     
     def _calculate_readability(self, text: str) -> float:
-        """Calculate readability score (simplified Flesch reading ease)"""
-        sentences = len(re.findall(r'[.!?]+', text))
-        words = len(re.findall(r'\b\w+\b', text))
-        syllables = sum(self._count_syllables(word) for word in re.findall(r'\b\w+\b', text))
-        
-        if sentences == 0 or words == 0:
+        """Calculate readability score (Flesch Reading Ease)"""
+        if not text.strip():
             return 0.0
         
-        # Simplified Flesch reading ease formula
-        avg_sentence_length = words / sentences
-        avg_syllables_per_word = syllables / words
-        
-        score = 206.835 - (1.015 * avg_sentence_length) - (84.6 * avg_syllables_per_word)
-        return max(0, min(100, score))  # Clamp between 0 and 100
+        try:
+            # Simple readability calculation
+            sentences = len(re.split(r'[.!?]+', text))
+            words = len(text.split())
+            syllables = sum(self._count_syllables(word) for word in text.split())
+            
+            if sentences == 0 or words == 0:
+                return 0.0
+            
+            # Flesch Reading Ease formula
+            score = 206.835 - (1.015 * (words / sentences)) - (84.6 * (syllables / words))
+            return max(0, min(100, score))  # Clamp between 0-100
+            
+        except Exception:
+            return 50.0  # Default middle score
     
     def _count_syllables(self, word: str) -> int:
-        """Count syllables in a word (simplified)"""
+        """Count syllables in a word (simple approximation)"""
         word = word.lower()
-        vowels = 'aeiouy'
+        vowels = "aeiouy"
         syllable_count = 0
-        prev_char_was_vowel = False
+        previous_was_vowel = False
         
         for char in word:
-            if char in vowels:
-                if not prev_char_was_vowel:
-                    syllable_count += 1
-                prev_char_was_vowel = True
-            else:
-                prev_char_was_vowel = False
+            is_vowel = char in vowels
+            if is_vowel and not previous_was_vowel:
+                syllable_count += 1
+            previous_was_vowel = is_vowel
         
-        # Handle silent 'e'
+        # Handle silent e
         if word.endswith('e'):
             syllable_count -= 1
         
         return max(1, syllable_count)
     
-    def _classify_document(self, text: str, metadata: DocumentMetadata) -> Dict[str, Any]:
-        """Classify document type and content"""
-        classification = {
-            'document_type': 'unknown',
-            'content_category': 'general',
-            'confidence': 0.0,
-            'indicators': []
+    def _detect_language(self, text: str) -> str:
+        """Detect document language"""
+        # Simple language detection based on common words
+        language_indicators = {
+            'en': ['the', 'and', 'is', 'in', 'to', 'of', 'a', 'that', 'it', 'with'],
+            'es': ['el', 'la', 'de', 'que', 'y', 'en', 'un', 'es', 'se', 'no'],
+            'fr': ['le', 'de', 'et', 'à', 'un', 'il', 'être', 'et', 'en', 'avoir'],
+            'de': ['der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich'],
+            'it': ['il', 'di', 'che', 'e', 'la', 'per', 'in', 'un', 'è', 'con']
         }
         
-        # Simple rule-based classification
+        text_lower = text.lower()
+        scores = {}
+        
+        for lang, indicators in language_indicators.items():
+            score = sum(text_lower.count(word) for word in indicators)
+            scores[lang] = score
+        
+        if scores:
+            return max(scores, key=scores.get)
+        return 'en'  # Default to English
+    
+    def _analyze_structure(self, text: str) -> Dict[str, Any]:
+        """Analyze document structure"""
+        lines = text.split('\n')
+        
+        return {
+            "total_lines": len(lines),
+            "non_empty_lines": len([line for line in lines if line.strip()]),
+            "average_line_length": sum(len(line) for line in lines) / len(lines) if lines else 0,
+            "has_headers": any(line.isupper() for line in lines[:10]),  # Check first 10 lines
+            "has_bullet_points": any(line.strip().startswith(('•', '-', '*', '1.', '2.')) for line in lines),
+            "paragraph_count": len([line for line in lines if len(line.strip()) > 50]),
+            "word_count": len(text.split()),
+            "character_count": len(text)
+        }
+    
+    def _check_compliance(self, text: str) -> List[Dict[str, Any]]:
+        """Check for compliance-related content"""
+        flags = []
         text_lower = text.lower()
         
-        # Document type classification
-        if 'contract' in text_lower or 'agreement' in text_lower:
-            classification['document_type'] = 'contract'
-            classification['confidence'] = 0.8
-        elif 'invoice' in text_lower or 'bill' in text_lower or '$' in text:
-            classification['document_type'] = 'financial'
-            classification['confidence'] = 0.8
-        elif 'report' in text_lower or 'analysis' in text_lower:
-            classification['document_type'] = 'report'
-            classification['confidence'] = 0.7
-        elif 'email' in text_lower or '@' in text:
-            classification['document_type'] = 'communication'
-            classification['confidence'] = 0.9
-        
-        # Content category
-        if any(word in text_lower for word in ['medical', 'patient', 'diagnosis', 'treatment']):
-            classification['content_category'] = 'medical'
-        elif any(word in text_lower for word in ['legal', 'court', 'law', 'attorney']):
-            classification['content_category'] = 'legal'
-        elif any(word in text_lower for word in ['financial', 'money', 'investment', 'bank']):
-            classification['content_category'] = 'financial'
-        elif any(word in text_lower for word in ['technical', 'software', 'system', 'code']):
-            classification['content_category'] = 'technical'
-        
-        return classification
-    
-    def _analyze_structure(self, text: str, file_path: Path) -> Dict[str, Any]:
-        """Analyze document structure"""
-        structure = {
-            'has_headers': False,
-            'has_lists': False,
-            'has_tables': False,
-            'paragraph_count': 0,
-            'average_paragraph_length': 0,
-            'heading_levels': []
+        # PII detection patterns
+        pii_patterns = {
+            "SSN": r'\b\d{3}-\d{2}-\d{4}\b',
+            "Credit Card": r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',
+            "Email": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         }
         
+        for pii_type, pattern in pii_patterns.items():
+            matches = re.findall(pattern, text)
+            if matches:
+                flags.append({
+                    "type": "PII_DETECTED",
+                    "category": pii_type,
+                    "count": len(matches),
+                    "severity": "HIGH",
+                    "description": f"Detected {len(matches)} instances of {pii_type}"
+                })
+        
+        # Sensitive content keywords
+        sensitive_keywords = [
+            "confidential", "classified", "restricted", "proprietary", 
+            "internal use only", "do not distribute", "trade secret"
+        ]
+        
+        for keyword in sensitive_keywords:
+            if keyword in text_lower:
+                flags.append({
+                    "type": "SENSITIVE_CONTENT",
+                    "category": "CONFIDENTIAL",
+                    "keyword": keyword,
+                    "severity": "MEDIUM",
+                    "description": f"Document contains sensitive keyword: {keyword}"
+                })
+        
+        return flags
+
+class FormFieldExtractor:
+    """Extract form fields from documents"""
+    
+    def __init__(self):
+        self.field_patterns = {
+            "name": [r"name\s*:?\s*([^\n]+)", r"full\s+name\s*:?\s*([^\n]+)"],
+            "email": [r"email\s*:?\s*([^\n]+)", r"e-mail\s*:?\s*([^\n]+)"],
+            "phone": [r"phone\s*:?\s*([^\n]+)", r"telephone\s*:?\s*([^\n]+)"],
+            "address": [r"address\s*:?\s*([^\n]+)", r"street\s*:?\s*([^\n]+)"],
+            "date": [r"date\s*:?\s*([^\n]+)", r"dated\s*:?\s*([^\n]+)"],
+            "amount": [r"amount\s*:?\s*([^\n]+)", r"total\s*:?\s*([^\n]+)"],
+            "signature": [r"signature\s*:?\s*([^\n]+)", r"signed\s*:?\s*([^\n]+)"]
+        }
+    
+    def extract_fields(self, text: str, ocr_result: Union[OCRResult, DocumentResult]) -> List[FormField]:
+        """Extract form fields from text"""
+        fields = []
+        
+        for field_type, patterns in self.field_patterns.items():
+            for pattern in patterns:
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    field_value = match.group(1).strip()
+                    if field_value and len(field_value) > 1:
+                        fields.append(FormField(
+                            field_name=field_type,
+                            field_value=field_value,
+                            field_type="text",
+                            confidence=0.8,
+                            bbox=[0, 0, 0, 0]  # Would need OCR bounding box data
+                        ))
+        
+        return fields
+
+class TableExtractor:
+    """Extract table data from documents"""
+    
+    def extract_tables(self, text: str, ocr_result: Union[OCRResult, DocumentResult]) -> List[TableData]:
+        """Extract table data from text"""
+        tables = []
+        
+        # Simple table detection based on consistent spacing/alignment
         lines = text.split('\n')
-        paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+        potential_tables = []
+        current_table = []
         
-        structure['paragraph_count'] = len(paragraphs)
-        if paragraphs:
-            structure['average_paragraph_length'] = sum(len(p.split()) for p in paragraphs) / len(paragraphs)
-        
-        # Detect headers (lines that are short and followed by longer text)
-        for i, line in enumerate(lines):
-            if line.strip() and len(line.split()) < 10:
-                if i + 1 < len(lines) and len(lines[i + 1].split()) > 10:
-                    structure['has_headers'] = True
-                    break
-        
-        # Detect lists
-        list_indicators = ['-', '*', '"', '1.', '2.', 'a)', 'i)']
         for line in lines:
-            if any(line.strip().startswith(indicator) for indicator in list_indicators):
-                structure['has_lists'] = True
-                break
+            # Check if line looks like a table row (has multiple columns separated by spaces/tabs)
+            if self._is_table_row(line):
+                current_table.append(line)
+            else:
+                if len(current_table) >= 3:  # Minimum 3 rows for a table
+                    potential_tables.append(current_table)
+                current_table = []
         
-        # Detect tables (simple heuristic)
-        for line in lines:
-            if line.count('|') > 2 or line.count('\t') > 2:
-                structure['has_tables'] = True
-                break
+        # Process potential tables
+        for i, table_lines in enumerate(potential_tables):
+            headers, rows = self._parse_table_lines(table_lines)
+            if headers and rows:
+                tables.append(TableData(
+                    table_id=i,
+                    headers=headers,
+                    rows=rows,
+                    bbox=[0, 0, 0, 0],  # Would need OCR bounding box data
+                    confidence=0.7
+                ))
         
-        return structure
+        return tables
     
-    def get_analysis_statistics(self) -> Dict[str, Any]:
-        """Get processing statistics"""
-        return self.stats.copy()
+    def _is_table_row(self, line: str) -> bool:
+        """Check if a line looks like a table row"""
+        # Simple heuristic: line has multiple words separated by significant whitespace
+        parts = line.split()
+        if len(parts) < 2:
+            return False
+        
+        # Check for consistent spacing patterns
+        spaces = re.findall(r'\s{2,}', line)
+        return len(spaces) >= 1  # At least one multi-space separator
     
-    def clear_cache(self):
-        """Clear document cache"""
-        self.document_cache.clear()
-        logger.info("Document cache cleared")
+    def _parse_table_lines(self, lines: List[str]) -> Tuple[List[str], List[List[str]]]:
+        """Parse table lines into headers and rows"""
+        if not lines:
+            return [], []
+        
+        # Assume first line is headers
+        headers = lines[0].split()
+        rows = []
+        
+        for line in lines[1:]:
+            row = line.split()
+            if row:  # Skip empty rows
+                rows.append(row)
+        
+        return headers, rows
 
-
-def create_searchable_index(documents: List[DocumentAnalysisResult]) -> Dict[str, Any]:
-    """Create a searchable index from analyzed documents"""
-    index = {
-        'documents': {},
-        'terms': {},
-        'entities': {},
-        'topics': {}
-    }
+class AdvancedDocumentAnalyzer:
+    """Main advanced document analysis system"""
     
-    for doc in documents:
-        doc_id = hashlib.md5(doc.metadata.filename.encode()).hexdigest()
+    def __init__(self):
+        self.ocr_manager = OCRManager()
+        self.classifier = DocumentClassifier()
+        self.insight_extractor = DocumentInsightExtractor()
+        self.form_extractor = FormFieldExtractor()
+        self.table_extractor = TableExtractor()
+    
+    def analyze_document(self, file_path: str, language: str = 'en', 
+                        extract_forms: bool = True, 
+                        extract_tables: bool = True) -> AdvancedDocumentResult:
+        """Perform comprehensive document analysis"""
+        start_time = datetime.now()
         
-        # Store document
-        index['documents'][doc_id] = {
-            'filename': doc.metadata.filename,
-            'title': doc.metadata.title or doc.metadata.filename,
-            'word_count': doc.word_count,
-            'page_count': doc.page_count,
-            'timestamp': doc.timestamp.isoformat()
+        try:
+            # Step 1: OCR processing
+            ocr_result = self.ocr_manager.process_file(file_path, language)
+            
+            # Get text for analysis
+            if isinstance(ocr_result, DocumentResult):
+                text = ocr_result.combined_text
+            else:
+                text = ocr_result.text
+            
+            # Step 2: Document classification
+            classification = self.classifier.classify_document(text, Path(file_path).name)
+            
+            # Step 3: Extract insights
+            insights = self.insight_extractor.extract_insights(text)
+            
+            # Step 4: Extract form fields
+            form_fields = []
+            if extract_forms:
+                form_fields = self.form_extractor.extract_fields(text, ocr_result)
+            
+            # Step 5: Extract tables
+            tables = []
+            if extract_tables:
+                tables = self.table_extractor.extract_tables(text, ocr_result)
+            
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            return AdvancedDocumentResult(
+                filename=Path(file_path).name,
+                ocr_result=ocr_result,
+                classification=classification,
+                insights=insights,
+                form_fields=form_fields,
+                tables=tables,
+                processing_time=processing_time,
+                metadata={
+                    "file_size": Path(file_path).stat().st_size,
+                    "file_extension": Path(file_path).suffix,
+                    "analysis_timestamp": datetime.now().isoformat(),
+                    "language": language,
+                    "extract_forms": extract_forms,
+                    "extract_tables": extract_tables
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error analyzing document {file_path}: {e}")
+            raise
+    
+    def analyze_batch(self, file_paths: List[str], **kwargs) -> List[AdvancedDocumentResult]:
+        """Analyze multiple documents in batch"""
+        results = []
+        
+        for file_path in file_paths:
+            try:
+                result = self.analyze_document(file_path, **kwargs)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Failed to analyze {file_path}: {e}")
+                continue
+        
+        return results
+    
+    def export_results(self, results: List[AdvancedDocumentResult], 
+                      output_format: str = "json") -> str:
+        """Export analysis results"""
+        if output_format.lower() == "json":
+            return json.dumps([asdict(result) for result in results], 
+                            indent=2, default=str)
+        else:
+            raise ValueError(f"Unsupported output format: {output_format}")
+    
+    def get_analysis_summary(self, results: List[AdvancedDocumentResult]) -> Dict[str, Any]:
+        """Get summary statistics from analysis results"""
+        if not results:
+            return {}
+        
+        # Document type distribution
+        doc_types = [r.classification.document_type for r in results]
+        type_counts = Counter(doc_types)
+        
+        # Language distribution
+        languages = [r.insights.language_detected for r in results]
+        lang_counts = Counter(languages)
+        
+        # Average processing time
+        avg_processing_time = sum(r.processing_time for r in results) / len(results)
+        
+        # Compliance flags summary
+        total_flags = sum(len(r.insights.compliance_flags) for r in results)
+        
+        return {
+            "total_documents": len(results),
+            "document_types": dict(type_counts),
+            "languages": dict(lang_counts),
+            "average_processing_time": avg_processing_time,
+            "total_compliance_flags": total_flags,
+            "documents_with_forms": sum(1 for r in results if r.form_fields),
+            "documents_with_tables": sum(1 for r in results if r.tables),
+            "average_readability": sum(r.insights.readability_score for r in results) / len(results)
         }
+
+# Utility functions
+def create_searchable_index(results: List[AdvancedDocumentResult]) -> Dict[str, List[str]]:
+    """Create searchable index from analysis results"""
+    index = {}
+    
+    for result in results:
+        filename = result.filename
         
-        # Index terms
-        words = re.findall(r'\b\w+\b', doc.text_content.lower())
-        for word in set(words):
-            if word not in index['terms']:
-                index['terms'][word] = []
-            index['terms'][word].append(doc_id)
+        # Index by document type
+        doc_type = result.classification.document_type
+        if doc_type not in index:
+            index[doc_type] = []
+        index[doc_type].append(filename)
         
-        # Index entities
-        for entity in doc.entities:
-            entity_text = entity['text'].lower()
-            if entity_text not in index['entities']:
-                index['entities'][entity_text] = []
-            index['entities'][entity_text].append({
-                'doc_id': doc_id,
-                'label': entity['label'],
-                'confidence': entity['confidence']
-            })
+        # Index by entities
+        for entity in result.insights.key_entities:
+            entity_text = entity["text"].lower()
+            if entity_text not in index:
+                index[entity_text] = []
+            index[entity_text].append(filename)
         
-        # Index topics
-        for topic in doc.topics:
-            topic_name = topic['topic']
-            if topic_name not in index['topics']:
-                index['topics'][topic_name] = []
-            index['topics'][topic_name].append({
-                'doc_id': doc_id,
-                'weight': topic['weight']
-            })
+        # Index by topics
+        for topic in result.insights.topics:
+            topic_name = topic["topic"]
+            if topic_name not in index:
+                index[topic_name] = []
+            index[topic_name].append(filename)
     
     return index
 
-
-def search_documents(index: Dict[str, Any], query: str, 
-                    search_type: str = 'text') -> List[Dict[str, Any]]:
-    """Search documents using the created index"""
-    results = []
+def search_documents(index: Dict[str, List[str]], query: str) -> List[str]:
+    """Search documents using the index"""
     query_lower = query.lower()
+    results = set()
     
-    if search_type == 'text':
-        # Text search
-        query_words = re.findall(r'\b\w+\b', query_lower)
-        doc_scores = {}
-        
-        for word in query_words:
-            if word in index['terms']:
-                for doc_id in index['terms'][word]:
-                    if doc_id not in doc_scores:
-                        doc_scores[doc_id] = 0
-                    doc_scores[doc_id] += 1
-        
-        # Sort by relevance
-        for doc_id, score in sorted(doc_scores.items(), key=lambda x: x[1], reverse=True):
-            if doc_id in index['documents']:
-                result = index['documents'][doc_id].copy()
-                result['doc_id'] = doc_id
-                result['relevance_score'] = score / len(query_words)
-                results.append(result)
+    for key, filenames in index.items():
+        if query_lower in key.lower():
+            results.update(filenames)
     
-    elif search_type == 'entity':
-        # Entity search
-        if query_lower in index['entities']:
-            for entity_match in index['entities'][query_lower]:
-                doc_id = entity_match['doc_id']
-                if doc_id in index['documents']:
-                    result = index['documents'][doc_id].copy()
-                    result['doc_id'] = doc_id
-                    result['entity_label'] = entity_match['label']
-                    result['confidence'] = entity_match['confidence']
-                    results.append(result)
-    
-    elif search_type == 'topic':
-        # Topic search
-        if query_lower in index['topics']:
-            for topic_match in index['topics'][query_lower]:
-                doc_id = topic_match['doc_id']
-                if doc_id in index['documents']:
-                    result = index['documents'][doc_id].copy()
-                    result['doc_id'] = doc_id
-                    result['topic_weight'] = topic_match['weight']
-                    results.append(result)
-        
-        # Sort by topic weight
-        results.sort(key=lambda x: x.get('topic_weight', 0), reverse=True)
-    
-    return results
+    return list(results)
 
-
-# Example usage and demo
-if __name__ == "__main__":
-    # Initialize analyzer
-    analyzer = AdvancedDocumentAnalyzer()
-    
-    # Demo with a sample text file
-    demo_text = """
-    Advanced Document Analysis System
-    
-    This is a comprehensive document analysis system that provides:
-    
-    1. Text extraction from multiple formats
-    2. Named entity recognition
-    3. Topic modeling and analysis
-    4. Sentiment analysis
-    5. Document classification
-    6. Structure analysis
-    
-    The system is designed to handle various document types including PDFs, 
-    Word documents, and text files. It uses advanced NLP techniques to 
-    extract meaningful insights from documents.
-    
-    Contact: support@example.com
-    Phone: 555-123-4567
-    
-    This technology can be used in legal document review, medical record 
-    analysis, financial document processing, and general content analysis.
-    """
-    
-    # Create a temporary file for demo
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-        f.write(demo_text)
-        temp_file = f.name
-    
-    try:
-        # Analyze the document
-        result = analyzer.analyze_document(temp_file)
-        
-        print("Document Analysis Results:")
-        print(f"Filename: {result.metadata.filename}")
-        print(f"Word count: {result.word_count}")
-        print(f"Entities found: {len(result.entities)}")
-        print(f"Key phrases: {result.key_phrases[:5]}")
-        print(f"Top topics: {[t['topic'] for t in result.topics[:5]]}")
-        print(f"Sentiment score: {result.sentiment_score:.2f}")
-        print(f"Readability score: {result.readability_score:.1f}")
-        print(f"Document type: {result.classification['document_type']}")
-        
-        # Test search functionality
-        documents = [result]
-        index = create_searchable_index(documents)
-        
-        search_results = search_documents(index, "analysis system", "text")
-        print(f"\nSearch results for 'analysis system': {len(search_results)} documents found")
-        
-    finally:
-        # Clean up
-        os.unlink(temp_file)
-        
-    print(f"\nProcessing statistics: {analyzer.get_analysis_statistics()}")
+# Export main classes
+__all__ = [
+    'AdvancedDocumentAnalyzer',
+    'DocumentClassifier',
+    'DocumentInsightExtractor',
+    'FormFieldExtractor',
+    'TableExtractor',
+    'AdvancedDocumentResult',
+    'DocumentClassification',
+    'DocumentInsights',
+    'FormField',
+    'TableData',
+    'create_searchable_index',
+    'search_documents'
+]

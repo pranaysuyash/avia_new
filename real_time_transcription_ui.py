@@ -22,6 +22,14 @@ from real_time_transcription import (
     StreamingConfig, TranscriptionEngine, StreamingMode,
     RealTimeTranscriptionSystem
 )
+from streamlit_intent_utils import (
+    get_params,
+    update_params,
+    render_share_block,
+    log_ux_event,
+    render_share_inline,
+    render_skeleton_list,
+)
 
 # Page configuration
 st.set_page_config(
@@ -101,6 +109,9 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Header share affordance
+render_share_inline()
 
 def initialize_session_state():
     """Initialize session state variables"""
@@ -282,18 +293,30 @@ def display_audio_controls():
         if st.button("🎙️ Start Recording", disabled=st.session_state.is_recording):
             if start_recording_session():
                 st.success("Recording started!")
+                try:
+                    log_ux_event('rt_start_recording')
+                except Exception:
+                    pass
                 st.rerun()
     
     with col2:
         if st.button("⏹️ Stop Recording", disabled=not st.session_state.is_recording):
             if stop_recording_session():
                 st.success("Recording stopped!")
+                try:
+                    log_ux_event('rt_stop_recording')
+                except Exception:
+                    pass
                 st.rerun()
     
     with col3:
         if st.button("🗑️ Clear Transcript"):
             st.session_state.transcript_segments = []
             st.success("Transcript cleared!")
+            try:
+                log_ux_event('rt_clear_transcript')
+            except Exception:
+                pass
             st.rerun()
     
     with col4:
@@ -393,6 +416,14 @@ def display_confidence_chart():
     if not st.session_state.transcript_segments:
         return
     
+    # Deep-link toggle to show/hide chart
+    params = get_params()
+    default_show = params.get('rt_chart', '1') != '0'
+    show_chart = st.checkbox("Show confidence chart", value=default_show)
+    update_params({'rt_chart': '1' if show_chart else '0'})
+    if not show_chart:
+        return
+
     st.subheader("📈 Confidence Scores Over Time")
     
     # Prepare data
@@ -476,6 +507,17 @@ def display_transcript_analysis():
                 for word, count in top_words:
                     st.write(f"• {word}: {count}")
 
+# Add share/reset controls to sidebar
+with st.sidebar:
+    render_share_block("Share Real-Time View")
+    if st.button("Reset Real-Time View"):
+        update_params({'rt_chart': None})
+        try:
+            log_ux_event('st_filters_cleared', {'scope': 'real_time'})
+        except Exception:
+            pass
+        st.rerun()
+
 def export_transcript():
     """Export transcript functionality"""
     if not st.session_state.transcript_segments:
@@ -545,43 +587,118 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Sidebar configuration
+    # Sidebar configuration (deep-linked)
     st.sidebar.header("⚙️ Configuration")
+    params = get_params()
     
     # Transcription engine selection
+    engine_opts = ["Whisper API", "Whisper Local", "Vosk", "DeepSpeech"]
+    engine_map = {
+        "Whisper API": "whisper_api",
+        "Whisper Local": "whisper_local",
+        "Vosk": "vosk",
+        "DeepSpeech": "deepspeech",
+    }
+    engine_rev = {v: k for k, v in engine_map.items()}
+    eng_default = engine_rev.get(params.get('rt_engine', ''), engine_opts[0])
     engine = st.sidebar.selectbox(
         "Transcription Engine",
-        options=["Whisper API", "Whisper Local", "Vosk", "DeepSpeech"],
-        index=0,
+        options=engine_opts,
+        index=(engine_opts.index(eng_default) if eng_default in engine_opts else 0),
         help="Choose the transcription engine"
     )
+    try:
+        update_params({'rt_engine': engine_map.get(engine, 'whisper_api')})
+    except Exception:
+        pass
     
     # Language selection
+    lang_opts = ["en", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh"]
+    lang_default = params.get('rt_lang', lang_opts[0])
     language = st.sidebar.selectbox(
         "Language",
-        options=["en", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh"],
-        index=0,
+        options=lang_opts,
+        index=(lang_opts.index(lang_default) if lang_default in lang_opts else 0),
         help="Select transcription language"
     )
+    try:
+        update_params({'rt_lang': language})
+    except Exception:
+        pass
     
     # Audio settings
     st.sidebar.subheader("Audio Settings")
-    sample_rate = st.sidebar.selectbox("Sample Rate", [16000, 22050, 44100], index=0)
-    chunk_duration = st.sidebar.slider("Chunk Duration (s)", 0.5, 5.0, 2.0, 0.5)
-    confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.5, 0.1)
+    sr_opts = [16000, 22050, 44100]
+    sr_default = int(params.get('rt_sr', str(sr_opts[0]))) if str(params.get('rt_sr', '')).isdigit() else sr_opts[0]
+    sample_rate = st.sidebar.selectbox("Sample Rate", sr_opts, index=(sr_opts.index(sr_default) if sr_default in sr_opts else 0))
+    try:
+        update_params({'rt_sr': str(sample_rate)})
+    except Exception:
+        pass
+    chunk_default = float(params.get('rt_chunk', '2.0')) if params.get('rt_chunk') else 2.0
+    chunk_duration = st.sidebar.slider("Chunk Duration (s)", 0.5, 5.0, chunk_default, 0.5)
+    try:
+        update_params({'rt_chunk': f"{chunk_duration:.1f}"})
+    except Exception:
+        pass
+    conf_default = float(params.get('rt_conf', '0.5')) if params.get('rt_conf') else 0.5
+    confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, conf_default, 0.1)
+    try:
+        update_params({'rt_conf': f"{confidence_threshold:.1f}"})
+    except Exception:
+        pass
     
     # Streaming mode
+    mode_opts = ["Continuous", "Push-to-Talk", "Voice Activity"]
+    mode_map = {"Continuous": "continuous", "Push-to-Talk": "ptt", "Voice Activity": "vad"}
+    mode_rev = {v: k for k, v in mode_map.items()}
+    mode_default = mode_rev.get(params.get('rt_mode', 'continuous'), "Continuous")
     streaming_mode = st.sidebar.selectbox(
         "Streaming Mode",
-        options=["Continuous", "Push-to-Talk", "Voice Activity"],
-        index=0
+        options=mode_opts,
+        index=(mode_opts.index(mode_default) if mode_default in mode_opts else 0)
     )
+    try:
+        update_params({'rt_mode': mode_map.get(streaming_mode, 'continuous')})
+    except Exception:
+        pass
     
-    # Main content tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["🎙️ Live Transcription", "📊 Analytics", 
-                                      "📥 Export", "⚙️ System Status"])
+    # Sidebar share + reset
+    with st.sidebar:
+        render_share_block("Share Real-Time View")
+        if st.button("Reset Real-Time View"):
+            try:
+                update_params({
+                    'rt_engine': None,
+                    'rt_lang': None,
+                    'rt_sr': None,
+                    'rt_chunk': None,
+                    'rt_conf': None,
+                    'rt_mode': None,
+                    'rt_chart': None,
+                })
+            except Exception:
+                pass
+            try:
+                log_ux_event('st_filters_cleared', {'scope': 'real_time_transcription'})
+            except Exception:
+                pass
+            st.rerun()
     
-    with tab1:
+    # Deep-linked tabs via rt_tab (live|analytics|export|status)
+    tab_map = [
+        ("live", "🎙️ Live Transcription"),
+        ("analytics", "📊 Analytics"),
+        ("export", "📥 Export"),
+        ("status", "⚙️ System Status"),
+    ]
+    current_tab_key = params.get('rt_tab', 'live')
+    ordered = [x for x in tab_map if x[0] == current_tab_key] + [x for x in tab_map if x[0] != current_tab_key]
+    tab_labels = [label for _, label in ordered]
+    tabs = st.tabs(tab_labels)
+    key_to_tab = {k: tabs[i] for i, (k, _) in enumerate(ordered)}
+    
+    with key_to_tab["live"]:
         # Audio controls
         display_audio_controls()
         
@@ -595,7 +712,7 @@ def main():
         # Session statistics
         display_session_stats()
     
-    with tab2:
+    with key_to_tab["analytics"]:
         st.header("Analytics Dashboard")
         
         # Confidence chart
@@ -606,10 +723,16 @@ def main():
         # Transcript analysis
         display_transcript_analysis()
         
-        # Performance metrics
+        # Performance metrics (skeletons while loading)
         if st.session_state.current_session_id:
             st.subheader("🚀 Performance Metrics")
             
+            sph = st.container()
+            with sph:
+                try:
+                    render_skeleton_list(items=3)
+                except Exception:
+                    pass
             try:
                 response = requests.get(
                     f"http://localhost:8001/api/transcription/stats/{st.session_state.current_session_id}"
@@ -630,12 +753,14 @@ def main():
                         
             except Exception as e:
                 st.error(f"Failed to load performance metrics: {e}")
+            finally:
+                sph.empty()
     
-    with tab3:
+    with key_to_tab["export"]:
         st.header("Export Transcript")
         export_transcript()
-    
-    with tab4:
+
+    with key_to_tab["status"]:
         st.header("System Status")
         
         # Health check
@@ -699,6 +824,22 @@ def main():
                 
             except Exception as e:
                 st.error(f"❌ WebSocket connection test failed: {e}")
+
+    # Sidebar quick tab selector (syncs rt_tab)
+    with st.sidebar:
+        st.markdown("---")
+        section_key = st.selectbox(
+            "Section",
+            options=[k for k, _ in tab_map],
+            index=[k for k, _ in tab_map].index(current_tab_key) if current_tab_key in [k for k, _ in tab_map] else 0,
+            format_func=lambda k: dict(tab_map)[k]
+        )
+        if section_key != current_tab_key:
+            try:
+                update_params({'rt_tab': section_key})
+            except Exception:
+                pass
+            st.experimental_rerun()
 
     # Auto-refresh for live updates
     if st.session_state.is_recording:

@@ -11,6 +11,7 @@ import {
   UserIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { logUxEvent } from '../../services/uxTelemetry';
 import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
@@ -38,6 +39,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const handleLogout = async () => {
     await logout();
     navigate('/');
+  };
+
+  const handleShare = async () => {
+    try {
+      const href = window.location.href;
+      await navigator.clipboard.writeText(href);
+      logUxEvent('share_view_copied', { href });
+    } catch {
+      // noop
+    }
   };
 
   return (
@@ -72,6 +83,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             ) : (
               <MoonIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             )}
+          </button>
+
+          {/* Share current view */}
+          <button
+            onClick={handleShare}
+            className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            aria-label="Copy shareable link"
+            title="Copy shareable link"
+          >
+            Share
           </button>
 
           {/* Notifications */}

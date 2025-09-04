@@ -1,0 +1,47 @@
+{
+  "id": "tpl_edu_lecture_v1",
+  "name": "Education — Lecture to Study Pack",
+  "version": "1.0.0",
+  "description": "Produce chapters and study packs (flashcards/quizzes) from lectures; export to Anki/Notion.",
+  "io": {
+    "inputs": [{"name": "lecture_media", "type": "Video"}],
+    "outputs": [
+      {"name": "chapters", "type": "JSON"},
+      {"name": "study_pack", "type": "Archive"}
+    ]
+  },
+  "parameters": {
+    "quiz_count": 15,
+    "flashcard_format": "anki",
+    "slide_ocr": true
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "quiz_count": {"type": "integer", "minimum": 0, "maximum": 50},
+      "flashcard_format": {"type": "string", "enum": ["anki", "csv", "notion"]},
+      "slide_ocr": {"type": "boolean"}
+    },
+    "required": ["quiz_count", "flashcard_format", "slide_ocr"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      {"id": "ingest", "def": "Ingest", "params": {}, "io": {"in": ["None"], "out": ["Video"]}},
+      {"id": "transcribe", "def": "ASR.Whisper", "params": {"model": "large", "language": "auto"}, "io": {"in": ["Audio"], "out": ["Text.Segments"]}},
+      {"id": "slides", "def": "OCR.Frames", "params": {"enabled": "${slide_ocr}", "interval_s": 1}, "io": {"in": ["Video"], "out": ["Text[]"]}},
+      {"id": "chapters", "def": "Analyze.Chapterize", "params": {}, "io": {"in": ["Text.Segments"], "out": ["JSON"]}},
+      {"id": "study", "def": "LLM.StudyPack", "params": {"quiz": "${quiz_count}", "flashcards": "${flashcard_format}"}, "io": {"in": ["Text.Segments", "Text[]"], "out": ["Archive"]}},
+      {"id": "export", "def": "Export.StudyPack", "params": {"destinations": ["anki", "notion"]}, "io": {"in": ["Archive"], "out": ["None"]}}
+    ],
+    "edges": [
+      {"from": "ingest.out", "to": "transcribe.in"},
+      {"from": "transcribe.out", "to": "chapters.in"},
+      {"from": "transcribe.out", "to": "study.in_0"},
+      {"from": "ingest.out", "to": "slides.in"},
+      {"from": "slides.out", "to": "study.in_1"},
+      {"from": "study.out", "to": "export.in"}
+    ]
+  }
+}
+

@@ -22,6 +22,9 @@ import yaml
 from workflow_orchestration_system import WorkflowEngine, WorkflowTemplates
 from enterprise_workflow_management import EnterpriseWorkflowManager, WorkflowCategory
 from workflow_templates_automation import WorkflowTemplateLibrary, AutomationEngine
+from enhanced_components_refactored import render_page_frame, render_empty_state, log_ux_event
+from streamlit_intent_utils import render_share_inline
+from streamlit_intent_utils import get_params, update_params, render_share_block
 
 # Page configuration
 st.set_page_config(
@@ -30,6 +33,18 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Standard page frame
+try:
+    render_page_frame(
+        title="🔄 Workflow Orchestration",
+        subtitle="Design, run, and monitor enterprise workflows",
+        breadcrumb=["Orchestration"],
+        env_label=st.session_state.get('env', 'Demo'),
+        role_label=st.session_state.get('user', {}).get('role', 'guest')
+    )
+except Exception:
+    pass
 
 # Custom CSS for enhanced styling
 st.markdown("""
@@ -225,6 +240,19 @@ class WorkflowOrchestrationUI:
             if st.button("📊 Export", use_container_width=True):
                 self._export_workflow_data()
         
+        # Share and reset deep links
+        render_share_block("Share Orchestration View")
+        if st.sidebar.button("Reset Orchestration View"):
+            try:
+                update_params({'orch_charts': None, 'orch_samples': None})
+                try:
+                    log_ux_event('st_filters_cleared', {'scope': 'orchestration'})
+                except Exception:
+                    pass
+                st.experimental_rerun()
+            except Exception:
+                pass
+
         # System status indicator
         st.sidebar.subheader("System Status")
         metrics = st.session_state.system_metrics
@@ -257,6 +285,35 @@ class WorkflowOrchestrationUI:
         """Render the main dashboard overview"""
         st.title("🔄 Workflow Orchestration Dashboard")
         st.markdown("Monitor and manage enterprise workflow executions in real-time")
+        render_share_inline()
+        # Refresh data action
+        col_a, col_b = st.columns([6, 1])
+        with col_b:
+            if st.button("🔄 Refresh Data", use_container_width=True):
+                with st.spinner("Refreshing metrics and activity..."):
+                    # Refresh mock metrics; in real app, fetch latest from backend
+                    st.session_state.system_metrics = self._generate_mock_metrics()
+                    try:
+                        log_ux_event('orchestr_refresh')
+                    except Exception:
+                        pass
+                st.experimental_rerun()
+        
+        # Toggle to defer heavy charts for faster rendering (deep-linkable)
+        try:
+            qp = get_params()
+            qp_toggle = qp.get("orch_charts", "1")
+            default_toggle = (qp_toggle != "0")
+        except Exception:
+            default_toggle = True
+        show_charts = st.checkbox("Show charts and trends", value=default_toggle, help="Disable to speed up page rendering")
+        st.session_state['orchestr_show_charts'] = show_charts
+        # Persist toggle in query params
+        try:
+            desired = '1' if show_charts else '0'
+            update_params({'orch_charts': desired})
+        except Exception:
+            pass
         
         # Key metrics row
         col1, col2, col3, col4 = st.columns(4)
@@ -302,46 +359,45 @@ class WorkflowOrchestrationUI:
             """.format(avg_duration), unsafe_allow_html=True)
         
         # Charts section
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("📈 Execution Trends")
-            # Generate sample data for the last 7 days
-            dates = [datetime.now() - timedelta(days=i) for i in range(6, -1, -1)]
-            successful = [45, 52, 38, 61, 48, 55, metrics['completed_executions_today'] - metrics['failed_executions_today']]
-            failed = [3, 5, 2, 8, 4, 6, metrics['failed_executions_today']]
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=dates, y=successful, name='Successful', 
-                line=dict(color='#10b981'), fill='tonexty'
-            ))
-            fig.add_trace(go.Scatter(
-                x=dates, y=failed, name='Failed',
-                line=dict(color='#ef4444'), fill='tozeroy'
-            ))
-            fig.update_layout(
-                showlegend=True, height=300,
-                margin=dict(l=0, r=0, t=30, b=0),
-                yaxis_title="Executions"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            st.subheader("🏷️ Workflow Distribution")
-            categories = ['Medical', 'Quality', 'Business', 'Legal', 'Research']
-            values = [35, 25, 20, 15, 5]
-            
-            fig = px.pie(
-                values=values, names=categories,
-                color_discrete_sequence=px.colors.qualitative.Set3,
-                hole=0.4
-            )
-            fig.update_layout(
-                showlegend=True, height=300,
-                margin=dict(l=0, r=0, t=30, b=0)
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        if show_charts:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.subheader("📈 Execution Trends")
+                with st.spinner("Rendering charts..."):
+                    # Generate sample data for the last 7 days
+                    dates = [datetime.now() - timedelta(days=i) for i in range(6, -1, -1)]
+                    successful = [45, 52, 38, 61, 48, 55, metrics['completed_executions_today'] - metrics['failed_executions_today']]
+                    failed = [3, 5, 2, 8, 4, 6, metrics['failed_executions_today']]
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=dates, y=successful, name='Successful', 
+                        line=dict(color='#10b981'), fill='tonexty'
+                    ))
+                    fig.add_trace(go.Scatter(
+                        x=dates, y=failed, name='Failed',
+                        line=dict(color='#ef4444'), fill='tozeroy'
+                    ))
+                    fig.update_layout(
+                        showlegend=True, height=300,
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        yaxis_title="Executions"
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+            with col2:
+                st.subheader("🏷️ Workflow Distribution")
+                with st.spinner("Rendering charts..."):
+                    categories = ['Medical', 'Quality', 'Business', 'Legal', 'Research']
+                    values = [35, 25, 20, 15, 5]
+                    fig = px.pie(
+                        values=values, names=categories,
+                        color_discrete_sequence=px.colors.qualitative.Set3,
+                        hole=0.4
+                    )
+                    fig.update_layout(
+                        showlegend=True, height=300,
+                        margin=dict(l=0, r=0, t=30, b=0)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
         
         # Recent executions
         st.subheader("🕒 Recent Executions")
@@ -352,32 +408,41 @@ class WorkflowOrchestrationUI:
         
         with col1:
             st.subheader("💻 System Resources")
-            resource_fig = go.Figure()
-            
-            resources = ['CPU', 'Memory', 'Disk', 'Network']
-            values = [
-                metrics['cpu_usage'],
-                metrics['memory_usage'], 
-                metrics['disk_usage'],
-                metrics['network_latency']
-            ]
-            
-            colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
-            
-            for i, (resource, value, color) in enumerate(zip(resources, values, colors)):
-                resource_fig.add_trace(go.Bar(
-                    x=[resource], y=[value],
-                    name=resource, marker_color=color,
-                    text=f'{value:.1f}%', textposition='outside'
-                ))
-            
-            resource_fig.update_layout(
-                showlegend=False, height=300,
-                margin=dict(l=0, r=0, t=30, b=0),
-                yaxis=dict(range=[0, 100], title="Usage %")
-            )
-            st.plotly_chart(resource_fig, use_container_width=True)
+            if show_charts:
+                resource_fig = go.Figure()
+                resources = ['CPU', 'Memory', 'Disk', 'Network']
+                values = [
+                    metrics['cpu_usage'],
+                    metrics['memory_usage'], 
+                    metrics['disk_usage'],
+                    metrics['network_latency']
+                ]
+                colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
+                for i, (resource, value, color) in enumerate(zip(resources, values, colors)):
+                    resource_fig.add_trace(go.Bar(
+                        x=[resource], y=[value],
+                        name=resource, marker_color=color,
+                        text=f'{value:.1f}%', textposition='outside'
+                    ))
+                resource_fig.update_layout(
+                    showlegend=False, height=300,
+                    margin=dict(l=0, r=0, t=30, b=0),
+                    yaxis=dict(range=[0, 100], title="Usage %")
+                )
+                st.plotly_chart(resource_fig, use_container_width=True)
+            else:
+                st.caption("Charts hidden. Enable 'Show charts and trends' to view.")
         
+        # Reset orchestration view
+        if st.button("Reset Orchestration View"):
+            try:
+                current = st.experimental_get_query_params() or {}
+                for k in ['orch_charts','orch_samples']:
+                    current.pop(k, None)
+                st.experimental_set_query_params(**current)
+                st.experimental_rerun()
+            except Exception:
+                pass
         with col2:
             st.subheader("🔔 Active Alerts")
             alerts = [
@@ -491,6 +556,22 @@ class WorkflowOrchestrationUI:
 
     def _render_workflow_list(self, search_term: str, status_filter: str, category_filter: str):
         """Render the list of workflows with filtering"""
+        # Option to show/hide demo sample data
+        # Deep-linked sample workflows toggle (?orch_samples=1/0)
+        try:
+            qp = get_params()
+            default_samples = qp.get('orch_samples', '1') != '0'
+        except Exception:
+            default_samples = True
+        show_samples = st.checkbox(
+            "Show sample workflows",
+            value=default_samples,
+            help="Toggle sample data in demo mode"
+        )
+        try:
+            update_params({'orch_samples': '1' if show_samples else '0'})
+        except Exception:
+            pass
         # Sample workflow data
         workflows = [
             {
@@ -551,6 +632,9 @@ class WorkflowOrchestrationUI:
             }
         ]
         
+        if not show_samples:
+            workflows = []
+        
         # Filter workflows
         filtered_workflows = []
         for workflow in workflows:
@@ -572,7 +656,11 @@ class WorkflowOrchestrationUI:
         
         # Display workflows
         if not filtered_workflows:
-            st.info("No workflows found matching the current filters.")
+            render_empty_state(
+                title="No workflows",
+                description="Create your first workflow or enable sample data to explore features.",
+                icon="🧩"
+            )
             return
         
         for workflow in filtered_workflows:
@@ -709,7 +797,18 @@ class WorkflowOrchestrationUI:
         
         with col1:
             st.subheader("📈 Execution Statistics")
-            
+            show = st.session_state.get('orchestr_show_charts', None)
+            if show is None:
+                # initialize from query param
+                try:
+                    qp = st.experimental_get_query_params() or {}
+                    show = qp.get('orch_charts', ['1'])[0] != '0'
+                except Exception:
+                    show = True
+                st.session_state['orchestr_show_charts'] = show
+            if not show:
+                st.caption("Charts hidden. Enable 'Show charts and trends' to view.")
+                return
             # Generate sample hourly execution data
             hours = list(range(24))
             successful_executions = [max(0, int(30 + 20 * (0.5 - abs(h - 12) / 24))) for h in hours]
@@ -738,6 +837,10 @@ class WorkflowOrchestrationUI:
         
         with col2:
             st.subheader("⏱️ Performance Metrics")
+            show = st.session_state.get('orchestr_show_charts', True)
+            if not show:
+                st.caption("Charts hidden. Enable 'Show charts and trends' to view.")
+                return
             
             # Performance over time
             dates = [datetime.now() - timedelta(days=i) for i in range(6, -1, -1)]
@@ -936,6 +1039,10 @@ class WorkflowOrchestrationUI:
         
         # Resource usage over time
         st.subheader("📈 Resource Usage Trends")
+        show = st.session_state.get('orchestr_show_charts', True)
+        if not show:
+            st.caption("Charts hidden. Enable 'Show charts and trends' to view.")
+            return
         
         # Generate sample time series data
         time_points = [datetime.now() - timedelta(minutes=i*5) for i in range(12, 0, -1)]
@@ -981,7 +1088,11 @@ class WorkflowOrchestrationUI:
         fig.update_yaxes(title_text="MB/s", row=2, col=1)
         fig.update_yaxes(title_text="MB/s", row=2, col=2)
         
+        show = st.session_state.get('orchestr_show_charts', True)
+        if show:
         st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.caption("Charts hidden. Enable 'Show charts and trends' to view.")
         
         # System logs
         col1, col2 = st.columns(2)

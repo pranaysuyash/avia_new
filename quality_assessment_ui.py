@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import json
 import asyncio
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event, get_params, update_params
 
 # Import our quality assessment system
 from quality_assessment_system import (
@@ -53,6 +54,11 @@ class QualityAssessmentDashboard:
         
         # Header
         self._render_header()
+        # Inline share input
+        try:
+            render_share_inline("Shareable view link")
+        except Exception:
+            pass
         
         # Sidebar configuration
         self._render_sidebar()
@@ -165,13 +171,18 @@ class QualityAssessmentDashboard:
             st.header("⚙️ Dashboard Configuration")
             
             # Medical features toggle
+            params = get_params()
             medical_enabled = st.checkbox(
                 "Enable Medical Features",
-                value=st.session_state.medical_features_enabled,
+                value=(params.get('qa_med', '1' if st.session_state.medical_features_enabled else '0') == '1'),
                 help="Show medical-specific quality metrics and HIPAA compliance"
             )
             if medical_enabled != st.session_state.medical_features_enabled:
                 st.session_state.medical_features_enabled = medical_enabled
+                try:
+                    update_params({'qa_med': '1' if medical_enabled else '0'})
+                except Exception:
+                    pass
                 st.rerun()
             
             # Dashboard view selection
@@ -195,24 +206,38 @@ class QualityAssessmentDashboard:
                 "benchmarks": "🏆 Benchmarks"
             }
             
+            qp_view = params.get('qa_view', st.session_state.get('dashboard_view', 'overview'))
+            try:
+                initial_index = view_options.index(qp_view) if qp_view in view_options else 0
+            except Exception:
+                initial_index = 0
             selected_view = st.selectbox(
                 "Dashboard View",
                 view_options,
                 format_func=lambda x: view_labels.get(x, x),
-                index=0
+                index=initial_index
             )
             st.session_state.dashboard_view = selected_view
+            try:
+                update_params({'qa_view': selected_view})
+            except Exception:
+                pass
             
             st.markdown("---")
             
             # Time range filter
             st.subheader("🕒 Time Range")
+            qp_range = params.get('qa_range', st.session_state.get('time_range', 'Last 30 days'))
             time_range = st.selectbox(
                 "Select time range",
                 ["Last 7 days", "Last 30 days", "Last 90 days", "All time"],
-                index=1
+                index=["Last 7 days", "Last 30 days", "Last 90 days", "All time"].index(qp_range) if qp_range in ["Last 7 days", "Last 30 days", "Last 90 days", "All time"] else 1
             )
             st.session_state.time_range = time_range
+            try:
+                update_params({'qa_range': time_range})
+            except Exception:
+                pass
             
             # Quality assessment controls
             st.markdown("---")

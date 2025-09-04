@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: Frame OCR Indexing API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/ocr/index/{media_id}:
+    post:
+      summary: Start OCR indexing job for a media asset
+      parameters:
+        - in: path
+          name: media_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sampling_mode: { type: string, enum: [interval, keyframe] }
+                interval_s: { type: number, minimum: 0.2, maximum: 10 }
+                lang: { type: string }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+  /api/v1/ocr/index/{job_id}/status:
+    get:
+      summary: Get OCR job status
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+                  status: { type: string, enum: [queued, running, completed, failed, cancelled] }
+                  frames_processed: { type: integer }
+                  progress: { type: number }
+                  eta_s: { type: number, nullable: true }
+                  error: { type: string, nullable: true }
+  /api/v1/ocr/results:
+    get:
+      summary: Query OCR hits
+      parameters:
+        - in: query
+          name: media_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  hits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        t_start: { type: number }
+                        t_end: { type: number }
+                        text: { type: string }
+                        confidence: { type: number }
+                        lang: { type: string }
+  /api/v1/search:
+    get:
+      summary: Unified search (with OCR source filter)
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: sources
+          schema: { type: string, example: "transcript,ocr,entity" }
+      responses:
+        '200': { description: OK }
+

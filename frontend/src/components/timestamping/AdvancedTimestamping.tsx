@@ -505,12 +505,28 @@ renderWordTimeline = () => {
         </div>
       </div>
     );
-  };  r
-eturn (
+  };
+  return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex items-center space-x-2">
-        <Timer className="h-6 w-6 text-purple-600" />
-        <h1 className="text-2xl font-bold">Advanced Timestamping</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Timer className="h-6 w-6 text-purple-600" />
+          <h1 className="text-2xl font-bold">Advanced Timestamping</h1>
+        </div>
+        <button
+          className="px-3 py-1 border rounded"
+          onClick={async () => {
+            try {
+              const u = new URL(window.location.href);
+              await navigator.clipboard.writeText(u.toString());
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const { logUxEvent } = require('../../components/shared/uxTelemetry');
+              try { logUxEvent('share_view_copied', { page: 'advanced_timestamping' }); } catch {}
+            } catch {}
+          }}
+        >
+          Share
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

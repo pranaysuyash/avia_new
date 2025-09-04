@@ -143,9 +143,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          cursor: 'pointer',
         }}
-        onClick={() => setIsMinimized(!isMinimized)}
       >
         <h2
           style={{
@@ -157,16 +155,35 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         >
           🚀 Performance Monitor
         </h2>
-        <button
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: webTheme.typography.fontSize.lg,
-          }}
-        >
-          {isMinimized ? '▲' : '▼'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={async () => {
+              try {
+                const u = new URL(window.location.href);
+                await navigator.clipboard.writeText(u.toString());
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const { logUxEvent } = require('../../components/shared/uxTelemetry');
+                try { logUxEvent('share_view_copied', { page: 'performance_dashboard' }); } catch {}
+              } catch {}
+            }}
+            style={{ background: 'none', border: `1px solid ${webTheme.colors.border.light}`, borderRadius: 6, padding: '2px 6px', cursor: 'pointer', fontSize: webTheme.typography.fontSize.sm }}
+            aria-label="Copy shareable link"
+            title="Copy shareable link"
+          >
+            Share
+          </button>
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: webTheme.typography.fontSize.lg,
+            }}
+          >
+            {isMinimized ? '▲' : '▼'}
+          </button>
+        </div>
       </div>
 
       {/* Content */}

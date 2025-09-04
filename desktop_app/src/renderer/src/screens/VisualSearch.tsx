@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { logUxEvent } from '../services/uxTelemetry';
 import { motion } from 'framer-motion';
 import { 
   MagnifyingGlassIcon, 
@@ -67,7 +68,10 @@ interface Recommendation {
 }
 
 const VisualSearch: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'timeline' | 'map' | 'similarity' | 'image' | 'recommendations'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'map' | 'similarity' | 'image' | 'recommendations'>(() => {
+    try { const url = new URL(window.location.href); const t = url.searchParams.get('vs_tab'); if (t && ['timeline','map','similarity','image','recommendations'].includes(t)) return t as any; } catch {}
+    return 'timeline';
+  });
   const [timelineData, setTimelineData] = useState<TimelineData[]>([]);
   const [contentMap, setContentMap] = useState<ContentCluster[]>([]);
   const [similarityResults, setSimilarityResults] = useState<SimilarityResult[]>([]);
@@ -81,6 +85,11 @@ const VisualSearch: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // Sync tab into URL for shareable state
+  useEffect(() => {
+    try { const url = new URL(window.location.href); url.searchParams.set('vs_tab', activeTab); window.history.replaceState({}, '', url.toString()); } catch {}
+  }, [activeTab]);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -569,13 +578,22 @@ const VisualSearch: React.FC = () => {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           Visual Search & Content Discovery
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Explore and discover content through advanced visual search capabilities
-        </p>
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Explore and discover content through advanced visual search capabilities
+          </p>
+        </div>
+        <button
+          onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_visual_search_view', { href }); } catch {} }}
+          className="px-3 py-2 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+          title="Copy shareable link"
+        >
+          Share
+        </button>
       </div>
 
       {/* Tab Navigation */}

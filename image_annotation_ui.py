@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 import tempfile
 import os
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event, get_params, update_params
 
 from image_annotation_system import (
     AnnotationManager, AnnotationRenderer, AnnotationType, DrawingMode,
@@ -133,9 +134,29 @@ def main():
         <p>Interactive image annotation with bounding boxes, text overlays, and markup tools</p>
     </div>
     """, unsafe_allow_html=True)
+    # Inline share input
+    try:
+        render_share_inline("Shareable view link")
+    except Exception:
+        pass
     
     # Sidebar
     with st.sidebar:
+        # Share + reset controls
+        try:
+            render_share_block("Share Image Annotation View")
+        except Exception:
+            pass
+        if st.button("Reset View/Filters"):
+            try:
+                st.experimental_set_query_params()
+            except Exception:
+                pass
+            try:
+                log_ux_event("st_filters_cleared", {"scope": "image_annotation"})
+            except Exception:
+                pass
+            st.rerun()
         render_sidebar()
     
     # Main content
@@ -153,12 +174,19 @@ def render_sidebar():
     
     # Drawing mode
     st.subheader("Mode")
+    params = get_params()
+    mode_default = params.get('ia_mode', DrawingMode.DRAW.value)
     mode = st.radio(
         "Select mode:",
         [DrawingMode.DRAW.value, DrawingMode.SELECT.value, DrawingMode.EDIT.value, DrawingMode.DELETE.value],
-        format_func=lambda x: x.title()
+        format_func=lambda x: x.title(),
+        index=[DrawingMode.DRAW.value, DrawingMode.SELECT.value, DrawingMode.EDIT.value, DrawingMode.DELETE.value].index(mode_default) if mode_default in [d.value for d in DrawingMode] else 0
     )
     st.session_state.drawing_mode = DrawingMode(mode)
+    try:
+        update_params({'ia_mode': mode})
+    except Exception:
+        pass
     
     # Tool selection
     st.subheader("Tools")
@@ -176,11 +204,22 @@ def render_sidebar():
         (AnnotationType.HIGHLIGHT, "🔆", "Highlight")
     ]
     
+    # Initialize tool from deep link
+    tool_default = params.get('ia_tool')
+    if tool_default:
+        try:
+            st.session_state.current_tool = getattr(AnnotationType, tool_default)
+        except Exception:
+            pass
     for i, (tool_type, icon, name) in enumerate(tools):
         col = tool_cols[i % 3]
         with col:
             if st.button(f"{icon} {name}", key=f"tool_{tool_type.value}"):
                 st.session_state.current_tool = tool_type
+                try:
+                    update_params({'ia_tool': tool_type.name})
+                except Exception:
+                    pass
     
     # Style settings
     st.subheader("Style Settings")

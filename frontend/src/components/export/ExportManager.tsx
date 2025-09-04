@@ -299,10 +299,27 @@ const ExportManager: React.FC<ExportManagerProps> = ({
   return (
     <Box>
       {/* Header */}
-      <Typography variant="h5" gutterBottom display="flex" alignItems="center">
-        <Download sx={{ mr: 1 }} />
-        Export & Share
-      </Typography>
+      <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+        <Typography variant="h5" gutterBottom display="flex" alignItems="center">
+          <Download sx={{ mr: 1 }} />
+          Export & Share
+        </Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={async () => {
+            try {
+              const u = new URL(window.location.href);
+              await navigator.clipboard.writeText(u.toString());
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const { logUxEvent } = require('../../components/shared/uxTelemetry');
+              try { logUxEvent('share_view_copied', { page: 'export_manager' }); } catch {}
+            } catch {}
+          }}
+        >
+          Share
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>

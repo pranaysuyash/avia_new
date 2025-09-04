@@ -22,9 +22,12 @@ import {
   FiChevronDown,
   FiMoon,
   FiSun,
-  FiMonitor
+  FiMonitor,
+  FiActivity
 } from 'react-icons/fi';
 import { ThemeProvider } from '../../shared/theme';
+import { logUxEvent } from '../shared/uxTelemetry';
+import { ShareViewButton } from '../shared/ShareViewButton';
 
 // Interfaces
 interface NavigationItem {
@@ -66,6 +69,9 @@ interface HeaderProps {
   variant?: 'full' | 'minimal' | 'transparent';
   sticky?: boolean;
   className?: string;
+  mainId?: string; // target for skip link (defaults to #main-content)
+  showDevToolsToggle?: boolean; // adds a button to toggle dev telemetry overlay via ?dev_telemetry=1
+  showShareButton?: boolean; // shows a Share button that copies the current URL
 }
 
 // Accessibility helpers
@@ -135,7 +141,10 @@ export const UnifiedHeader: React.FC<HeaderProps> = ({
   onThemeChange,
   variant = 'full',
   sticky = true,
-  className = ''
+  className = '',
+  mainId = 'main-content',
+  showDevToolsToggle = false,
+  showShareButton = true
 }) => {
   // State management
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -317,7 +326,10 @@ export const UnifiedHeader: React.FC<HeaderProps> = ({
                   <a
                     key={child.id}
                     href={child.href}
-                    onClick={child.onClick}
+                    onClick={(e) => {
+                      try { logUxEvent('nav_click', { id: child.id, label: child.label, href: child.href }); } catch {}
+                      child.onClick?.();
+                    }}
                     className={`
                       block px-4 py-2 text-sm text-text-primary hover:bg-interactive-hover hover:text-primary-DEFAULT
                       focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT focus:ring-inset
@@ -352,7 +364,10 @@ export const UnifiedHeader: React.FC<HeaderProps> = ({
       <a
         key={item.id}
         href={item.href}
-        onClick={item.onClick}
+        onClick={(e) => {
+          try { logUxEvent('nav_click', { id: item.id, label: item.label, href: item.href }); } catch {}
+          item.onClick?.();
+        }}
         className={`
           ${isMobile ? 'block px-4 py-3' : 'px-3 py-2'}
           flex items-center text-sm font-medium rounded-md transition-colors duration-200
@@ -382,6 +397,23 @@ export const UnifiedHeader: React.FC<HeaderProps> = ({
   };
   
   const ThemeIcon = getThemeIcon();
+
+  // Toggle dev telemetry overlay by updating query param
+  const toggleDevTelemetry = useCallback(() => {
+    try {
+      const url = new URL(window.location.href);
+      const isOn = url.searchParams.get('dev_telemetry') === '1';
+      if (isOn) {
+        url.searchParams.delete('dev_telemetry');
+      } else {
+        url.searchParams.set('dev_telemetry', '1');
+      }
+      window.history.replaceState({}, '', url.toString());
+      // Emit an event so app shells that read this on mount can react immediately
+      try { (window as any).dispatchEvent(new Event('dev_telemetry_toggle')); } catch {}
+      try { logUxEvent('dev_telemetry_toggled', { enabled: !isOn }); } catch {}
+    } catch {}
+  }, []);
   
   return (
     <header 
@@ -393,6 +425,10 @@ export const UnifiedHeader: React.FC<HeaderProps> = ({
       `}
       role="banner"
     >
+      {/* Skip to content link for accessibility */}
+      <a href={`#${mainId}`} className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-primary-DEFAULT text-primary-contrast px-3 py-1 rounded">
+        Skip to main content
+      </a>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -434,6 +470,17 @@ export const UnifiedHeader: React.FC<HeaderProps> = ({
           
           {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
+            {/* Dev tools toggle (optional) */}
+            {showDevToolsToggle && (
+              <button
+                onClick={toggleDevTelemetry}
+                className="p-2 text-text-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT rounded-full transition-colors duration-200"
+                aria-label="Toggle developer telemetry overlay"
+                title="Toggle developer telemetry overlay"
+              >
+                <FiActivity className="h-5 w-5" />
+              </button>
+            )}
             {/* Search */}
             {searchEnabled && variant !== 'minimal' && (
               <form onSubmit={handleSearch} className="hidden md:block">
@@ -514,6 +561,16 @@ export const UnifiedHeader: React.FC<HeaderProps> = ({
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+            )}
+
+            {/* Share current view */}
+            {showShareButton && (
+              <div className="ml-2">
+                <ShareViewButton
+                  label="Share"
+                  className="px-3 py-2 text-sm font-medium rounded-md bg-interactive-muted text-text-primary hover:bg-interactive-hover focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT focus:ring-offset-2"
+                />
               </div>
             )}
             

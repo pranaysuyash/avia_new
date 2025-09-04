@@ -14,6 +14,7 @@ import base64
 import io
 from PIL import Image
 import streamlit as st
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -470,6 +471,78 @@ class EnhancedSTTService:
         else:
             return {'error': f'Deepgram API error: {response.status_code}'}
 
+    def _transcribe_assemblyai(self, audio_path: str, **kwargs) -> Dict[str, Any]:
+        """Transcribe using AssemblyAI API"""
+        api_key = self.provider_manager.active_providers['assemblyai']['api_key']
+        
+        url = "https://api.assemblyai.com/v2/transcript"
+        
+        headers = {
+            "authorization": api_key,
+            "content-type": "application/json"
+        }
+        
+        # Upload audio file first
+        with open(audio_path, 'rb') as audio_file:
+            upload_response = requests.post(
+                "https://api.assemblyai.com/v2/upload",
+                headers={"authorization": api_key},
+                data=audio_file
+            )
+            
+        if upload_response.status_code != 200:
+            return {'error': f'AssemblyAI upload error: {upload_response.status_code}'}
+            
+        upload_url = upload_response.json()['upload_url']
+        
+        # Start transcription
+        transcript_request = {
+            "audio_url": upload_url,
+            "language_code": kwargs.get('language', 'en'),
+            " punctuate": True,
+            "format_text": True,
+            "dual_channel": kwargs.get('dual_channel', False),
+            "speaker_labels": kwargs.get('speaker_labels', False)
+        }
+        
+        response = requests.post(url, json=transcript_request, headers=headers)
+        
+        if response.status_code != 200:
+            return {'error': f'AssemblyAI transcription error: {response.status_code}'}
+            
+        transcript_id = response.json()['id']
+        
+        # Poll for completion
+        poll_url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+        max_attempts = 60
+        attempt = 0
+        
+        while attempt < max_attempts:
+            poll_response = requests.get(poll_url, headers=headers)
+            if poll_response.status_code != 200:
+                return {'error': f'AssemblyAI polling error: {poll_response.status_code}'}
+                
+            result = poll_response.json()
+            status = result['status']
+            
+            if status == 'completed':
+                return {
+                    'transcript': result['text'],
+                    'confidence': result.get('confidence', 0.9),
+                    'provider': 'assemblyai',
+                    'language': result.get('language_code', 'en'),
+                    'raw_response': result
+                }
+            elif status == 'error':
+                return {'error': f'AssemblyAI transcription failed: {result.get("error")}'}
+                
+            # Wait before next poll
+            import time
+            time.sleep(2)
+            attempt += 1
+            
+        return {'error': 'AssemblyAI transcription timed out'}
+
 
 class ContentGenerationService:
     """Service for generating visual content from transcripts"""
@@ -564,6 +637,215 @@ class ContentGenerationService:
         prompt = f"A {style} video visualization of: {summary}"
         
         return prompt
+
+
+    def _generate_runware(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Generate image using Runware API"""
+        try:
+            # Get API key from provider manager
+            api_key = self.provider_manager.active_providers['runware']['api_key']
+            
+            url = "https://api.runware.ai/v1/images/generations"
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Prepare request payload
+            payload = {
+                "prompt": prompt,
+                "model": kwargs.get('model', 'runware-1000-v1.1'),
+                "width": kwargs.get('width', 512),
+                "height": kwargs.get('height', 512),
+                "steps": kwargs.get('steps', 20),
+                "guidance_scale": kwargs.get('guidance_scale', 7.5),
+                "num_images": kwargs.get('num_images', 1)
+            }
+            
+            # Send request to Runware API
+            import requests
+            response = requests.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Extract image URLs
+                image_urls = []
+                if 'images' in result:
+                    for image in result['images']:
+                        if 'url' in image:
+                            image_urls.append(image['url'])
+                
+                return {
+                    'image_urls': image_urls,
+                    'provider': 'runware',
+                    'model': payload['model'],
+                    'prompt': prompt,
+                    'width': payload['width'],
+                    'height': payload['height'],
+                    'steps': payload['steps'],
+                    'guidance_scale': payload['guidance_scale']
+                }
+            else:
+                return {'error': f'Runware API error: {response.status_code} - {response.text}'}
+                
+        except Exception as e:
+            logger.error(f"Runware image generation failed: {e}")
+            return {'error': str(e)}
+
+
+    def _generate_runway_video(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Generate video using Runway API"""
+        try:
+            # Get API key from provider manager
+            api_key = self.provider_manager.active_providers['runway']['api_key']
+            
+            url = "https://api.dev.runwayml.com/v1/generations"
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Prepare request payload
+            payload = {
+                "prompt": prompt,
+                "model": kwargs.get('model', 'gen3-alpha'),
+                "duration": kwargs.get('duration', 5),
+                "aspect_ratio": kwargs.get('aspect_ratio', '16:9'),
+                "motion_level": kwargs.get('motion_level', 'medium'),
+                "seed": kwargs.get('seed', 0)
+            }
+            
+            # Send request to Runway API
+            import requests
+            response = requests.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Extract video URL
+                video_url = result.get('video_url', '')
+                
+                return {
+                    'video_url': video_url,
+                    'provider': 'runway',
+                    'model': payload['model'],
+                    'prompt': prompt,
+                    'duration': payload['duration'],
+                    'aspect_ratio': payload['aspect_ratio'],
+                    'motion_level': payload['motion_level']
+                }
+            else:
+                return {'error': f'Runway API error: {response.status_code} - {response.text}'}
+                
+        except Exception as e:
+            logger.error(f"Runway video generation failed: {e}")
+            return {'error': str(e)}
+
+
+    def _generate_luma_video(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Generate video using Luma AI API"""
+        try:
+            # Get API key from provider manager
+            api_key = self.provider_manager.active_providers['luma_ai']['api_key']
+            
+            url = "https://api.lumalabs.ai/dream-machine/v1/generations"
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Prepare request payload
+            payload = {
+                "prompt": prompt,
+                "aspect_ratio": kwargs.get('aspect_ratio', '16:9'),
+                "loop": kwargs.get('loop', False),
+                "resolution": kwargs.get('resolution', '768p')
+            }
+            
+            # Send request to Luma AI API
+            import requests
+            response = requests.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Extract video URL
+                video_url = result.get('assets', {}).get('video', '')
+                
+                return {
+                    'video_url': video_url,
+                    'provider': 'luma_ai',
+                    'prompt': prompt,
+                    'aspect_ratio': payload['aspect_ratio'],
+                    'loop': payload['loop'],
+                    'resolution': payload['resolution']
+                }
+            else:
+                return {'error': f'Luma AI API error: {response.status_code} - {response.text}'}
+                
+        except Exception as e:
+            logger.error(f"Luma AI video generation failed: {e}")
+            return {'error': str(e)}
+
+
+    def _generate_did_video(self, transcript: str, **kwargs) -> Dict[str, Any]:
+        """Generate talking avatar video using D-ID API"""
+        try:
+            # Get API key from provider manager
+            api_key = self.provider_manager.active_providers['d_id']['api_key']
+            
+            url = "https://api.d-id.com/clips"
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Prepare request payload
+            payload = {
+                "script": {
+                    "type": "text",
+                    "input": transcript[:500],  # Limit transcript length
+                    "subtitles": "false",
+                    "provider": {
+                        "type": "microsoft",
+                        "voice_id": kwargs.get('voice_id', 'en-US-JennyNeural')
+                    }
+                },
+                "avatar_url": kwargs.get('avatar_url', 'https://d-id-public-assets.s3.us-west-2.amazonaws.com/donald-trump.jpg'),
+                "config": {
+                    "result_format": "mp4",
+                    "stitch": True
+                }
+            }
+            
+            # Send request to D-ID API
+            import requests
+            response = requests.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Extract video URL
+                video_url = result.get('result_url', '')
+                
+                return {
+                    'video_url': video_url,
+                    'provider': 'd_id',
+                    'transcript': transcript[:500],
+                    'avatar_url': payload['avatar_url'],
+                    'voice_id': payload['script']['provider']['voice_id']
+                }
+            else:
+                return {'error': f'D-ID API error: {response.status_code} - {response.text}'}
+                
+        except Exception as e:
+            logger.error(f"D-ID video generation failed: {e}")
+            return {'error': str(e)}
 
 
 # Global instances

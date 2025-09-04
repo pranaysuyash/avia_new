@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/id/IDParseResult.schema.json",
+  "title": "IDParseResult",
+  "type": "object",
+  "properties": {
+    "fields": {
+      "type": "object",
+      "properties": {
+        "full_name": {"type": "string"},
+        "document_number": {"type": "string"},
+        "dob": {"type": "string", "format": "date"},
+        "expiry": {"type": "string", "format": "date"},
+        "address": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "fraud_flags": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "assets": {
+      "type": "object",
+      "properties": {
+        "face_crop_url": {"type": "string", "format": "uri"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["fields"],
+  "additionalProperties": false
+}
+

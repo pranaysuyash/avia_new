@@ -34,6 +34,7 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { WaveformVisualizer } from './WaveformVisualizer';
+import { logUxEvent } from '../../../components/shared/uxTelemetry';
 import { ProcessingMetrics } from './ProcessingMetrics';
 import { QualityAssessment } from './QualityAssessment';
 import { FileUploadZone } from './FileUploadZone';
@@ -184,6 +185,27 @@ export const AudioProcessingHub: React.FC<AudioProcessingHubProps> = ({
 
       {/* Main Processing Area */}
       <Container maxWidth="xl" sx={{ mt: 4, pb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box>
+            <Typography variant="h5" fontWeight="700">
+              Audio Processing Hub
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              AI-powered audio enhancement, transcription, and analysis pipeline
+            </Typography>
+          </Box>
+          <Tooltip title="Share this view">
+            <IconButton onClick={async () => {
+              try {
+                const u = new URL(window.location.href);
+                await navigator.clipboard.writeText(u.toString());
+                try { logUxEvent('share_view_copied', { page: 'audio_processing_hub' }); } catch {}
+              } catch {}
+            }}>
+              <ShareIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Grid container spacing={3}>
           {/* Left Panel - Upload and Controls */}
           <Grid item xs={12} lg={3}>

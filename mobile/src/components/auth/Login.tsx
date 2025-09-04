@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { Input, Button } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { logUxEvent } from '../../utils/uxTelemetry';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,14 +26,18 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
+      await logUxEvent('login_failed', { reason: 'missing_fields' });
       return;
     }
 
     try {
       setLoading(true);
+      await logUxEvent('login_submit', { email_present: !!email });
       await login(email, password);
+      await logUxEvent('login_success');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
+      await logUxEvent('login_failed', { error: String(error?.message || error) });
     } finally {
       setLoading(false);
     }

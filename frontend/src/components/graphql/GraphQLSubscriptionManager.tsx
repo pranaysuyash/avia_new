@@ -422,11 +422,29 @@ export const GraphQLSubscriptionManager: React.FC<GraphQLSubscriptionManagerProp
               <Activity className="h-5 w-5" />
               GraphQL Subscriptions
             </div>
-            <div className={`flex items-center gap-2 ${getConnectionStatusColor()}`}>
-              {getConnectionStatusIcon()}
-              <span className="text-sm font-medium">
-                {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
-              </span>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 text-xs border rounded"
+                onClick={async () => {
+                  try {
+                    const u = new URL(window.location.href);
+                    await navigator.clipboard.writeText(u.toString());
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
+                    const { logUxEvent } = require('../../components/shared/uxTelemetry');
+                    try { logUxEvent('share_view_copied', { page: 'graphql_subscriptions' }); } catch {}
+                  } catch {}
+                }}
+                aria-label="Copy shareable link"
+                title="Copy shareable link"
+              >
+                Share
+              </button>
+              <div className={`flex items-center gap-2 ${getConnectionStatusColor()}`}>
+                {getConnectionStatusIcon()}
+                <span className="text-sm font-medium">
+                  {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
+                </span>
+              </div>
             </div>
           </CardTitle>
           <CardDescription>

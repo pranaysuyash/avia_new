@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import AudioEnhancement from './components/audio/AudioEnhancement';
 import RealTimeTranscription from './components/transcription/RealTimeTranscription';
 import EnhancedDocumentAnalysis from './components/document/EnhancedDocumentAnalysis';
@@ -146,6 +147,8 @@ import {
 
 // Import custom styles
 import './styles/enterprise.css';
+import { logUxEvent } from '../../components/shared/uxTelemetry';
+import ShareViewButton from '../../components/shared/ShareViewButton';
 
 // API integration hook
 const useApiData = (endpoint: string) => {
@@ -232,6 +235,12 @@ const EnterpriseApp: React.FC = () => {
   const { data: processingQueue } = useApiData('/processing-queue');
 
   useEffect(() => {
+    // Sync active tab from query param
+    try {
+      const url = new URL(window.location.href);
+      const tab = url.searchParams.get('tab');
+      if (tab) setActiveTab(tab);
+    } catch {}
     // Simulate upload progress
     if (uploadProgress > 0 && uploadProgress < 100) {
       const timer = setTimeout(() => {
@@ -276,7 +285,8 @@ const EnterpriseApp: React.FC = () => {
   const textColor = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
 
   return (
-    <div className={`min-h-screen ${gradientBg} ${textColor} transition-all duration-500`}>
+    <ErrorBoundary>
+      <div className={`min-h-screen ${gradientBg} ${textColor} transition-all duration-500`}>
       {/* Enhanced Header */}
       <header className={`${headerBg} backdrop-blur-xl shadow-2xl border-b border-opacity-20 sticky top-0 z-50 transition-all duration-300`}>
         <div className="px-6 py-4">
@@ -314,7 +324,7 @@ const EnterpriseApp: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-3">
               {/* Enhanced Stats Mini Display */}
               <div className="flex items-center space-x-6">
                 <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-green-100/80 dark:bg-green-900/30">
@@ -330,7 +340,7 @@ const EnterpriseApp: React.FC = () => {
               </div>
 
               {/* Enhanced Action Buttons */}
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
                 <button className="relative p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105">
                   <Bell className="w-5 h-5" />
                   {notifications > 0 && (
@@ -346,6 +356,11 @@ const EnterpriseApp: React.FC = () => {
                 >
                   {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
+
+                <ShareViewButton
+                  className="px-3 py-2 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-700"
+                  extraParams={{ tab: activeTab }}
+                />
 
                 <div className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg hover:shadow-xl transition-all duration-200">
                   <Shield className="w-4 h-4" />
@@ -400,7 +415,15 @@ const EnterpriseApp: React.FC = () => {
               ].map(item => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    try {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('tab', item.id);
+                      window.history.replaceState({}, '', url.toString());
+                      try { logUxEvent('tab_change', { tab: item.id }); } catch {}
+                    } catch {}
+                  }}
                   className={`w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300 group ${
                     activeTab === item.id 
                       ? `bg-gradient-to-r ${item.color} text-white shadow-lg transform scale-105` 
@@ -878,7 +901,7 @@ Start typing to see the collaborative editing in action..."
           )}
         </main>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 

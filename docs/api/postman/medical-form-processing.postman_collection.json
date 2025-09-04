@@ -1,0 +1,53 @@
+{
+  "info": {
+    "name": "Medical Form Processing API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.example.com"},
+    {"key": "job_id", "value": "{{job_id}}"},
+    {"key": "form_id", "value": "{{form_id}}"}
+  ],
+  "item": [
+    {
+      "name": "Create Job (multipart)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {"key": "file", "type": "file", "src": []},
+            {"key": "form_type", "type": "text", "value": "registration"}
+          ]
+        },
+        "url": {"raw": "{{baseUrl}}/api/v1/medical/forms", "host": ["{{baseUrl}}"], "path": ["api", "v1", "medical", "forms"]}
+      }
+    },
+    {
+      "name": "Get Status",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{baseUrl}}/api/v1/medical/forms/{{job_id}}/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "medical", "forms", "{{job_id}}", "status"]}
+      }
+    },
+    {
+      "name": "Get Results",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{baseUrl}}/api/v1/medical/forms/{{form_id}}/results", "host": ["{{baseUrl}}"], "path": ["api", "v1", "medical", "forms", "{{form_id}}", "results"]}
+      }
+    },
+    {
+      "name": "Export Results",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"format\": \"json\"\n}"},
+        "url": {"raw": "{{baseUrl}}/api/v1/medical/forms/{{form_id}}/export", "host": ["{{baseUrl}}"], "path": ["api", "v1", "medical", "forms", "{{form_id}}", "export"]}
+      }
+    }
+  ]
+}
+

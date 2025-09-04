@@ -674,7 +674,90 @@ async def test_google(config: ProviderConfig, prompt: str, model_type: ModelType
     Test Google provider
     """
     # Implement Google Gemini API testing
-    raise NotImplementedError("Google provider testing not yet implemented")
+    import aiohttp
+    import json
+    
+    # Map model types to Google Gemini models
+    model_mapping = {
+        ModelType.CHAT: "gemini-pro",
+        ModelType.COMPLETION: "gemini-pro",
+        ModelType.EMBEDDING: "embedding-001",
+        ModelType.TRANSCRIPTION: "gemini-pro",  # Gemini can handle audio
+        ModelType.TRANSLATION: "gemini-pro",
+        ModelType.SUMMARIZATION: "gemini-pro"
+    }
+    
+    model = config.model_mappings.get(model_type, model_mapping.get(model_type, "gemini-pro"))
+    
+    # For embedding models, use different endpoint
+    if model_type == ModelType.EMBEDDING:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:embedContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": config.api_key
+        }
+        
+        data = {
+            "model": f"models/{model}",
+            "content": {
+                "parts": [{
+                    "text": prompt
+                }]
+            }
+        }
+    else:
+        # For other models, use generateContent endpoint
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": config.api_key
+        }
+        
+        data = {
+            "contents": [{
+                "parts": [{
+                    "text": prompt
+                }]
+            }],
+            "generationConfig": {
+                "temperature": config.temperature,
+                "maxOutputTokens": 100
+            }
+        }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=data) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    raise Exception(f"Google API error: {response.status} - {error_text}")
+                
+                result = await response.json()
+                
+                # Process response based on model type
+                if model_type == ModelType.EMBEDDING:
+                    embedding = result.get("embedding", {}).get("values", [])
+                    return {
+                        "response": embedding,
+                        "model_info": {
+                            "model": model,
+                            "type": model_type,
+                            "embedding_dimension": len(embedding)
+                        }
+                    }
+                else:
+                    response_text = result["candidates"][0]["content"]["parts"][0]["text"]
+                    return {
+                        "response": response_text,
+                        "model_info": {
+                            "model": model,
+                            "type": model_type
+                        }
+                    }
+                    
+    except Exception as e:
+        logger.error(f"Google provider testing error: {e}")
+        raise Exception(f"Google provider testing failed: {str(e)}")
 
 async def test_local(config: ProviderConfig, prompt: str, model_type: ModelType) -> Dict[str, Any]:
     """

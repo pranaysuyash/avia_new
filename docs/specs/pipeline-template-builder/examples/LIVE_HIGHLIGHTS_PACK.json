@@ -1,0 +1,59 @@
+{
+  "id": "tpl_live_highlights_v1",
+  "name": "Live/SSAI — Highlights & Metadata Pack",
+  "version": "1.0.0",
+  "description": "Detect live highlights, generate clips, publish SSAI metadata and real-time events.",
+  "io": {
+    "inputs": [{"name": "stream", "type": "LiveStream"}],
+    "outputs": [
+      {"name": "clips", "type": "Video[]"},
+      {"name": "ssai_metadata", "type": "JSON"},
+      {"name": "events", "type": "WS.Events"}
+    ]
+  },
+  "parameters": {
+    "ingest_type": "hls",
+    "highlight_rules": ["goal", "score", "kill"],
+    "clip_length_s": 12,
+    "dvr_window_min": 60,
+    "ssai_enabled": true
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "ingest_type": {"type": "string", "enum": ["hls", "rtmp"]},
+      "highlight_rules": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+      "clip_length_s": {"type": "integer", "minimum": 4, "maximum": 60},
+      "dvr_window_min": {"type": "integer", "minimum": 1, "maximum": 180},
+      "ssai_enabled": {"type": "boolean"}
+    },
+    "required": ["ingest_type", "highlight_rules", "clip_length_s", "dvr_window_min", "ssai_enabled"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      {"id": "live", "def": "Ingest.Live", "params": {"type": "${ingest_type}", "dvr_window_min": "${dvr_window_min}"}, "io": {"in": ["None"], "out": ["LiveStream"]}},
+      {"id": "asr_live", "def": "ASR.Live", "params": {}, "io": {"in": ["Audio"], "out": ["Text.Segments"]}},
+      {"id": "scoreboard", "def": "OCR.Scoreboard", "params": {}, "io": {"in": ["Video"], "out": ["Text"]}},
+      {"id": "detect", "def": "Detect.Highlights", "params": {"rules": "${highlight_rules}"}, "io": {"in": ["Text.Segments", "Text"], "out": ["Meta.Events"]}},
+      {"id": "clip", "def": "Clip.Generate", "params": {"length_s": "${clip_length_s}"}, "io": {"in": ["LiveStream", "Meta.Events"], "out": ["Video[]"]}},
+      {"id": "ssai", "def": "Publish.SSAI", "params": {"enabled": "${ssai_enabled}"}, "io": {"in": ["Video[]", "Meta.Events"], "out": ["JSON"]}},
+      {"id": "events", "def": "Publish.Events", "params": {"channel": "ws://events/live"}, "io": {"in": ["Meta.Events"], "out": ["WS.Events"]}}
+    ],
+    "edges": [
+      {"from": "live.out", "to": "asr_live.in"},
+      {"from": "live.out", "to": "scoreboard.in"},
+      {"from": "asr_live.out", "to": "detect.in_0"},
+      {"from": "scoreboard.out", "to": "detect.in_1"},
+      {"from": "detect.out", "to": "clip.in_1"},
+      {"from": "live.out", "to": "clip.in_0"},
+      {"from": "clip.out", "to": "ssai.in_0"},
+      {"from": "detect.out", "to": "ssai.in_1"},
+      {"from": "detect.out", "to": "events.in"}
+    ]
+  },
+  "policies": [
+    {"id": "gate_latency", "checks": [{"type": "latency_budget", "node": "detect", "p95_ms": 800}], "severity": "warn"}
+  ]
+}
+

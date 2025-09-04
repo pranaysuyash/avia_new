@@ -94,6 +94,10 @@ app.include_router(upload_router)
 from api.endpoints.transcription_cached import router as transcription_cached_router
 app.include_router(transcription_cached_router)
 
+# Import and include Frame OCR endpoints
+from api.endpoints.frame_ocr import router as frame_ocr_router
+app.include_router(frame_ocr_router)
+
 # Setup API Explorer and Documentation
 api_explorer = setup_api_explorer(app)
 

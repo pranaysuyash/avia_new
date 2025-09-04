@@ -20,6 +20,9 @@ import { GDPRPrivacyDashboard } from './components/privacy/GDPRPrivacyDashboard'
 import { GraphQLSubscriptionManager } from './components/graphql/GraphQLSubscriptionManager';
 import { CacheMetrics } from './components/analysis/CacheMetrics';
 import { EnhancedAudioPlayer } from './components/audio/EnhancedAudioPlayer';
+import TelemetryViewer from '../../components/shared/TelemetryViewer';
+import { logUxEvent } from '../../components/shared/uxTelemetry';
+import ShareViewButton from '../../components/shared/ShareViewButton';
 
 // Icons
 import { 
@@ -55,6 +58,23 @@ const App: React.FC = () => {
   });
 
   const [activeTab, setActiveTab] = useState('upload');
+  const [showTelemetry, setShowTelemetry] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      try {
+        const url = new URL(window.location.href);
+        setShowTelemetry(url.searchParams.get('dev_telemetry') === '1');
+        const tab = url.searchParams.get('tab');
+        if (tab) {
+          setActiveTab(tab);
+        }
+      } catch {}
+    };
+    check();
+    window.addEventListener('dev_telemetry_toggle', check as any);
+    return () => window.removeEventListener('dev_telemetry_toggle', check as any);
+  }, []);
 
   // Mock function to simulate file upload completion
   const handleUploadComplete = (fileUrl: string) => {
@@ -101,20 +121,55 @@ const App: React.FC = () => {
                   <Badge variant="secondary">i18n Enabled</Badge>
                 </div>
                 
-                <div className="flex items-center space-x-4">
-                  <TranslationManager />
-                  <Button variant="outline" size="sm">
-                    <Globe className="h-4 w-4 mr-2" />
-                    {state.currentLanguage.toUpperCase()}
-                  </Button>
-                </div>
+            <div className="flex items-center space-x-2">
+              <TranslationManager />
+              <Button variant="outline" size="sm">
+                <Globe className="h-4 w-4 mr-2" />
+                {state.currentLanguage.toUpperCase()}
+              </Button>
+              <ShareViewButton
+                className="px-3 py-2 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-700"
+                extraParams={{ tab: activeTab }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label="Toggle dev telemetry"
+                onClick={() => {
+                  try {
+                    const url = new URL(window.location.href);
+                    const isOn = url.searchParams.get('dev_telemetry') === '1';
+                    if (isOn) url.searchParams.delete('dev_telemetry');
+                    else url.searchParams.set('dev_telemetry', '1');
+                    window.history.replaceState({}, '', url.toString());
+                    window.dispatchEvent(new Event('dev_telemetry_toggle'));
+                    try { logUxEvent('dev_telemetry_toggled', { enabled: !isOn }); } catch {}
+                  } catch {}
+                }}
+              >
+                Dev Tools
+              </Button>
+            </div>
               </div>
             </div>
           </header>
 
           {/* Main Content */}
           <main className="container mx-auto px-4 py-8">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <Tabs
+              value={activeTab}
+              onValueChange={(val) => {
+                setActiveTab(val);
+                try {
+                  const url = new URL(window.location.href);
+                  if (val) url.searchParams.set('tab', val);
+                  else url.searchParams.delete('tab');
+                  window.history.replaceState({}, '', url.toString());
+                  try { logUxEvent('tab_change', { tab: val }); } catch {}
+                } catch {}
+              }}
+              className="space-y-4"
+            >
               <TabsList className="grid grid-cols-6 lg:grid-cols-12 gap-2">
                 <TabsTrigger value="upload" className="flex items-center gap-1">
                   <Upload className="h-4 w-4" />
@@ -335,6 +390,17 @@ const App: React.FC = () => {
           </main>
         </div>
       </Router>
+      {showTelemetry && (
+        <div style={{ position: 'fixed', bottom: 8, right: 8, width: 420, maxHeight: '60vh', overflow: 'auto', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.12)', zIndex: 50 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderBottom: '1px solid #eee' }}>
+            <strong style={{ paddingLeft: 8 }}>UX Telemetry</strong>
+            <button onClick={() => setShowTelemetry(false)} className="px-2 py-1 text-sm border rounded">Close</button>
+          </div>
+          <div style={{ padding: 8 }}>
+            <TelemetryViewer />
+          </div>
+        </div>
+      )}
     </InternationalizationProvider>
   );
 };

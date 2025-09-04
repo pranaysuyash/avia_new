@@ -383,9 +383,10 @@ def apply_theme(theme: str = "light"):
     }}
     
     /* Focus states for accessibility */
-    *:focus {{
-        outline: 2px solid var(--primary-color);
+    *:focus-visible {{
+        outline: 3px solid var(--info-color);
         outline-offset: 2px;
+        box-shadow: 0 0 0 2px rgba(34,211,238,0.25);
     }}
     
     /* Ensure text remains visible */

@@ -380,8 +380,9 @@ class SpatialAudioProcessor:
                 matrix[i, 0] = np.cos(rad + np.pi/4)
                 matrix[i, 1] = np.sin(rad + np.pi/4)
         
-        return matrix   
- async def detect_spatial_format(self, audio_path: str) -> SpatialFormat:
+        return matrix
+
+    async def detect_spatial_format(self, audio_path: str) -> SpatialFormat:
         """Detect the spatial audio format of the input file"""
         try:
             # Load audio file info
@@ -798,8 +799,9 @@ class SpatialAudioProcessor:
             # Issues if center is too quiet (<-20dB) or too loud (>+6dB)
             return center_ratio < 0.01 or center_ratio > 4.0
         
-        return False    as
-ync def convert_spatial_format(self, audio_path: str, 
+        return False
+
+    async def convert_spatial_format(self, audio_path: str, 
                                    target_format: SpatialFormat,
                                    output_path: Optional[str] = None) -> str:
         """Convert between spatial audio formats"""
@@ -847,6 +849,14 @@ ync def convert_spatial_format(self, audio_path: str,
                 return self._stereo_to_ambisonics_foa(audio_data)
             elif target_format == SpatialFormat.BINAURAL:
                 return self._stereo_to_binaural(audio_data, sample_rate)
+            elif target_format == SpatialFormat.DOLBY_ATMOS:
+                return self._stereo_to_dolby_atmos(audio_data)
+            elif target_format == SpatialFormat.DTS_X:
+                return self._stereo_to_dts_x(audio_data)
+            elif target_format == SpatialFormat.AMBISONICS_HOA:
+                return self._stereo_to_ambisonics_hoa(audio_data)
+            elif target_format == SpatialFormat.QUAD:
+                return self._stereo_to_quad(audio_data)
         
         # 5.1 to other formats
         elif source_format == SpatialFormat.SURROUND_5_1:
@@ -856,6 +866,14 @@ ync def convert_spatial_format(self, audio_path: str,
                 return self._5_1_to_7_1(audio_data)
             elif target_format == SpatialFormat.BINAURAL:
                 return self._5_1_to_binaural(audio_data, sample_rate)
+            elif target_format == SpatialFormat.DOLBY_ATMOS:
+                return self._5_1_to_dolby_atmos(audio_data)
+            elif target_format == SpatialFormat.DTS_X:
+                return self._5_1_to_dts_x(audio_data)
+            elif target_format == SpatialFormat.AMBISONICS_HOA:
+                return self._5_1_to_ambisonics_hoa(audio_data)
+            elif target_format == SpatialFormat.QUAD:
+                return self._5_1_to_quad(audio_data)
         
         # 7.1 to other formats
         elif source_format == SpatialFormat.SURROUND_7_1:
@@ -865,6 +883,14 @@ ync def convert_spatial_format(self, audio_path: str,
                 return self._7_1_to_5_1(audio_data)
             elif target_format == SpatialFormat.BINAURAL:
                 return self._7_1_to_binaural(audio_data, sample_rate)
+            elif target_format == SpatialFormat.DOLBY_ATMOS:
+                return self._7_1_to_dolby_atmos(audio_data)
+            elif target_format == SpatialFormat.DTS_X:
+                return self._7_1_to_dts_x(audio_data)
+            elif target_format == SpatialFormat.AMBISONICS_HOA:
+                return self._7_1_to_ambisonics_hoa(audio_data)
+            elif target_format == SpatialFormat.QUAD:
+                return self._7_1_to_quad(audio_data)
         
         # Ambisonics FOA to other formats
         elif source_format == SpatialFormat.AMBISONICS_FOA:
@@ -872,8 +898,110 @@ ync def convert_spatial_format(self, audio_path: str,
                 return self._ambisonics_foa_to_stereo(audio_data)
             elif target_format == SpatialFormat.SURROUND_5_1:
                 return self._ambisonics_foa_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._ambisonics_foa_to_7_1(audio_data)
             elif target_format == SpatialFormat.BINAURAL:
                 return self._ambisonics_foa_to_binaural(audio_data, sample_rate)
+            elif target_format == SpatialFormat.DOLBY_ATMOS:
+                return self._ambisonics_foa_to_dolby_atmos(audio_data)
+            elif target_format == SpatialFormat.DTS_X:
+                return self._ambisonics_foa_to_dts_x(audio_data)
+            elif target_format == SpatialFormat.AMBISONICS_HOA:
+                return self._ambisonics_foa_to_ambisonics_hoa(audio_data)
+            elif target_format == SpatialFormat.QUAD:
+                return self._ambisonics_foa_to_quad(audio_data)
+        
+        # Dolby Atmos to other formats
+        elif source_format == SpatialFormat.DOLBY_ATMOS:
+            if target_format == SpatialFormat.STEREO:
+                return self._dolby_atmos_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._dolby_atmos_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._dolby_atmos_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._dolby_atmos_to_binaural(audio_data, sample_rate)
+        
+        # DTS:X to other formats
+        elif source_format == SpatialFormat.DTS_X:
+            if target_format == SpatialFormat.STEREO:
+                return self._dts_x_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._dts_x_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._dts_x_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._dts_x_to_binaural(audio_data, sample_rate)
+        
+        # Ambisonics HOA to other formats
+        elif source_format == SpatialFormat.AMBISONICS_HOA:
+            if target_format == SpatialFormat.STEREO:
+                return self._ambisonics_hoa_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._ambisonics_hoa_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._ambisonics_hoa_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._ambisonics_hoa_to_binaural(audio_data, sample_rate)
+            elif target_format == SpatialFormat.AMBISONICS_FOA:
+                return self._ambisonics_hoa_to_foa(audio_data)
+        
+        # Quad to other formats
+        elif source_format == SpatialFormat.QUAD:
+            if target_format == SpatialFormat.STEREO:
+                return self._quad_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._quad_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._quad_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._quad_to_binaural(audio_data, sample_rate)
+        
+        # Dolby Atmos to other formats
+        elif source_format == SpatialFormat.DOLBY_ATMOS:
+            if target_format == SpatialFormat.STEREO:
+                return self._dolby_atmos_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._dolby_atmos_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._dolby_atmos_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._dolby_atmos_to_binaural(audio_data, sample_rate)
+        
+        # DTS:X to other formats
+        elif source_format == SpatialFormat.DTS_X:
+            if target_format == SpatialFormat.STEREO:
+                return self._dts_x_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._dts_x_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._dts_x_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._dts_x_to_binaural(audio_data, sample_rate)
+        
+        # Ambisonics HOA to other formats
+        elif source_format == SpatialFormat.AMBISONICS_HOA:
+            if target_format == SpatialFormat.STEREO:
+                return self._ambisonics_hoa_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._ambisonics_hoa_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._ambisonics_hoa_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._ambisonics_hoa_to_binaural(audio_data, sample_rate)
+            elif target_format == SpatialFormat.AMBISONICS_FOA:
+                return self._ambisonics_hoa_to_foa(audio_data)
+        
+        # Quad to other formats
+        elif source_format == SpatialFormat.QUAD:
+            if target_format == SpatialFormat.STEREO:
+                return self._quad_to_stereo(audio_data)
+            elif target_format == SpatialFormat.SURROUND_5_1:
+                return self._quad_to_5_1(audio_data)
+            elif target_format == SpatialFormat.SURROUND_7_1:
+                return self._quad_to_7_1(audio_data)
+            elif target_format == SpatialFormat.BINAURAL:
+                return self._quad_to_binaural(audio_data, sample_rate)
         
         # If no conversion is implemented, return original
         logger.warning(f"Conversion from {source_format.value} to {target_format.value} not implemented")
@@ -1057,6 +1185,24 @@ ync def convert_spatial_format(self, audio_path: str,
         # For now, use simplified conversion via stereo
         stereo = self._ambisonics_foa_to_stereo(ambisonics_audio)
         return self._stereo_to_binaural(stereo, sample_rate)
+    
+    def _ambisonics_foa_to_7_1(self, ambisonics_audio: np.ndarray) -> np.ndarray:
+        """Convert First Order Ambisonics to 7.1 surround"""
+        w, x, y, z = ambisonics_audio[:4]
+        
+        # FOA to 7.1 decoding using speaker positions
+        # Speaker angles: FL(-30°), FR(30°), C(0°), LFE, RL(-110°), RR(110°), SL(-90°), SR(90°)
+        
+        fl = w * 0.707 + x * 0.5 + y * 0.866   # -30° position
+        fr = w * 0.707 + x * 0.5 - y * 0.866   # 30° position
+        c = w * 0.707 + x * 1.0                # 0° position
+        lfe = w * 0.5                          # LFE from omnidirectional
+        rl = w * 0.707 - x * 0.5 + y * 0.866   # -110° position
+        rr = w * 0.707 - x * 0.5 - y * 0.866   # 110° position
+        sl = w * 0.707 - x * 0.866 + y * 0.5   # -90° position
+        sr = w * 0.707 + x * 0.866 - y * 0.5   # 90° position
+        
+        return np.array([fl, fr, c, lfe, rl, rr, sl, sr])
     
     def _extract_lfe(self, audio: np.ndarray, cutoff_freq: float = 120.0) -> np.ndarray:
         """Extract low-frequency effects channel"""
@@ -1248,6 +1394,333 @@ ync def convert_spatial_format(self, audio_path: str,
         except Exception as e:
             logger.error(f"Failed to create spatial visualization: {e}")
             raise
+    
+    # Stereo to advanced format conversion functions
+    def _stereo_to_dolby_atmos(self, stereo_audio: np.ndarray) -> np.ndarray:
+        """Convert stereo to Dolby Atmos (simplified)"""
+        # For now, we'll extend stereo to a basic Atmos-like format
+        front_left = stereo_audio[0]
+        front_right = stereo_audio[1]
+        # Add additional channels with reduced content
+        center = (front_left + front_right) * 0.5
+        lfe = self._extract_lfe(front_left + front_right)
+        surround_left = front_left * 0.3
+        surround_right = front_right * 0.3
+        top_left = front_left * 0.2
+        top_right = front_right * 0.2
+        return np.array([front_left, front_right, center, lfe, 
+                        surround_left, surround_right, top_left, top_right])
+    
+    def _stereo_to_dts_x(self, stereo_audio: np.ndarray) -> np.ndarray:
+        """Convert stereo to DTS:X (simplified)"""
+        # Similar to Atmos conversion but with DTS:X channel layout
+        return self._stereo_to_dolby_atmos(stereo_audio)
+    
+    def _stereo_to_ambisonics_hoa(self, stereo_audio: np.ndarray) -> np.ndarray:
+        """Convert stereo to Higher Order Ambisonics"""
+        # Convert to FOA first, then extend to HOA
+        foa = self._stereo_to_ambisonics_foa(stereo_audio)
+        # For now, we'll pad with zeros for higher order components
+        hoa_channels = 16  # 4th order Ambisonics
+        padded = np.pad(foa, ((0, hoa_channels - foa.shape[0]), (0, 0)), mode='constant')
+        return padded
+    
+    def _stereo_to_quad(self, stereo_audio: np.ndarray) -> np.ndarray:
+        """Convert stereo to quad"""
+        front_left = stereo_audio[0]
+        front_right = stereo_audio[1]
+        # Create rear channels as delayed/filtered versions of front channels
+        rear_left = front_left * 0.7
+        rear_right = front_right * 0.7
+        return np.array([front_left, front_right, rear_left, rear_right])
+    
+    # 5.1 to advanced format conversion functions
+    def _5_1_to_dolby_atmos(self, surround_5_1: np.ndarray) -> np.ndarray:
+        """Convert 5.1 to Dolby Atmos"""
+        if surround_5_1.shape[0] >= 6:
+            front_left = surround_5_1[0]
+            front_right = surround_5_1[1]
+            center = surround_5_1[2]
+            lfe = surround_5_1[3]
+            surround_left = surround_5_1[4]
+            surround_right = surround_5_1[5]
+            # Add height channels for Atmos
+            top_front_left = front_left * 0.5
+            top_front_right = front_right * 0.5
+            top_rear_left = surround_left * 0.5
+            top_rear_right = surround_right * 0.5
+            return np.array([front_left, front_right, center, lfe,
+                           surround_left, surround_right,
+                           top_front_left, top_front_right,
+                           top_rear_left, top_rear_right])
+        else:
+            return self._upmix_to_7_1(surround_5_1)
+    
+    def _5_1_to_dts_x(self, surround_5_1: np.ndarray) -> np.ndarray:
+        """Convert 5.1 to DTS:X"""
+        return self._5_1_to_dolby_atmos(surround_5_1)
+    
+    def _5_1_to_ambisonics_hoa(self, surround_5_1: np.ndarray) -> np.ndarray:
+        """Convert 5.1 to Higher Order Ambisonics"""
+        # Downmix to stereo first, then encode to HOA
+        stereo = self._5_1_to_stereo(surround_5_1)
+        return self._stereo_to_ambisonics_hoa(stereo)
+    
+    def _5_1_to_quad(self, surround_5_1: np.ndarray) -> np.ndarray:
+        """Convert 5.1 to quad"""
+        if surround_5_1.shape[0] >= 6:
+            front_left = surround_5_1[0]
+            front_right = surround_5_1[1]
+            # Mix surround channels to create rear channels
+            rear_left = (surround_5_1[2] * 0.3 + surround_5_1[4] * 0.7)  # Center + surround left
+            rear_right = (surround_5_1[2] * 0.3 + surround_5_1[5] * 0.7)  # Center + surround right
+            return np.array([front_left, front_right, rear_left, rear_right])
+        else:
+            stereo = self._5_1_to_stereo(surround_5_1)
+            return self._stereo_to_quad(stereo)
+    
+    # 7.1 to advanced format conversion functions
+    def _7_1_to_dolby_atmos(self, surround_7_1: np.ndarray) -> np.ndarray:
+        """Convert 7.1 to Dolby Atmos"""
+        if surround_7_1.shape[0] >= 8:
+            # Already has many channels, just add more height channels
+            extended = np.pad(surround_7_1, ((0, 4), (0, 0)), mode='constant')
+            # Add some height information to the additional channels
+            if surround_7_1.shape[0] >= 8:
+                extended[8] = surround_7_1[0] * 0.4  # Top front left
+                extended[9] = surround_7_1[1] * 0.4  # Top front right
+                extended[10] = surround_7_1[4] * 0.4  # Top side left
+                extended[11] = surround_7_1[5] * 0.4  # Top side right
+            return extended
+        else:
+            return self._5_1_to_dolby_atmos(surround_7_1)
+    
+    def _7_1_to_dts_x(self, surround_7_1: np.ndarray) -> np.ndarray:
+        """Convert 7.1 to DTS:X"""
+        return self._7_1_to_dolby_atmos(surround_7_1)
+    
+    def _7_1_to_ambisonics_hoa(self, surround_7_1: np.ndarray) -> np.ndarray:
+        """Convert 7.1 to Higher Order Ambisonics"""
+        stereo = self._7_1_to_stereo(surround_7_1)
+        return self._stereo_to_ambisonics_hoa(stereo)
+    
+    def _7_1_to_quad(self, surround_7_1: np.ndarray) -> np.ndarray:
+        """Convert 7.1 to quad"""
+        if surround_7_1.shape[0] >= 8:
+            front_left = surround_7_1[0]
+            front_right = surround_7_1[1]
+            rear_left = surround_7_1[6]  # Side left becomes rear left
+            rear_right = surround_7_1[7]  # Side right becomes rear right
+            return np.array([front_left, front_right, rear_left, rear_right])
+        else:
+            stereo = self._7_1_to_stereo(surround_7_1)
+            return self._stereo_to_quad(stereo)
+    
+    # Ambisonics FOA to advanced format conversion functions
+    def _ambisonics_foa_to_dolby_atmos(self, foa_audio: np.ndarray) -> np.ndarray:
+        """Convert First Order Ambisonics to Dolby Atmos"""
+        # Decode FOA to stereo first, then encode to Atmos
+        stereo = self._ambisonics_foa_to_stereo(foa_audio)
+        return self._stereo_to_dolby_atmos(stereo)
+    
+    def _ambisonics_foa_to_dts_x(self, foa_audio: np.ndarray) -> np.ndarray:
+        """Convert First Order Ambisonics to DTS:X"""
+        return self._ambisonics_foa_to_dolby_atmos(foa_audio)
+    
+    def _ambisonics_foa_to_ambisonics_hoa(self, foa_audio: np.ndarray) -> np.ndarray:
+        """Convert First Order Ambisonics to Higher Order Ambisonics"""
+        # Pad FOA with zeros to create HOA
+        hoa_channels = 16  # 4th order
+        padded = np.pad(foa_audio, ((0, hoa_channels - foa_audio.shape[0]), (0, 0)), mode='constant')
+        return padded
+    
+    def _ambisonics_foa_to_quad(self, foa_audio: np.ndarray) -> np.ndarray:
+        """Convert First Order Ambisonics to quad"""
+        stereo = self._ambisonics_foa_to_stereo(foa_audio)
+        return self._stereo_to_quad(stereo)
+    
+    # Dolby Atmos conversion functions
+    def _dolby_atmos_to_stereo(self, atmos_audio: np.ndarray) -> np.ndarray:
+        """Convert Dolby Atmos to stereo"""
+        # For simplicity, downmix to stereo by averaging front channels
+        if atmos_audio.shape[0] >= 8:  # Atmos typically has 8+ channels
+            front_left = atmos_audio[0]
+            front_right = atmos_audio[1]
+            return np.array([front_left, front_right])
+        else:
+            # Fallback to simple downmix
+            return self._downmix_to_stereo(atmos_audio)
+    
+    def _dolby_atmos_to_5_1(self, atmos_audio: np.ndarray) -> np.ndarray:
+        """Convert Dolby Atmos to 5.1 surround"""
+        # Simplified conversion - extract main channels
+        if atmos_audio.shape[0] >= 8:
+            # Extract the main 5.1 channels from Atmos
+            front_left = atmos_audio[0]
+            front_right = atmos_audio[1]
+            center = atmos_audio[2]
+            lfe = atmos_audio[3] if atmos_audio.shape[0] > 3 else np.zeros_like(atmos_audio[0])
+            surround_left = atmos_audio[4] if atmos_audio.shape[0] > 4 else np.zeros_like(atmos_audio[0])
+            surround_right = atmos_audio[5] if atmos_audio.shape[0] > 5 else np.zeros_like(atmos_audio[0])
+            return np.array([front_left, front_right, center, lfe, surround_left, surround_right])
+        else:
+            # Fallback to upmix from existing channels
+            return self._upmix_to_5_1(atmos_audio)
+    
+    def _dolby_atmos_to_7_1(self, atmos_audio: np.ndarray) -> np.ndarray:
+        """Convert Dolby Atmos to 7.1 surround"""
+        # Simplified conversion - extract main channels
+        if atmos_audio.shape[0] >= 8:
+            # For now, we'll extend 5.1 to 7.1
+            atmos_5_1 = self._dolby_atmos_to_5_1(atmos_audio)
+            side_left = np.zeros_like(atmos_5_1[0])
+            side_right = np.zeros_like(atmos_5_1[0])
+            return np.array([atmos_5_1[0], atmos_5_1[1], atmos_5_1[2], atmos_5_1[3], 
+                           side_left, side_right, atmos_5_1[4], atmos_5_1[5]])
+        else:
+            # Fallback to upmix from existing channels
+            return self._upmix_to_7_1(atmos_audio)
+    
+    def _dolby_atmos_to_binaural(self, atmos_audio: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Convert Dolby Atmos to binaural"""
+        # Convert to stereo first, then to binaural
+        stereo_audio = self._dolby_atmos_to_stereo(atmos_audio)
+        return self._stereo_to_binaural(stereo_audio, sample_rate)
+    
+    # DTS:X conversion functions
+    def _dts_x_to_stereo(self, dts_x_audio: np.ndarray) -> np.ndarray:
+        """Convert DTS:X to stereo"""
+        # Similar to Atmos, downmix to stereo
+        return self._downmix_to_stereo(dts_x_audio)
+    
+    def _dts_x_to_5_1(self, dts_x_audio: np.ndarray) -> np.ndarray:
+        """Convert DTS:X to 5.1 surround"""
+        # Simplified conversion
+        return self._upmix_to_5_1(dts_x_audio)
+    
+    def _dts_x_to_7_1(self, dts_x_audio: np.ndarray) -> np.ndarray:
+        """Convert DTS:X to 7.1 surround"""
+        # Simplified conversion
+        return self._upmix_to_7_1(dts_x_audio)
+    
+    def _dts_x_to_binaural(self, dts_x_audio: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Convert DTS:X to binaural"""
+        # Convert to stereo first, then to binaural
+        stereo_audio = self._dts_x_to_stereo(dts_x_audio)
+        return self._stereo_to_binaural(stereo_audio, sample_rate)
+    
+    # Ambisonics HOA conversion functions
+    def _ambisonics_hoa_to_stereo(self, hoa_audio: np.ndarray) -> np.ndarray:
+        """Convert Higher Order Ambisonics to stereo"""
+        # For HOA, we'll decode to stereo using the W channel (omnidirectional)
+        # and approximate X,Y channels for directionality
+        if hoa_audio.shape[0] >= 4:
+            w = hoa_audio[0]  # Omnidirectional
+            x = hoa_audio[1]  # Front-back
+            y = hoa_audio[2]  # Left-right
+            # Simple stereo decode
+            left = w + x - y
+            right = w - x + y
+            return np.array([left, right])
+        else:
+            return self._downmix_to_stereo(hoa_audio)
+    
+    def _ambisonics_hoa_to_5_1(self, hoa_audio: np.ndarray) -> np.ndarray:
+        """Convert Higher Order Ambisonics to 5.1 surround"""
+        # Decode HOA to 5.1
+        stereo = self._ambisonics_hoa_to_stereo(hoa_audio)
+        return self._stereo_to_5_1(stereo)
+    
+    def _ambisonics_hoa_to_7_1(self, hoa_audio: np.ndarray) -> np.ndarray:
+        """Convert Higher Order Ambisonics to 7.1 surround"""
+        # Decode HOA to 7.1
+        stereo = self._ambisonics_hoa_to_stereo(hoa_audio)
+        return self._stereo_to_7_1(stereo)
+    
+    def _ambisonics_hoa_to_foa(self, hoa_audio: np.ndarray) -> np.ndarray:
+        """Convert Higher Order Ambisonics to First Order Ambisonics"""
+        # Extract the first 4 channels (W, X, Y, Z) from HOA
+        if hoa_audio.shape[0] >= 4:
+            return hoa_audio[:4]
+        else:
+            # Pad with zeros if fewer than 4 channels
+            padded = np.pad(hoa_audio, ((0, 4 - hoa_audio.shape[0]), (0, 0)), mode='constant')
+            return padded
+    
+    def _ambisonics_hoa_to_binaural(self, hoa_audio: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Convert Higher Order Ambisonics to binaural"""
+        # Convert to stereo first, then to binaural
+        stereo_audio = self._ambisonics_hoa_to_stereo(hoa_audio)
+        return self._stereo_to_binaural(stereo_audio, sample_rate)
+    
+    # Quad conversion functions
+    def _quad_to_stereo(self, quad_audio: np.ndarray) -> np.ndarray:
+        """Convert quad to stereo"""
+        if quad_audio.shape[0] >= 4:
+            front_left = quad_audio[0]
+            front_right = quad_audio[1]
+            rear_left = quad_audio[2]
+            rear_right = quad_audio[3]
+            # Mix front and rear channels
+            left = (front_left + rear_left * 0.5) / 1.5
+            right = (front_right + rear_right * 0.5) / 1.5
+            return np.array([left, right])
+        else:
+            return self._downmix_to_stereo(quad_audio)
+    
+    def _quad_to_5_1(self, quad_audio: np.ndarray) -> np.ndarray:
+        """Convert quad to 5.1 surround"""
+        if quad_audio.shape[0] >= 4:
+            front_left = quad_audio[0]
+            front_right = quad_audio[1]
+            rear_left = quad_audio[2]
+            rear_right = quad_audio[3]
+            # Create 5.1 from quad
+            center = (front_left + front_right) * 0.5
+            lfe = self._extract_lfe(front_left + front_right)
+            return np.array([front_left, front_right, center, lfe, rear_left, rear_right])
+        else:
+            return self._upmix_to_5_1(quad_audio)
+    
+    def _quad_to_7_1(self, quad_audio: np.ndarray) -> np.ndarray:
+        """Convert quad to 7.1 surround"""
+        # Convert quad to 5.1 first, then extend to 7.1
+        quad_5_1 = self._quad_to_5_1(quad_audio)
+        side_left = np.zeros_like(quad_5_1[0])
+        side_right = np.zeros_like(quad_5_1[0])
+        return np.array([quad_5_1[0], quad_5_1[1], quad_5_1[2], quad_5_1[3], 
+                        side_left, side_right, quad_5_1[4], quad_5_1[5]])
+    
+    def _quad_to_binaural(self, quad_audio: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Convert quad to binaural"""
+        # Convert to stereo first, then to binaural
+        stereo_audio = self._quad_to_stereo(quad_audio)
+        return self._stereo_to_binaural(stereo_audio, sample_rate)
+    
+    # Helper functions for upmixing/downmixing
+    def _downmix_to_stereo(self, audio_data: np.ndarray) -> np.ndarray:
+        """Generic downmix to stereo"""
+        if audio_data.shape[0] == 1:
+            # Mono to stereo
+            return np.array([audio_data[0], audio_data[0]])
+        elif audio_data.shape[0] == 2:
+            # Already stereo
+            return audio_data
+        else:
+            # Downmix multi-channel to stereo
+            left = np.mean(audio_data[::2], axis=0)  # Average of odd channels
+            right = np.mean(audio_data[1::2], axis=0)  # Average of even channels
+            return np.array([left, right])
+    
+    def _upmix_to_5_1(self, audio_data: np.ndarray) -> np.ndarray:
+        """Generic upmix to 5.1"""
+        stereo = self._downmix_to_stereo(audio_data)
+        return self._stereo_to_5_1(stereo)
+    
+    def _upmix_to_7_1(self, audio_data: np.ndarray) -> np.ndarray:
+        """Generic upmix to 7.1"""
+        stereo = self._downmix_to_stereo(audio_data)
+        return self._stereo_to_7_1(stereo)
     
     async def cleanup(self):
         """Clean up resources"""

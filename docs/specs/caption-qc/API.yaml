@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info:
+  title: Caption QC API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/captions/qc/validate:
+    post:
+      summary: Validate a caption file or transcript segments
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                format:
+                  type: string
+                  enum: [srt, vtt, ttml]
+                options:
+                  type: string
+                  description: JSON string with thresholds (reading_speed_max_cps, min_duration_ms, max_lines)
+          application/json:
+            schema:
+              type: object
+              properties:
+                segments:
+                  type: array
+                  items:
+                    type: object
+                    required: [start_ms, end_ms, text]
+                    properties:
+                      start_ms: { type: integer }
+                      end_ms: { type: integer }
+                      text: { type: string }
+                options:
+                  type: object
+                  properties:
+                    reading_speed_max_cps: { type: number, default: 20 }
+                    min_duration_ms: { type: integer, default: 800 }
+                    max_lines: { type: integer, default: 2 }
+      responses:
+        '200':
+          description: QC results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issues:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code: { type: string, enum: [READING_SPEED, OVERLAP, SHORT_DURATION, TOO_MANY_LINES] }
+                        message: { type: string }
+                        index: { type: integer }
+                        start_ms: { type: integer }
+                        end_ms: { type: integer }
+                  summary:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      by_code:
+                        type: object
+  /api/v1/captions/qc/report:
+    post:
+      summary: Generate a QC report from validation results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [results]
+              properties:
+                results:
+                  type: object
+                format:
+                  type: string
+                  enum: [json, csv, pdf]
+                  default: json
+      responses:
+        '200':
+          description: Report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+

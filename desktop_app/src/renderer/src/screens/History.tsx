@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { DocumentTextIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { logUxEvent } from '../services/uxTelemetry';
 
 interface HistoryItem {
   id: string;
@@ -100,13 +101,22 @@ const History: React.FC = () => {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Transcription History
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          View and manage your past transcriptions
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Transcription History
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            View and manage your past transcriptions
+          </p>
+        </div>
+        <button
+          onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_history_view', { href }); } catch {} }}
+          className="px-3 py-2 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+          title="Copy shareable link"
+        >
+          Share
+        </button>
       </div>
 
       {/* Stats Cards */}

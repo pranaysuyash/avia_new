@@ -21,6 +21,7 @@ from advanced_search_system import (
 )
 from services.comprehensive_search_service import SearchType, SearchScope, SortOrder
 from streamlit_unified_components import UnifiedComponents
+from streamlit_intent_utils import get_params, update_params, render_share_block, log_ux_event, render_skeleton_list, render_share_inline
 
 
 class AdvancedSearchSystemUI:
@@ -48,30 +49,63 @@ class AdvancedSearchSystemUI:
         # Header
         st.markdown("# 🔍 Advanced Search & Discovery System")
         st.markdown("*Semantic search, fuzzy matching, faceted search, and intelligent ranking*")
+        render_share_inline()
         
-        # Main content tabs
-        search_tab, analytics_tab, settings_tab, help_tab = st.tabs([
-            "🔍 Search",
-            "📊 Analytics", 
-            "⚙️ Settings",
-            "❓ Help"
-        ])
+        # Deep-linked tabs via as_tab (search|analytics|settings|help)
+        tab_map = [
+            ("search", "🔍 Search"),
+            ("analytics", "📊 Analytics"),
+            ("settings", "⚙️ Settings"),
+            ("help", "❓ Help"),
+        ]
+        current_tab_key = get_params().get('as_tab', 'search')
+        ordered = [x for x in tab_map if x[0] == current_tab_key] + [x for x in tab_map if x[0] != current_tab_key]
+        tab_labels = [label for _, label in ordered]
+        tabs = st.tabs(tab_labels)
+        key_to_tab = {k: tabs[i] for i, (k, _) in enumerate(ordered)}
         
-        with search_tab:
+        with key_to_tab["search"]:
             self._render_search_interface()
         
-        with analytics_tab:
+        with key_to_tab["analytics"]:
             self._render_analytics_dashboard()
         
-        with settings_tab:
+        with key_to_tab["settings"]:
             self._render_search_settings()
         
-        with help_tab:
+        with key_to_tab["help"]:
             self._render_help_documentation()
+        
+        # Sidebar quick section selector
+        with st.sidebar:
+            st.markdown("---")
+            section_key = st.selectbox(
+                "Section",
+                options=[k for k, _ in tab_map],
+                index=[k for k, _ in tab_map].index(current_tab_key) if current_tab_key in [k for k, _ in tab_map] else 0,
+                format_func=lambda k: dict(tab_map)[k]
+            )
+            if section_key != current_tab_key:
+                try:
+                    update_params({'as_tab': section_key})
+                except Exception:
+                    pass
+                st.experimental_rerun()
     
     def _render_search_interface(self):
         """Render the main search interface"""
-        
+        # Sync deep-linked params into session defaults (one-way)
+        params = get_params()
+        if params.get('q'):
+            st.session_state.search_ui_state['last_query'] = params.get('q')
+            st.session_state['main_search_query'] = params.get('q')
+        if params.get('sort'):
+            st.session_state['sort_order'] = params.get('sort')
+        if params.get('strategy'):
+            st.session_state['search_strategy'] = params.get('strategy')
+        if params.get('scope'):
+            st.session_state['search_scope'] = params.get('scope')
+
         # Search query input
         st.markdown("### 🔍 Search Query")
         
@@ -85,6 +119,7 @@ class AdvancedSearchSystemUI:
                 help="Use quotes for exact phrases, AND/OR/NOT for boolean search, speaker: for specific speakers",
                 key="main_search_query"
             )
+            update_params({'q': query or None})
         
         with col2:
             search_button = st.button("🔍 Search", type="primary")
@@ -112,9 +147,20 @@ class AdvancedSearchSystemUI:
         
         # Perform search
         if search_button and query:
+            # Show skeleton results while performing search
+            skel = st.container()
+            with skel:
+                render_skeleton_list(items=3)
+            log_ux_event('search_executed', {
+                'q': query,
+                'sort': st.session_state.get('sort_order'),
+                'strategy': st.session_state.get('search_strategy'),
+                'scope': st.session_state.get('search_scope')
+            })
             st.session_state.search_ui_state['last_query'] = query
             with st.spinner("🔍 Searching..."):
                 self._perform_search(query)
+            skel.empty()
         
         # Display search results
         if st.session_state.search_ui_state.get('search_results'):
@@ -140,6 +186,7 @@ class AdvancedSearchSystemUI:
                 }.get(x, x),
                 key="search_strategy"
             )
+            update_params({'strategy': search_strategy})
             
             relevance_model = st.selectbox(
                 "Relevance Model",
@@ -168,6 +215,7 @@ class AdvancedSearchSystemUI:
                 }.get(x, x),
                 key="search_scope"
             )
+            update_params({'scope': search_scope})
             
             sort_order = st.selectbox(
                 "Sort Order",
@@ -183,6 +231,7 @@ class AdvancedSearchSystemUI:
                 }.get(x, x),
                 key="sort_order"
             )
+            update_params({'sort': sort_order})
         
         with col3:
             st.markdown("**⚙️ Search Options**")
@@ -227,6 +276,12 @@ class AdvancedSearchSystemUI:
             }.get(x, x),
             key="selected_facets"
         )
+        # Sidebar share/reset for Search view
+        with st.sidebar:
+            render_share_block("Share Search View")
+            if st.button("Clear All (Query + Options)"):
+                update_params({'q': None, 'sort': None, 'strategy': None, 'scope': None})
+                log_ux_event('search_filters_cleared', {'scope': 'advanced_search'})
         
         # Field boosting
         st.markdown("**⚡ Field Boosting**")

@@ -25,6 +25,8 @@ import {
   FiSearch
 } from 'react-icons/fi';
 import { ThemeProvider } from '../../shared/theme';
+import { logUxEvent } from '../shared/uxTelemetry';
+import { getQueryParam as getQP, setQueryParam as setQP } from '../shared/useQueryParam';
 
 // Interfaces
 interface SidebarItem {
@@ -148,7 +150,19 @@ export const UnifiedSidebar: React.FC<SidebarProps> = ({
   maxWidth = 400
 }) => {
   // State management
-  const [isCollapsed, setIsCollapsed] = useState(collapsed);
+  // Initialize collapsed from query param or localStorage, falling back to prop
+  const initialCollapsed = (() => {
+    try {
+      const qp = getQP('sidebar_collapsed', undefined);
+      if (qp === '1' || qp === '0') return qp === '1';
+      if (typeof window !== 'undefined') {
+        const ls = window.localStorage.getItem('sidebar_collapsed');
+        if (ls === '1' || ls === '0') return ls === '1';
+      }
+    } catch {}
+    return collapsed;
+  })();
+  const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredItems, setFilteredItems] = useState(items);
@@ -169,6 +183,13 @@ export const UnifiedSidebar: React.FC<SidebarProps> = ({
     const newCollapsed = !isCollapsed;
     setIsCollapsed(newCollapsed);
     onCollapseToggle?.(newCollapsed);
+    try { setQP('sidebar_collapsed', newCollapsed ? '1' : null); } catch {}
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('sidebar_collapsed', newCollapsed ? '1' : '0');
+      }
+    } catch {}
+    try { logUxEvent('sidebar_collapse_toggled', { collapsed: newCollapsed }); } catch {}
     announceToScreenReader(newCollapsed ? 'Sidebar collapsed' : 'Sidebar expanded');
   }, [isCollapsed, onCollapseToggle]);
   
@@ -186,6 +207,7 @@ export const UnifiedSidebar: React.FC<SidebarProps> = ({
       announceToScreenReader(
         `${item?.label} ${newExpanded.has(itemId) ? 'expanded' : 'collapsed'}`
       );
+      try { logUxEvent('section_toggle', { id: itemId, expanded: newExpanded.has(itemId) }); } catch {}
       
       return newExpanded;
     });
@@ -371,6 +393,7 @@ export const UnifiedSidebar: React.FC<SidebarProps> = ({
       if (hasChildren) {
         toggleItemExpansion(item.id);
       } else {
+        try { logUxEvent('sidebar_nav_click', { id: item.id, label: item.label, href: item.href }); } catch {}
         item.onClick?.();
       }
     };
@@ -380,7 +403,7 @@ export const UnifiedSidebar: React.FC<SidebarProps> = ({
         {item.href && !hasChildren ? (
           <a
             href={item.href}
-            onClick={item.onClick}
+            onClick={(e) => { try { logUxEvent('sidebar_nav_click', { id: item.id, label: item.label, href: item.href }); } catch {}; item.onClick?.(); }}
             className={itemClass}
             aria-current={isActive ? 'page' : undefined}
             aria-disabled={item.disabled}

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from export_manager import MultimediaExporter, ExportConfig, ShareConfig, SharingManager
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event, get_params, update_params
 from security_manager import create_security_manager
 
 # Create global security manager instance
@@ -26,6 +27,12 @@ class ExportUI:
     def render_export_interface(self, transcript_data: Dict[str, Any] = None):
         """Render export interface"""
         st.header("📤 Export & Sharing")
+        try:
+            render_share_inline("Shareable view link")
+        except Exception:
+            pass
+        st.warning("Exports and shares may include PII (names, emails, phone numbers). Confirm authorization to proceed.")
+        confirm_pii = st.checkbox("I confirm I am authorized to export/share content that may include PII.")
         
         if not transcript_data:
             # Sample data input for testing
@@ -63,22 +70,23 @@ class ExportUI:
         privacy_col1, privacy_col2 = st.columns(2)
         
         with privacy_col1:
+            params = get_params()
             anonymize_speakers = st.checkbox(
                 "Anonymize Speakers",
-                value=False,
+                value=(params.get('exp_anon', '0') == '1'),
                 help="Replace real speaker names with Speaker 1, Speaker 2, etc."
             )
             
             redact_pii = st.checkbox(
                 "Redact Personal Information",
-                value=False,
+                value=(params.get('exp_pii', '0') == '1'),
                 help="Remove names, emails, phone numbers, and other PII"
             )
         
         with privacy_col2:
             encrypt_export = st.checkbox(
                 "Encrypt Export File",
-                value=security_manager.is_encryption_enabled(),
+                value=(params.get('exp_enc', '1' if security_manager.is_encryption_enabled() else '0') == '1'),
                 help="Encrypt the exported file with password protection"
             )
             
@@ -88,6 +96,14 @@ class ExportUI:
                     type="password",
                     help="Password to encrypt the export file"
                 )
+        try:
+            update_params({
+                'exp_anon': '1' if anonymize_speakers else '0',
+                'exp_pii': '1' if redact_pii else '0',
+                'exp_enc': '1' if encrypt_export else '0',
+            })
+        except Exception:
+            pass
         
         # Apply privacy settings to data
         if anonymize_speakers or redact_pii:
@@ -109,6 +125,10 @@ class ExportUI:
                 options=['pdf', 'docx', 'json', 'csv', 'xlsx', 'html', 'txt', 'xml', 'md'],
                 help="Choose the export format"
             )
+            try:
+                update_params({'exp_format': export_format})
+            except Exception:
+                pass
             
             # Content options
             st.markdown("**Include in Export:**")
@@ -180,12 +200,15 @@ class ExportUI:
                         
                         # Download button
                         with open(download_path, 'rb') as f:
-                            st.download_button(
-                                label="📥 Download File",
-                                data=f.read(),
-                                file_name=download_name,
-                                mime=self._get_mime_type(export_format)
-                            )
+                            if confirm_pii:
+                                st.download_button(
+                                    label="📥 Download File",
+                                    data=f.read(),
+                                    file_name=download_name,
+                                    mime=self._get_mime_type(export_format)
+                                )
+                            else:
+                                st.info("Confirm PII authorization to enable downloads.")
                         
                         # Cleanup
                         os.unlink(download_path)
@@ -233,6 +256,10 @@ class ExportUI:
                 default=['pdf', 'json', 'csv'],
                 help="Choose multiple formats for bulk export"
             )
+            try:
+                update_params({'exp_bulk': ','.join(selected_formats) if selected_formats else None})
+            except Exception:
+                pass
         
         with col2:
             include_media = st.checkbox("Include Original Media", value=False)
@@ -258,12 +285,15 @@ class ExportUI:
                         
                         # Download package
                         with open(package_path, 'rb') as f:
-                            st.download_button(
-                                label="📦 Download Package",
-                                data=f.read(),
-                                file_name=Path(package_path).name,
-                                mime="application/zip"
-                            )
+                            if confirm_pii:
+                                st.download_button(
+                                    label="📦 Download Package",
+                                    data=f.read(),
+                                    file_name=Path(package_path).name,
+                                    mime="application/zip"
+                                )
+                            else:
+                                st.info("Confirm PII authorization to enable downloads.")
                         
                         # Show package contents
                         with st.expander("Package Contents"):
@@ -297,18 +327,30 @@ class ExportUI:
                 options=['read', 'write', 'admin'],
                 help="Set access permissions for shared content"
             )
+            try:
+                update_params({'exp_share': share_platform, 'exp_perms': permissions})
+            except Exception:
+                pass
         
         with col2:
             expiry_hours = st.number_input(
                 "Link Expiry (hours)",
                 min_value=1,
                 max_value=8760,  # 1 year
-                value=24,
+                value=int(params.get('exp_expiry', '24')) if params.get('exp_expiry', '').isdigit() else 24,
                 help="How long the share link should remain active"
             )
             
-            password_protected = st.checkbox("Password Protected", value=False)
-            notify_recipients = st.checkbox("Notify Recipients", value=True)
+            password_protected = st.checkbox("Password Protected", value=(params.get('exp_pwd', '0') == '1'))
+            notify_recipients = st.checkbox("Notify Recipients", value=(params.get('exp_notify', '1') == '1'))
+            try:
+                update_params({
+                    'exp_expiry': str(expiry_hours),
+                    'exp_pwd': '1' if password_protected else '0',
+                    'exp_notify': '1' if notify_recipients else '0',
+                })
+            except Exception:
+                pass
         
         custom_message = st.text_area(
             "Custom Message",
@@ -317,6 +359,9 @@ class ExportUI:
         )
         
         if st.button("Create Share Link"):
+            if not confirm_pii:
+                st.info("Confirm PII authorization to create share links.")
+                return
             with st.spinner("Creating shareable link..."):
                 try:
                     # First create an export
@@ -383,6 +428,23 @@ class ExportUI:
         # Recent exports (placeholder)
         with st.expander("Recent Exports"):
             st.info("Export history would be displayed here in a full implementation")
+
+        # Sidebar share + reset
+        with st.sidebar:
+            try:
+                render_share_block("Share Export View")
+            except Exception:
+                pass
+            if st.button("Reset View/Filters"):
+                try:
+                    st.experimental_set_query_params()
+                except Exception:
+                    pass
+                try:
+                    log_ux_event("st_filters_cleared", {"scope": "export_ui"})
+                except Exception:
+                    pass
+                st.rerun()
     
     def _get_mime_type(self, format_type: str) -> str:
         """Get MIME type for format"""

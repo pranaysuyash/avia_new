@@ -14,6 +14,14 @@ import sys
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
+from streamlit_intent_utils import (
+    render_share_inline,
+    render_share_block,
+    log_ux_event,
+    get_params,
+    update_params,
+    render_skeleton_list,
+)
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -57,23 +65,47 @@ def main():
 
     st.title("📁 Advanced Content Management System")
     st.markdown("Organize, search, and analyze your transcribed content")
+    try:
+        render_share_inline("Shareable view link")
+    except Exception:
+        pass
 
     # Sidebar navigation
     with st.sidebar:
         st.header("Navigation")
-        page = st.sidebar.selectbox(
-            "Select Page",
-            [
-                "Content Library",
-                "Search & Filter", 
-                "Collections",
-                "Tags & Categories",
-                "Analytics Dashboard",
-                "Content Upload",
-                "Quality Management",
-                "Sharing & Collaboration"
-            ]
-        )
+        params = get_params()
+        pages = [
+            "Content Library",
+            "Search & Filter", 
+            "Collections",
+            "Tags & Categories",
+            "Analytics Dashboard",
+            "Content Upload",
+            "Quality Management",
+            "Sharing & Collaboration"
+        ]
+        default_page = params.get('cms_page', pages[0])
+        page = st.selectbox("Select Page", pages, index=(pages.index(default_page) if default_page in pages else 0))
+        try:
+            update_params({'cms_page': page})
+        except Exception:
+            pass
+        
+        st.markdown("---")
+        try:
+            render_share_block("Share CMS View")
+        except Exception:
+            pass
+        if st.button("Reset View/Filters"):
+            try:
+                st.experimental_set_query_params()
+            except Exception:
+                pass
+            try:
+                log_ux_event("st_filters_cleared", {"scope": "content_management"})
+            except Exception:
+                pass
+            st.rerun()
         
         st.markdown("---")
         st.markdown(f"**User:** {st.session_state.user_id}")
@@ -196,63 +228,123 @@ def show_search_filter():
         col1, col2 = st.columns([3, 1])
         
         with col1:
+            params = get_params()
             search_query = st.text_input(
                 "Search Content",
-                placeholder="Enter keywords, titles, or content text..."
+                placeholder="Enter keywords, titles, or content text...",
+                value=params.get('cms_q', '')
             )
         
         with col2:
             st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
             search_submitted = st.form_submit_button("🔍 Search", use_container_width=True)
+    try:
+        update_params({'cms_q': search_query or None})
+    except Exception:
+        pass
     
     # Advanced filters
     with st.expander("🎛️ Advanced Filters", expanded=True):
         col1, col2, col3 = st.columns(3)
         
         with col1:
+            # Deep-linked content types (comma-separated key 'cms_types')
+            types_default = [t for t in (params.get('cms_types', '') or '').split(',') if t]
             content_types = st.multiselect(
                 "Content Types",
                 ["Audio Transcription", "Video Transcription", "Meeting", "Interview", "Lecture", "Podcast", "Webinar"],
-                default=[]
+                default=types_default
             )
+            try:
+                update_params({'cms_types': ','.join(content_types) if content_types else None})
+            except Exception:
+                pass
             
+            # Deep-linked date range as ISO pair in 'cms_date' => YYYY-MM-DD,YYYY-MM-DD
+            from datetime import datetime as _dt
+            _date_param = params.get('cms_date')
+            _start_default, _end_default = None, None
+            if _date_param and ',' in _date_param:
+                try:
+                    _s, _e = _date_param.split(',', 1)
+                    _start_default = _dt.fromisoformat(_s).date()
+                    _end_default = _dt.fromisoformat(_e).date()
+                except Exception:
+                    _start_default, _end_default = None, None
             date_range = st.date_input(
                 "Date Range",
-                value=[datetime.now() - timedelta(days=30), datetime.now()],
+                value=[_start_default or datetime.now() - timedelta(days=30), _end_default or datetime.now()],
                 help="Select start and end dates"
             )
+            try:
+                if isinstance(date_range, list) and len(date_range) == 2:
+                    update_params({'cms_date': f"{date_range[0].isoformat()},{date_range[1].isoformat()}"})
+            except Exception:
+                pass
         
         with col2:
             quality_filter = st.selectbox(
                 "Quality Level",
                 ["All", "Excellent", "Good", "Fair", "Poor", "Needs Review"]
             )
+            try:
+                update_params({'cms_quality': quality_filter if quality_filter != 'All' else None})
+            except Exception:
+                pass
             
+            # Deep-linked duration range in minutes as 'cms_dur' => min-max
+            _dur_param = params.get('cms_dur')
+            _dur_default = [0, 180]
+            if _dur_param and '-' in _dur_param:
+                try:
+                    _a, _b = _dur_param.split('-', 1)
+                    _dur_default = [max(0, int(_a)), min(180, int(_b))]
+                except Exception:
+                    _dur_default = [0, 180]
             duration_range = st.slider(
                 "Duration (minutes)",
                 min_value=0,
                 max_value=180,
-                value=[0, 180],
+                value=_dur_default,
                 help="Filter by content duration"
             )
+            try:
+                update_params({'cms_dur': f"{duration_range[0]}-{duration_range[1]}"})
+            except Exception:
+                pass
         
         with col3:
+            # Deep-linked tags (comma-separated in 'cms_tags')
+            tags_default = [t for t in (params.get('cms_tags', '') or '').split(',') if t]
             tags_filter = st.multiselect(
                 "Tags",
                 ["meeting", "interview", "sales", "product", "research", "ai", "healthcare", "customer"],
-                default=[]
+                default=tags_default
             )
+            try:
+                update_params({'cms_tags': ','.join(tags_filter) if tags_filter else None})
+            except Exception:
+                pass
             
             status_filter = st.selectbox(
                 "Status",
                 ["All", "Ready", "Processing", "Archived", "Private", "Public"]
             )
+            try:
+                update_params({'cms_status': status_filter if status_filter != 'All' else None})
+            except Exception:
+                pass
     
     # Search results
     st.markdown("---")
     st.subheader("📋 Search Results")
     
     if search_submitted or st.button("🔄 Refresh Results"):
+        # Lightweight skeletons to indicate loading
+        try:
+            render_skeleton_list(items=3)
+        except Exception:
+            pass
         # Mock search results
         search_results = [
             {

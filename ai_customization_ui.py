@@ -11,6 +11,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event, get_params, update_params
 
 # Import customization components
 from ai_model_customization import (
@@ -26,6 +27,11 @@ logger = logging.getLogger(__name__)
 def render_ai_customization_ui():
     """Main UI for AI model customization features"""
     st.header("🤖 AI Model Customization")
+    # Inline share UI
+    try:
+        render_share_inline("Shareable view link")
+    except Exception:
+        pass
     
     # Initialize customization system
     if 'ai_customization' not in st.session_state:
@@ -33,14 +39,38 @@ def render_ai_customization_ui():
     
     customization = st.session_state.ai_customization
     
-    # Navigation tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📚 Custom Vocabularies", 
-        "🎤 Voice Profiles", 
-        "🏷️ Custom Entities", 
-        "⚖️ A/B Testing",
-        "📊 Statistics"
-    ])
+    # Deep-linked section selection via query param 'aic_tab'
+    params = get_params()
+    tab_map = [
+        ("vocab", "📚 Custom Vocabularies"),
+        ("voice", "🎤 Voice Profiles"),
+        ("entities", "🏷️ Custom Entities"),
+        ("abtest", "⚖️ A/B Testing"),
+        ("stats", "📊 Statistics"),
+    ]
+    order_key = params.get('aic_tab', 'vocab')
+    # Reorder so desired tab appears first (Streamlit focuses first tab)
+    ordered = [x for x in tab_map if x[0] == order_key] + [x for x in tab_map if x[0] != order_key]
+    tab_labels = [label for _, label in ordered]
+
+    # Provide a sidebar quick section selector to update deep-link
+    with st.sidebar:
+        section_idx = st.selectbox(
+            "Section",
+            options=[k for k, _ in tab_map],
+            index=[k for k, _ in tab_map].index(order_key) if order_key in [k for k, _ in tab_map] else 0,
+            format_func=lambda k: dict(tab_map)[k]
+        )
+        if section_idx != order_key:
+            update_params({'aic_tab': section_idx})
+            try:
+                log_ux_event('aic_tab_change', {'tab': section_idx})
+            except Exception:
+                pass
+            st.experimental_rerun()
+
+    # Navigation tabs (ordered so first is active according to aic_tab)
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(tab_labels)
     
     with tab1:
         render_vocabulary_management(customization)
@@ -56,6 +86,22 @@ def render_ai_customization_ui():
     
     with tab5:
         render_customization_stats(customization)
+    # Sidebar share + reset
+    with st.sidebar:
+        try:
+            render_share_block("Share AI Customization View")
+        except Exception:
+            pass
+        if st.button("Reset View/Filters"):
+            try:
+                st.experimental_set_query_params()
+            except Exception:
+                pass
+            try:
+                log_ux_event("st_filters_cleared", {"scope": "ai_customization"})
+            except Exception:
+                pass
+            st.rerun()
 
 def render_vocabulary_management(customization: AIModelCustomization):
     """UI for managing custom vocabularies"""

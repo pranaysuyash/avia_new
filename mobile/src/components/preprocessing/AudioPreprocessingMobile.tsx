@@ -44,6 +44,9 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DocumentPicker from 'react-native-document-picker';
+import { Share } from 'react-native';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
 import AudioRecorderPlayer, {
   AVEncoderAudioQualityIOSType,
   AVEncodingOption,
@@ -701,6 +704,10 @@ const AudioPreprocessingMobile: React.FC = () => {
             <View style={styles.headerContent}>
               <Title>Audio Preprocessing</Title>
               <View style={styles.headerActions}>
+                <IconButton
+                  icon="share-variant"
+                  onPress={async () => { const url = buildLink('preprocessing', { type: 'audio' }); try { await Share.share({ message: url }); await logUxEvent('share_audio_preprocessing_view', { url }); } catch (_) {} }}
+                />
                 <Badge visible={selectedFiles.length > 0} style={styles.selectionBadge}>
                   {selectedFiles.length}
                 </Badge>
@@ -779,21 +786,27 @@ const AudioPreprocessingMobile: React.FC = () => {
           </Surface>
 
           {/* Audio Files List */}
-          <FlatList
-            data={getFilteredFiles()}
-            renderItem={renderAudioFile}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.filesList}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <MaterialIcons name="library-music" size={64} color={theme.colors.onSurfaceVariant} />
-                <Subheading style={{ color: theme.colors.onSurfaceVariant, marginTop: 16 }}>
-                  No audio files yet
-                </Subheading>
-                <Caption>Record audio or import files to get started</Caption>
-              </View>
-            }
-          />
+          {loading ? (
+            <View style={{ padding: 16 }}>
+              <SkeletonList rows={6} />
+            </View>
+          ) : (
+            <FlatList
+              data={getFilteredFiles()}
+              renderItem={renderAudioFile}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.filesList}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="library-music" size={64} color={theme.colors.onSurfaceVariant} />
+                  <Subheading style={{ color: theme.colors.onSurfaceVariant, marginTop: 16 }}>
+                    No audio files yet
+                  </Subheading>
+                  <Caption>Record audio or import files to get started</Caption>
+                </View>
+              }
+            />
+          )}
 
           {/* Action Buttons */}
           {audioFiles.length > 0 && (

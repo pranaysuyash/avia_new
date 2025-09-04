@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logUxEvent } from '../services/uxTelemetry';
 import { motion } from 'framer-motion';
 import { CheckIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
@@ -62,7 +63,10 @@ interface SecuritySettings {
 }
 
 const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(() => {
+    try { const url = new URL(window.location.href); return url.searchParams.get('settings_tab') || 'general'; } catch {}
+    return 'general';
+  });
   
   const [userPrefs, setUserPrefs] = useState<UserPreferences>({
     language: 'en',
@@ -204,6 +208,11 @@ const Settings: React.FC = () => {
     }
   };
 
+  // Deep-link active tab to URL
+  useEffect(() => {
+    try { const url = new URL(window.location.href); url.searchParams.set('settings_tab', activeTab); window.history.replaceState({}, '', url.toString()); } catch {}
+  }, [activeTab]);
+
   const saveUserPreferences = async () => {
     try {
       setSaving(true);
@@ -336,9 +345,18 @@ const Settings: React.FC = () => {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Settings
-          </h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Settings
+            </h1>
+            <button
+              onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_settings_view', { href }); } catch {} }}
+              className="px-3 py-1 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+              title="Copy shareable link"
+            >
+              Share
+            </button>
+          </div>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Configure your application preferences
           </p>

@@ -182,6 +182,34 @@ class DropboxProvider(StorageProvider):
         else:
             return f"https://dropbox.com/s/{file_id}/view"
     
+    async def file_exists(self, file_id: str) -> bool:
+        """Check if a file exists in Dropbox"""
+        
+        logger.info(f"Mock: Checking if file {file_id} exists in Dropbox")
+        
+        # Mock implementation - in a real implementation, would check Dropbox API
+        # For now, let's simulate that files with certain IDs exist
+        # This is a simple mock that assumes files with IDs starting with "dbx_" exist
+        exists = file_id.startswith("dbx_") or file_id.startswith("dropbox_") or file_id.isdigit()
+        
+        logger.debug(f"File {file_id} exists: {exists}")
+        return exists
+    
+    async def get_file_url(self, file_id: str, expiry: int = 3600) -> str:
+        """Get a file URL from Dropbox with expiry"""
+        
+        logger.info(f"Mock: Getting URL for file {file_id} with expiry {expiry}s")
+        
+        # Mock implementation - in a real implementation, would generate Dropbox share URL
+        # For now, generate a mock URL with expiry parameter
+        from datetime import datetime, timedelta
+        expiry_time = datetime.utcnow() + timedelta(seconds=expiry)
+        expiry_timestamp = int(expiry_time.timestamp())
+        
+        url = f"https://dropbox.com/s/{file_id}/download?expires={expiry_timestamp}"
+        logger.debug(f"Generated file URL: {url}")
+        return url
+    
     def get_provider_type(self) -> StorageProviderType:
         """Get the provider type"""
         return StorageProviderType.DROPBOX

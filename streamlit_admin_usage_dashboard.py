@@ -70,7 +70,7 @@ class AdminUsageDashboard:
         # Tab selection
         tabs = ["System Overview", "User Analytics", "Plan Distribution", 
                 "Resource Usage", "Revenue Analytics", "Alerts & Actions"]
-        selected_tab = enhanced_tabs(tabs, key="admin_tabs")
+        selected_tab = enhanced_tabs(tabs, key="admin_tabs", query_param="admin_usage_tab", default="System Overview")
         
         if selected_tab == "System Overview":
             self._render_system_overview()
@@ -88,10 +88,25 @@ class AdminUsageDashboard:
     def _render_system_overview(self):
         """Render system overview tab"""
         st.header("System Overview")
+        # Deep-linkable period selector
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_days = int(qp.get("admin_usage_days", [30])[0])
+        except Exception:
+            qp_days = 30
+        days = st.selectbox("Range (days)", [7, 14, 30, 90], index=[7,14,30,90].index(qp_days) if qp_days in [7,14,30,90] else 2)
+        try:
+            current = st.experimental_get_query_params() or {}
+            if int(current.get("admin_usage_days", [0])[0] or 0) != days:
+                current["admin_usage_days"] = [str(days)]
+                st.experimental_set_query_params(**current)
+        except Exception:
+            pass
         
         # Get system-wide statistics
-        trends = self._api_request('GET', '/usage/analytics/trends', {'days': 30})
-        usage_by_plan = self._api_request('GET', '/usage/analytics/by-plan', {'days': 30})
+        with st.spinner("Loading system usage..."):
+            trends = self._api_request('GET', '/usage/analytics/trends', {'days': days})
+            usage_by_plan = self._api_request('GET', '/usage/analytics/by-plan', {'days': days})
         
         # Calculate totals
         if trends and 'trends' in trends:
@@ -146,25 +161,84 @@ class AdminUsageDashboard:
         if usage_by_plan:
             st.subheader("Usage by Plan")
             self._render_plan_usage_summary(usage_by_plan)
+        # Shareable link for overview filters
+        st.caption("Shareable overview filters")
+        try:
+            qp = st.experimental_get_query_params() or {}
+            parts = []
+            if 'admin_usage_days' in qp:
+                parts.append(f"admin_usage_days={qp['admin_usage_days'][0]}")
+            st.text_input("URL params", value=("?"+"&".join(parts)) if parts else "", key="admin_usage_overview_share")
+        except Exception:
+            pass
+        # Reset filters
+        if st.button("Reset Overview Filters"):
+            try:
+                current = st.experimental_get_query_params() or {}
+                for k in ['admin_usage_days']:
+                    current.pop(k, None)
+                st.experimental_set_query_params(**current)
+                st.experimental_rerun()
+            except Exception:
+                pass
     
     def _render_user_analytics(self):
         """Render user analytics tab"""
         st.header("User Analytics")
         
         # Top users by usage type
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_usage_type = qp.get("admin_usage_type", [None])[0]
+        except Exception:
+            qp_usage_type = None
         usage_type = st.selectbox(
             "Select Usage Type",
-            ['transcripts', 'minutes', 'storage', 'api_calls']
+            ['transcripts', 'minutes', 'storage', 'api_calls'],
+            index=( ['transcripts', 'minutes', 'storage', 'api_calls'].index(qp_usage_type) if qp_usage_type in ['transcripts', 'minutes', 'storage', 'api_calls'] else 0 )
         )
+        try:
+            current = st.experimental_get_query_params() or {}
+            if current.get("admin_usage_type", [None])[0] != usage_type:
+                current["admin_usage_type"] = [usage_type]
+                st.experimental_set_query_params(**current)
+        except Exception:
+            pass
         
-        days = st.slider("Period (days)", 7, 90, 30)
-        limit = st.slider("Top N Users", 5, 50, 20)
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_user_days = int(qp.get("admin_user_days", [30])[0])
+        except Exception:
+            qp_user_days = 30
+        days = st.slider("Period (days)", 7, 90, qp_user_days)
+        try:
+            current = st.experimental_get_query_params() or {}
+            if int(current.get("admin_user_days", [0])[0] or 0) != days:
+                current["admin_user_days"] = [str(days)]
+                st.experimental_set_query_params(**current)
+        except Exception:
+            pass
+        # Deep-linkable Top N Users
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_limit = int(qp.get("admin_user_limit", [20])[0])
+        except Exception:
+            qp_limit = 20
+        limit = st.slider("Top N Users", 5, 50, qp_limit)
+        try:
+            current = st.experimental_get_query_params() or {}
+            if int(current.get("admin_user_limit", [0])[0] or 0) != limit:
+                current["admin_user_limit"] = [str(limit)]
+                st.experimental_set_query_params(**current)
+        except Exception:
+            pass
         
-        top_users = self._api_request(
-            'GET',
-            '/usage/analytics/top-users',
-            {'usage_type': usage_type, 'days': days, 'limit': limit}
-        )
+        with st.spinner("Loading top users..."):
+            top_users = self._api_request(
+                'GET',
+                '/usage/analytics/top-users',
+                {'usage_type': usage_type, 'days': days, 'limit': limit}
+            )
         
         if top_users:
             # Create bar chart
@@ -208,6 +282,28 @@ class AdminUsageDashboard:
                     if st.button("Limit Access", key=f"limit_{user['user_id']}"):
                         st.warning(f"Access limited for {user['username']}")
     
+        # Reset filters
+        if st.button("Reset User Analytics Filters"):
+            try:
+                current = st.experimental_get_query_params() or {}
+                for k in ['admin_usage_type','admin_user_days','admin_user_limit']:
+                    current.pop(k, None)
+                st.experimental_set_query_params(**current)
+                st.experimental_rerun()
+            except Exception:
+                pass
+        # Shareable link for user analytics filters
+        st.caption("Shareable user analytics filters")
+        try:
+            qp = st.experimental_get_query_params() or {}
+            parts = []
+            for k in ['admin_usage_type','admin_user_days','admin_user_limit']:
+                if k in qp:
+                    parts.append(f"{k}={qp[k][0]}")
+            st.text_input("URL params", value=("?"+"&".join(parts)) if parts else "", key="admin_usage_user_share")
+        except Exception:
+            pass
+
     def _render_plan_distribution(self):
         """Render plan distribution tab"""
         st.header("Plan Distribution")
@@ -277,12 +373,26 @@ class AdminUsageDashboard:
     def _render_resource_usage(self):
         """Render resource usage tab"""
         st.header("Resource Usage Analysis")
-        
+        # Deep-linkable range (days)
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_days = int(qp.get("admin_resource_days", [30])[0])
+        except Exception:
+            qp_days = 30
+        days = st.selectbox("Range (days)", [7, 14, 30, 90], index=[7,14,30,90].index(qp_days) if qp_days in [7,14,30,90] else 2)
+        try:
+            current = st.experimental_get_query_params() or {}
+            if int(current.get("admin_resource_days", [0])[0] or 0) != days:
+                current["admin_resource_days"] = [str(days)]
+                st.experimental_set_query_params(**current)
+        except Exception:
+            pass
+
         # Get resource distribution
         distribution = self._api_request(
             'GET',
             '/usage/analytics/resource-distribution',
-            {'days': 30}
+            {'days': days}
         )
         
         if distribution and 'distribution' in distribution:
@@ -344,16 +454,29 @@ class AdminUsageDashboard:
     def _render_revenue_analytics(self):
         """Render revenue analytics tab"""
         st.header("Revenue Analytics")
-        
+        # Deep-linkable months window
+        try:
+            qp = st.experimental_get_query_params() or {}
+            qp_months = int(qp.get("admin_revenue_months", [12])[0])
+        except Exception:
+            qp_months = 12
+        months_window = st.selectbox("Months", [6, 12, 24], index=[6,12,24].index(qp_months) if qp_months in [6,12,24] else 1)
+        try:
+            current = st.experimental_get_query_params() or {}
+            if int(current.get("admin_revenue_months", [0])[0] or 0) != months_window:
+                current["admin_revenue_months"] = [str(months_window)]
+                st.experimental_set_query_params(**current)
+        except Exception:
+            pass
+
         # Mock revenue data - would come from Stripe/payment processor
         st.subheader("Monthly Recurring Revenue (MRR)")
         
         # MRR trend
-        months = pd.date_range(end=datetime.now(), periods=12, freq='M')
+        months = pd.date_range(end=datetime.now(), periods=months_window, freq='M')
         mrr_data = {
             'Month': months,
-            'MRR': [12000, 13500, 14200, 15800, 16500, 17200, 
-                    18900, 20100, 21500, 22800, 24200, 25600]
+            'MRR': ([12000, 13500, 14200, 15800, 16500, 17200, 18900, 20100, 21500, 22800, 24200, 25600] * 2)[:months_window]
         }
         
         df_mrr = pd.DataFrame(mrr_data)

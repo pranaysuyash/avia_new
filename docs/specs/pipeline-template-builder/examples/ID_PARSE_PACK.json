@@ -1,0 +1,54 @@
+{
+  "id": "tpl_id_parse_v1",
+  "name": "ID Parse Pack — MRZ/PDF417",
+  "version": "1.0.0",
+  "description": "Detect and align ID card, decode MRZ/PDF417, OCR printed fields, run fraud heuristics, export fields and face crop.",
+  "io": {
+    "inputs": [
+      {"name": "front_image", "type": "Image"},
+      {"name": "back_image", "type": "Image"}
+    ],
+    "outputs": [
+      {"name": "id_fields", "type": "JSON"},
+      {"name": "face_crop", "type": "Image.FaceCrop"}
+    ]
+  },
+  "parameters": {
+    "enable_selfie_match": false,
+    "selfie_min_similarity": 0.8
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "enable_selfie_match": {"type": "boolean"},
+      "selfie_min_similarity": {"type": "number", "minimum": 0, "maximum": 1}
+    },
+    "required": ["enable_selfie_match", "selfie_min_similarity"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      { "id": "ingest", "def": "Ingest.FrontBack", "params": {}, "io": {"in": ["Image", "Image"], "out": ["ID.Images"]} },
+      { "id": "align", "def": "ID.DetectAlign", "params": {}, "io": {"in": ["ID.Images"], "out": ["ID.Crop"]} },
+      { "id": "mrz", "def": "ID.DecodeMRZ", "params": {}, "io": {"in": ["ID.Crop"], "out": ["ID.Fields"]} },
+      { "id": "pdf417", "def": "ID.DecodePDF417", "params": {}, "io": {"in": ["ID.Crop"], "out": ["ID.Fields"]} },
+      { "id": "ocr", "def": "OCR.Printed", "params": {}, "io": {"in": ["ID.Crop"], "out": ["ID.Fields"]} },
+      { "id": "fraud", "def": "ID.FraudChecks", "params": {}, "io": {"in": ["ID.Fields"], "out": ["ID.Flags"]} },
+      { "id": "export", "def": "Export.ID", "params": {}, "io": {"in": ["ID.Fields", "ID.Flags"], "out": ["JSON", "Image.FaceCrop"]} }
+    ],
+    "edges": [
+      {"from": "ingest.out", "to": "align.in"},
+      {"from": "align.out", "to": "mrz.in"},
+      {"from": "align.out", "to": "pdf417.in"},
+      {"from": "align.out", "to": "ocr.in"},
+      {"from": "mrz.out", "to": "fraud.in"},
+      {"from": "pdf417.out", "to": "fraud.in"},
+      {"from": "ocr.out", "to": "fraud.in"},
+      {"from": "fraud.out", "to": "export.in"}
+    ]
+  },
+  "policies": [
+    {"id": "gate_selfie_optional", "checks": [{"type": "conditional_step", "node": "export", "enabled": "${enable_selfie_match}"}], "severity": "info"}
+  ]
+}
+

@@ -19,6 +19,8 @@ import {
   FiSkipForward
 } from 'react-icons/fi';
 import { ThemeProvider } from '../../shared/theme';
+import { logUxEvent } from '../../shared/uxTelemetry';
+import { ShareViewButton } from '../shared/ShareViewButton';
 
 // Interfaces
 interface OnboardingStep {
@@ -45,6 +47,8 @@ interface OnboardingFlowProps {
   showProgress?: boolean;
   variant?: 'modal' | 'fullscreen' | 'embedded';
   className?: string;
+  enableDeepLinking?: boolean; // sync step to URL ?ob_step=
+  onEvent?: (event: string, payload?: Record<string, unknown>) => void; // UX telemetry hook
 }
 
 // Default onboarding steps for the transcription app
@@ -320,7 +324,9 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   allowSkip = true,
   showProgress = true,
   variant = 'modal',
-  className = ''
+  className = '',
+  enableDeepLinking = true,
+  onEvent
 }) => {
   // State
   const [internalCurrentStep, setInternalCurrentStep] = useState(0);
@@ -343,6 +349,21 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === steps.length - 1;
   const progress = ((currentStep + 1) / steps.length) * 100;
+
+  // Helpers for URL param sync
+  const setQueryParam = (key: string, value: string) => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set(key, value);
+      window.history.replaceState({}, '', url.toString());
+    } catch (_) {}
+  };
+  const getQueryParam = (key: string) => {
+    try {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(key);
+    } catch (_) { return null; }
+  };
   
   // Handle step navigation
   const goToStep = useCallback(async (stepIndex: number) => {
@@ -371,6 +392,12 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     }
     
     setCurrentStep(stepIndex);
+    // Deep-link and telemetry
+    if (enableDeepLinking) {
+      setQueryParam('ob_step', String(stepIndex));
+    }
+    if (onEvent) onEvent('onboarding_step_change', { stepIndex, stepId: steps[stepIndex]?.id });
+    else logUxEvent('onboarding_step_change', { stepIndex, stepId: steps[stepIndex]?.id });
     
     // Announce step change
     const newStep = steps[stepIndex];
@@ -387,6 +414,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       if (step.action) {
         step.action.onClick();
       }
+      if (onEvent) onEvent('onboarding_complete'); else logUxEvent('onboarding_complete');
       onComplete?.();
     } else {
       goToStep(currentStep + 1);
@@ -400,11 +428,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const handleSkip = () => {
     if (step.optional && allowSkip) {
       if (isLastStep) {
+      if (onEvent) onEvent('onboarding_skipped_last'); else logUxEvent('onboarding_skipped_last');
         onComplete?.();
       } else {
+        if (onEvent) onEvent('onboarding_skip_step', { stepIndex: currentStep, stepId: step.id }); else logUxEvent('onboarding_skip_step', { stepIndex: currentStep, stepId: step.id });
         goToStep(currentStep + 1);
       }
     } else {
+      if (onEvent) onEvent('onboarding_skip_disallowed', { stepIndex: currentStep }); else logUxEvent('onboarding_skip_disallowed', { stepIndex: currentStep });
       onSkip?.();
     }
   };
@@ -437,6 +468,22 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   useEffect(() => {
     contentRef.current?.focus();
   }, [currentStep]);
+
+  // Initialize from deep link
+  useEffect(() => {
+    if (!enableDeepLinking) return;
+    const qp = getQueryParam('ob_step');
+    if (qp !== null) {
+      const idx = Math.max(0, Math.min(steps.length - 1, parseInt(qp, 10)));
+      if (!Number.isNaN(idx) && idx !== currentStep) {
+        setCurrentStep(idx);
+      }
+    } else {
+      // write initial
+      setQueryParam('ob_step', String(currentStep));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Get container classes based on variant
   const getContainerClasses = () => {
@@ -490,7 +537,9 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             </div>
           </div>
           
-          {allowSkip && (
+          <div className="flex items-center space-x-3">
+            <ShareViewButton label="Share" className="px-3 py-1 text-sm rounded-md bg-interactive-muted hover:bg-interactive-hover" />
+            {allowSkip && (
             <button
               onClick={handleSkip}
               className="p-2 text-text-tertiary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT rounded-full transition-colors duration-200"
@@ -498,7 +547,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             >
               <FiX className="h-5 w-5" />
             </button>
-          )}
+            )}
+          </div>
         </div>
         
         {/* Progress Bar */}

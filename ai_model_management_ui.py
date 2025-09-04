@@ -18,6 +18,14 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import json
 from typing import Dict, List, Optional, Any
+from streamlit_intent_utils import (
+    get_params,
+    update_params,
+    render_share_block,
+    log_ux_event,
+    render_share_inline,
+    render_skeleton_list,
+)
 
 # Import our model management system
 try:
@@ -45,12 +53,16 @@ def main():
     """Main application interface"""
     st.title("🤖 AI Model Management System")
     st.markdown("**Task 65: AI model versioning and A/B testing**")
+    # Inline share link
+    try:
+        render_share_inline("Shareable view link")
+    except Exception:
+        pass
     
     # Sidebar navigation
     st.sidebar.title("Navigation")
-    page = st.sidebar.selectbox(
-        "Select Page",
-        [
+    params = get_params()
+    pages = [
             "📊 Dashboard",
             "📚 Model Registry", 
             "🧪 A/B Testing",
@@ -58,7 +70,26 @@ def main():
             "💰 Cost Optimization",
             "⚙️ Settings"
         ]
+    initial_index = pages.index(params.get('aimm_page', pages[0])) if params.get('aimm_page', pages[0]) in pages else 0
+    page = st.sidebar.selectbox(
+        "Select Page",
+        pages,
+        index=initial_index
     )
+    update_params({'aimm_page': page})
+    try:
+        log_ux_event('ai_model_page_change', {'page': page})
+    except Exception:
+        pass
+
+    render_share_block("Share AI Model View")
+    if st.sidebar.button("Reset AI Model View"):
+        update_params({'aimm_page': None, 'aimm_type': None, 'aimm_status': None, 'aimm_limit': None})
+        try:
+            log_ux_event('st_filters_cleared', {'scope': 'ai_model_management'})
+        except Exception:
+            pass
+        st.rerun()
     
     # Route to appropriate page
     if page == "📊 Dashboard":
@@ -177,26 +208,55 @@ def show_model_registry():
         # Filters
         col1, col2, col3 = st.columns(3)
         with col1:
+            p = get_params()
+            type_options = ["All"] + ["transcription", "analysis", "enhancement", "custom"]
+            type_default = p.get('aimm_type', 'All')
             model_type_filter = st.selectbox(
                 "Filter by Type",
-                ["All"] + ["transcription", "analysis", "enhancement", "custom"]
+                type_options,
+                index=(type_options.index(type_default) if type_default in type_options else 0)
             )
+            update_params({'aimm_type': model_type_filter if model_type_filter != 'All' else None})
         
         with col2:
+            status_options = ["All"] + [status.value for status in ModelStatus]
+            status_default = p.get('aimm_status', 'All')
             status_filter = st.selectbox(
                 "Filter by Status", 
-                ["All"] + [status.value for status in ModelStatus]
+                status_options,
+                index=(status_options.index(status_default) if status_default in status_options else 0)
             )
+            update_params({'aimm_status': status_filter if status_filter != 'All' else None})
         
         with col3:
-            limit = st.number_input("Limit Results", min_value=10, max_value=1000, value=50)
+            limit_default = int(p.get('aimm_limit', '50')) if str(p.get('aimm_limit','')).isdigit() else 50
+            limit = st.number_input("Limit Results", min_value=10, max_value=1000, value=limit_default)
+            update_params({'aimm_limit': str(limit)})
         
+        # Skeletons while loading model list
+        ph = st.container()
+        with ph:
+            try:
+                render_skeleton_list(items=3)
+            except Exception:
+                pass
         # Get models
         models = service.registry.list_models(
             model_type=None if model_type_filter == "All" else model_type_filter,
             status=None if status_filter == "All" else ModelStatus(status_filter),
             limit=limit
         )
+        ph.empty()
+
+        with st.sidebar:
+            render_share_block("Share Model Registry View")
+            if st.button("Reset Registry Filters"):
+                update_params({'aimm_type': None, 'aimm_status': None, 'aimm_limit': None})
+                try:
+                    log_ux_event('st_filters_cleared', {'scope': 'ai_model_registry'})
+                except Exception:
+                    pass
+                st.rerun()
         
         if models:
             models_df = pd.DataFrame([
@@ -217,15 +277,28 @@ def show_model_registry():
             st.dataframe(models_df, use_container_width=True)
             
             # Model selection for details
+            labels = [f"{m.name} v{m.version} ({m.model_id[:8]}...)" for m in models]
+            # Deep-link default selection via 'aimm_model'
+            psel = get_params().get('aimm_model')
+            try:
+                default_idx = next((i for i, m in enumerate(models) if m.model_id == psel), 0)
+            except Exception:
+                default_idx = 0
             selected_model = st.selectbox(
                 "Select model for details",
-                options=[f"{m.name} v{m.version} ({m.model_id[:8]}...)" for m in models],
+                options=labels,
+                index=default_idx,
                 key="model_select"
             )
             
             if selected_model:
-                model_id = models[st.session_state.get('model_select', 0)].model_id
+                sel_index = st.session_state.get('model_select', default_idx)
+                model_id = models[sel_index].model_id
                 st.session_state.selected_model_id = model_id
+                try:
+                    update_params({'aimm_model': model_id})
+                except Exception:
+                    pass
         else:
             st.info("No models found matching the criteria.")
     

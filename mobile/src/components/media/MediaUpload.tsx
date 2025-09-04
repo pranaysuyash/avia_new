@@ -11,7 +11,8 @@ import {
   Switch,
   ActivityIndicator,
   PermissionsAndroid,
-  Platform
+  Platform,
+  Share
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
@@ -19,6 +20,8 @@ import { Picker } from '@react-native-picker/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Progress from 'react-native-progress';
+import { buildLink } from '../../utils/deeplink';
+import { logUxEvent } from '../../utils/uxTelemetry';
 
 interface UploadedFile {
   id: string;
@@ -467,6 +470,13 @@ export const MediaUpload: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Media Upload</Text>
+        <TouchableOpacity 
+          onPress={async () => { const url = buildLink('media-upload'); try { await Share.share({ message: url }); await logUxEvent('share_media_upload_view', { url }); } catch (_) {} }}
+          accessibilityLabel="Share media upload view"
+          style={{ position: 'absolute', right: 20, top: 12 }}
+        >
+          <Icon name="ios-share" size={22} color="#007AFF" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>

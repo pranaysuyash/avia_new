@@ -8,10 +8,16 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Linking,
+  Share,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Picker } from '@react-native-picker/picker';
 import styles from './styles';
+import { useRoute } from '@react-navigation/native';
+import { logUxEvent } from '../../utils/uxTelemetry';
+import { buildLink } from '../../utils/deeplink';
+import { SkeletonLine, SkeletonBlock } from '../shared/Skeleton';
 
 interface SettingsProps {
   onSave?: () => void;
@@ -19,7 +25,8 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ onSave, onClose }) => {
-  const [activeTab, setActiveTab] = useState('general');
+  const route = useRoute<any>();
+  const [activeTab, setActiveTab] = useState(route?.params?.tab || 'general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -65,6 +72,13 @@ const Settings: React.FC<SettingsProps> = ({ onSave, onClose }) => {
     loadSettings();
   }, []);
 
+  // Apply deep-linked tab param when present
+  useEffect(() => {
+    if (route?.params?.tab && typeof route.params.tab === 'string') {
+      setActiveTab(route.params.tab);
+    }
+  }, [route?.params?.tab]);
+
   const loadSettings = async () => {
     try {
       setLoading(true);
@@ -84,11 +98,29 @@ const Settings: React.FC<SettingsProps> = ({ onSave, onClose }) => {
     try {
       // TODO: Save settings to API
       Alert.alert('Success', 'Settings saved successfully');
+      await logUxEvent('settings_saved', { tab: activeTab });
       if (onSave) onSave();
     } catch (error) {
       Alert.alert('Error', 'Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTabChange = async (id: string) => {
+    setActiveTab(id);
+    await logUxEvent('settings_tab_change', { tab: id });
+  };
+
+  const shareCurrentView = async () => {
+    const url = buildLink('settings', { tab: activeTab });
+    try {
+      await Share.share({ message: url });
+      await logUxEvent('share_settings_view', { url, method: 'native_share' });
+    } catch (_) {
+      try {
+        await Linking.openURL(url);
+      } catch (__) {}
     }
   };
 
@@ -105,6 +137,24 @@ const Settings: React.FC<SettingsProps> = ({ onSave, onClose }) => {
       case 'general':
         return (
           <View style={styles.tabContent}>
+            {/* Developer Tools shortcut */}
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open Telemetry Viewer" onPress={() => {
+                try { logUxEvent('open_telemetry_viewer'); } catch {}
+                // @ts-ignore navigation may be available via parent stack; fallback to Linking
+                try { (global as any).navigation?.navigate('Telemetry'); } catch {}
+              }} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Icon name="insights" size={18} color="#3498db" />
+                <Text style={{ color: '#3498db', marginLeft: 6 }}>Open Telemetry Viewer</Text>
+              </TouchableOpacity>
+            </View>
+            {/* Shareable deep link example */}
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share settings view" onPress={shareCurrentView} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Icon name="ios-share" size={18} color="#3498db" />
+                <Text style={{ color: '#3498db', marginLeft: 6 }}>Share View</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.settingGroup}>
               <Text style={styles.settingLabel}>Theme</Text>
               <View style={styles.pickerContainer}>
@@ -483,8 +533,12 @@ const Settings: React.FC<SettingsProps> = ({ onSave, onClose }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.container, { padding: 16 }]}> 
+        <SkeletonLine width="60%" height={20} />
+        <SkeletonBlock height={100} />
+        <SkeletonLine width="40%" />
+        <SkeletonBlock height={160} />
+        <SkeletonLine width="80%" />
       </View>
     );
   }
@@ -514,7 +568,7 @@ const Settings: React.FC<SettingsProps> = ({ onSave, onClose }) => {
               styles.tab,
               activeTab === tab.id && styles.activeTab
             ]}
-            onPress={() => setActiveTab(tab.id)}
+            onPress={() => handleTabChange(tab.id)}
           >
             <Icon 
               name={tab.icon} 

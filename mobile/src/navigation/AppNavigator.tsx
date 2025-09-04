@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useRef } from 'react';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -15,9 +15,34 @@ import MarketingDashboard from '../screens/MarketingDashboard';
 import DeveloperPortal from '../screens/DeveloperPortal';
 import ComplianceDashboard from '../screens/ComplianceDashboard';
 import Settings from '../components/settings/Settings';
+import TelemetryViewer from '../screens/TelemetryViewer';
 
 // Import auth context
 import { useAuth } from '../contexts/AuthContext';
+import { logUxEvent } from '../utils/uxTelemetry';
+
+// Deep link configuration for shareable routes (tabs + settings tab)
+const linking = {
+  prefixes: ['nerapp://', 'https://app.ner'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Dashboard: 'dashboard',
+          Sales: 'sales',
+          Support: 'support',
+          Marketing: 'marketing',
+          Settings: {
+            path: 'settings',
+            parse: { tab: (tab: string) => tab },
+            stringify: { tab: (tab: string) => `${tab}` },
+          },
+        },
+      },
+      Telemetry: 'telemetry',
+    },
+  },
+};
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -31,7 +56,7 @@ const AuthStack = () => (
 
 const MainTabs = () => (
   <Tab.Navigator
-    screenOptions={({ route }) => ({
+    screenOptions={({ route, navigation }) => ({
       tabBarIcon: ({ focused, color, size }) => {
         let iconName: string;
 
@@ -76,6 +101,19 @@ const MainTabs = () => (
       headerTitleStyle: {
         fontWeight: 'bold',
       },
+      headerRight: () => (
+        <Icon
+          name="insights"
+          size={22}
+          color="#fff"
+          style={{ marginRight: 12 }}
+          onPress={() => {
+            try { logUxEvent('open_telemetry_viewer'); } catch {}
+            // @ts-ignore
+            navigation.navigate('Telemetry');
+          }}
+        />
+      ),
     })}
   >
     <Tab.Screen 
@@ -124,6 +162,15 @@ const AppStack = () => (
       options={{ headerShown: false }}
     />
     <Stack.Screen 
+      name="Telemetry" 
+      component={TelemetryViewer}
+      options={{
+        title: 'Telemetry',
+        headerStyle: { backgroundColor: '#3498db' },
+        headerTintColor: 'white',
+      }}
+    />
+    <Stack.Screen 
       name="Transcription" 
       component={TranscriptionResults}
       options={{
@@ -161,9 +208,28 @@ const AppStack = () => (
 
 const AppNavigator = () => {
   const { isAuthenticated } = useAuth();
+  const navRef = useRef<NavigationContainerRef<any>>(null);
+  const routeNameRef = useRef<string | undefined>();
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navRef}
+      linking={linking}
+      onReady={async () => {
+        const current = navRef.current?.getCurrentRoute()?.name;
+        routeNameRef.current = current;
+        await logUxEvent('page_view', { route: current });
+      }}
+      onStateChange={async () => {
+        const previousRouteName = routeNameRef.current;
+        const currentRoute = navRef.current?.getCurrentRoute();
+        const currentRouteName = currentRoute?.name;
+        if (currentRouteName && previousRouteName !== currentRouteName) {
+          await logUxEvent('page_view', { route: currentRouteName, params: currentRoute?.params ?? {} });
+          routeNameRef.current = currentRouteName;
+        }
+      }}
+    >
       {isAuthenticated ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );

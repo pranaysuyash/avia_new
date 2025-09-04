@@ -12,6 +12,15 @@ import json
 import numpy as np
 from pathlib import Path
 import base64
+from streamlit_intent_utils import (
+    get_params,
+    update_params,
+    render_share_block,
+    log_ux_event,
+    render_share_inline,
+    render_skeleton_block,
+    render_skeleton_list,
+)
 
 # Page configuration
 st.set_page_config(
@@ -87,21 +96,30 @@ if 'comparison_results' not in st.session_state:
 
 # Header
 st.markdown('<h1 class="main-header">🎬 Media Asset Intelligence Dashboard</h1>', unsafe_allow_html=True)
+render_share_inline()
 
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Analysis Settings")
     
+    params = get_params()
+    type_options = ["Single Asset", "Batch Processing", "Comparison", "Live Analysis"]
+    type_default = params.get('mi_type', 'Single Asset')
     analysis_type = st.selectbox(
         "Analysis Type",
-        ["Single Asset", "Batch Processing", "Comparison", "Live Analysis"]
+        type_options,
+        index=(type_options.index(type_default) if type_default in type_options else 0)
     )
+    update_params({'mi_type': analysis_type})
     
     st.markdown("---")
     
-    deep_analysis = st.checkbox("Deep Analysis", value=True)
-    extract_highlights = st.checkbox("Extract Highlights", value=True)
-    generate_thumbnails = st.checkbox("Generate Thumbnails", value=True)
+    deep_analysis = st.checkbox("Deep Analysis", value=(params.get('mi_deep','1')!='0'))
+    update_params({'mi_deep': '1' if deep_analysis else '0'})
+    extract_highlights = st.checkbox("Extract Highlights", value=(params.get('mi_highlights','1')!='0'))
+    update_params({'mi_highlights': '1' if extract_highlights else '0'})
+    generate_thumbnails = st.checkbox("Generate Thumbnails", value=(params.get('mi_thumbs','1')!='0'))
+    update_params({'mi_thumbs': '1' if generate_thumbnails else '0'})
     
     st.markdown("---")
     
@@ -113,6 +131,15 @@ with st.sidebar:
     if st.button("🔄 Clear Analysis"):
         st.session_state.media_analysis = None
         st.success("Analysis cleared!")
+
+    render_share_block("Share Media View")
+    if st.button("Reset Media View"):
+        update_params({'mi_type': None, 'mi_deep': None, 'mi_highlights': None, 'mi_thumbs': None})
+        try:
+            log_ux_event('st_filters_cleared', {'scope': 'media_intelligence'})
+        except Exception:
+            pass
+        st.rerun()
 
 # Main content
 if analysis_type == "Single Asset":
@@ -142,6 +169,11 @@ if analysis_type == "Single Asset":
         analyze_btn = st.button("🔍 Analyze Media", type="primary", use_container_width=True)
         
         if analyze_btn:
+            # Skeleton placeholders while analysis runs
+            ph = st.container()
+            with ph:
+                render_skeleton_block(height=180)
+                render_skeleton_block(height=140)
             with st.spinner("Analyzing media asset..."):
                 # Mock analysis for Python 3.12 compatibility
                 mock_analysis = {
@@ -183,6 +215,11 @@ if analysis_type == "Single Asset":
                 }
                 
                 st.session_state.media_analysis = mock_analysis
+                try:
+                    log_ux_event('media_analyze', {'asset': uploaded_file.name, 'deep': deep_analysis, 'highlights': extract_highlights, 'thumbs': generate_thumbnails})
+                except Exception:
+                    pass
+            ph.empty()
         
         # Display results
         if st.session_state.media_analysis:
@@ -249,11 +286,23 @@ if analysis_type == "Single Asset":
             
             with col1:
                 st.subheader("📝 Scene Details")
+                _p = get_params()
+                _scene_default = _p.get('mi_scene')
+                _options = [s["id"] for s in analysis["scenes"]]
+                try:
+                    _idx = _options.index(_scene_default) if _scene_default in _options else 0
+                except Exception:
+                    _idx = 0
                 selected_scene = st.selectbox(
                     "Select a scene",
-                    options=[s["id"] for s in analysis["scenes"]],
+                    options=_options,
+                    index=_idx,
                     format_func=lambda x: f"{x} - {next(s['type'] for s in analysis['scenes'] if s['id'] == x).title()}"
                 )
+                try:
+                    update_params({'mi_scene': selected_scene})
+                except Exception:
+                    pass
                 
                 if selected_scene:
                     scene = next(s for s in analysis["scenes"] if s["id"] == selected_scene)

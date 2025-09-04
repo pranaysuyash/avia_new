@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NotificationUtils } from './PushNotificationManager';
+import { SkeletonList } from '../shared/Skeleton';
 
 interface NotificationItem {
   id: string;
@@ -30,12 +31,14 @@ export const NotificationHistoryScreen: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadNotifications();
   }, []);
 
   const loadNotifications = async () => {
+    setLoading(true);
     try {
       const history = await NotificationUtils.getNotificationHistory();
       setNotifications(history);
@@ -44,6 +47,8 @@ export const NotificationHistoryScreen: React.FC = () => {
       setUnreadCount(unread);
     } catch (error) {
       console.error('Error loading notifications:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -162,7 +167,11 @@ export const NotificationHistoryScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {notifications.length === 0 ? (
+      {loading ? (
+        <View style={{ padding: 16 }}>
+          <SkeletonList rows={5} />
+        </View>
+      ) : notifications.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="notifications-outline" size={64} color="#ccc" />
           <Text style={styles.emptyText}>No notifications yet</Text>

@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: Contract Signature & Seal Extraction API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/docs/signatures/detect:
+    post:
+      summary: Start signature & seal detection job
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+                doc_id: { type: string }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/docs/signatures/{job_id}/status:
+    get:
+      summary: Get detection job status
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/docs/signatures/{doc_id}/results:
+    get:
+      summary: List signature & seal hits for a document
+      parameters:
+        - in: path
+          name: doc_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/docs/signatures/verify:
+    post:
+      summary: Compare a cropped signature to a reference (v2)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                probe: { type: string, format: binary }
+                reference: { type: string, format: binary }
+      responses:
+        '200': { description: OK }

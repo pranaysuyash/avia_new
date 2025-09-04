@@ -47,7 +47,7 @@ Successfully implemented the enterprise-grade UI/UX refactoring as recommended i
 - `render_empty_state()` - Empty state placeholders
 - `create_feature_card()` - Feature showcase cards
 
-### 3. Tab-Based Navigation Structure (`app_refactored.py`)
+### 3. Tab-Based Navigation Structure (`app.py`)
 
 **Tab Structure**:
 1. **Transcription** - Core transcription functionality

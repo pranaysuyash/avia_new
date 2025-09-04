@@ -11,6 +11,7 @@ import tempfile
 import time
 from typing import Optional, Dict, Any
 from ui_styles_fixed import apply_theme, render_theme_selector
+from enhanced_components_refactored import render_page_frame, log_ux_event
 
 # Import configuration
 from config import Config, validate_environment, print_configuration_status
@@ -118,6 +119,19 @@ st.set_page_config(
         'About': 'Audio/Video Transcription and Entity Extraction Tool'
     }
 )
+
+# Standardized page frame
+try:
+    render_page_frame(
+        title="🎙️ Audio/Video Transcription & Analysis",
+        subtitle="API-driven transcription, insights, and export",
+        breadcrumb=["App"],
+        env_label=st.session_state.get('env', 'Demo'),
+        role_label=st.session_state.get('user', {}).get('role', 'guest')
+    )
+    log_ux_event("screen_view", screen="app_api_main")
+except Exception:
+    pass
 
 # Initialize session state
 def init_session_state():

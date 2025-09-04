@@ -26,6 +26,13 @@ See the [docs](docs/) directory for comprehensive documentation:
 - [Testing Documentation](docs/testing_documentation.md) - How we validate code quality
 - [Project Improvement Summary](docs/project_improvement_summary.md) - Summary of enhancements made
 
+### Intent-First Workflow (Guiding Principle)
+- Handbook: `intent_first_handbook.md`
+- Workflow: `docs/engineering/INTENT_FIRST_WORKFLOW.md`
+- Checklist: `docs/engineering/templates/INTENT_FIRST_CHECKLIST.md`
+- ADR Template: `docs/engineering/templates/ADR_TEMPLATE.md`
+- PR Template: `.github/PULL_REQUEST_TEMPLATE.md`
+
 ## Scripts
 
 See the [scripts](scripts/) directory for utility scripts:

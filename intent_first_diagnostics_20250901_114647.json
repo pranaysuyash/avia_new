@@ -1,0 +1,113 @@
+{
+  "timestamp": "2025-09-01T11:46:47.354855",
+  "methodology": "Intent-First Service Diagnostics",
+  "phases": [
+    "Phase 1: Context Discovery - What should this service do?",
+    "Phase 2: Intent Analysis - Why isn't it working?",
+    "Phase 3: Priority Assessment - Can we fix it and should we?"
+  ],
+  "results": {
+    "postgresql": {
+      "service_name": "postgresql",
+      "is_running": true,
+      "can_start": true,
+      "issue_type": "unknown",
+      "root_cause": "Service is already running",
+      "remediation_complexity": "automatic",
+      "remediation_steps": [
+        "No action needed - service is healthy"
+      ],
+      "prerequisites_met": {
+        "running": true
+      },
+      "resource_requirements": {},
+      "estimated_fix_time": "0 minutes",
+      "confidence_level": 1.0
+    },
+    "redis": {
+      "service_name": "redis",
+      "is_running": true,
+      "can_start": true,
+      "issue_type": "unknown",
+      "root_cause": "Service is already running",
+      "remediation_complexity": "automatic",
+      "remediation_steps": [
+        "No action needed - service is healthy"
+      ],
+      "prerequisites_met": {
+        "running": true
+      },
+      "resource_requirements": {},
+      "estimated_fix_time": "0 minutes",
+      "confidence_level": 1.0
+    },
+    "minio": {
+      "service_name": "minio",
+      "is_running": false,
+      "can_start": false,
+      "issue_type": "unknown",
+      "root_cause": "Diagnostic error: [Errno 30] Read-only file system: '/data'",
+      "remediation_complexity": "complex",
+      "remediation_steps": [
+        "Check diagnostic system logs"
+      ],
+      "prerequisites_met": {},
+      "resource_requirements": {},
+      "estimated_fix_time": "Unknown",
+      "confidence_level": 0.0
+    },
+    "fastapi": {
+      "service_name": "fastapi",
+      "is_running": true,
+      "can_start": true,
+      "issue_type": "unknown",
+      "root_cause": "Service is already running",
+      "remediation_complexity": "automatic",
+      "remediation_steps": [
+        "No action needed - service is healthy"
+      ],
+      "prerequisites_met": {
+        "running": true
+      },
+      "resource_requirements": {},
+      "estimated_fix_time": "0 minutes",
+      "confidence_level": 1.0
+    },
+    "streamlit": {
+      "service_name": "streamlit",
+      "is_running": true,
+      "can_start": true,
+      "issue_type": "unknown",
+      "root_cause": "Service is already running",
+      "remediation_complexity": "automatic",
+      "remediation_steps": [
+        "No action needed - service is healthy"
+      ],
+      "prerequisites_met": {
+        "running": true
+      },
+      "resource_requirements": {},
+      "estimated_fix_time": "0 minutes",
+      "confidence_level": 1.0
+    },
+    "frontend": {
+      "service_name": "frontend",
+      "is_running": false,
+      "can_start": true,
+      "issue_type": "configuration_error",
+      "root_cause": "Service appears ready but may need configuration adjustment",
+      "remediation_complexity": "simple",
+      "remediation_steps": [
+        "Try starting frontend manually with: npm start",
+        "Check logs for specific error messages",
+        "Verify configuration files are present and valid"
+      ],
+      "prerequisites_met": {
+        "basic_requirements": true
+      },
+      "resource_requirements": {},
+      "estimated_fix_time": "5-15 minutes",
+      "confidence_level": 0.7
+    }
+  }
+}

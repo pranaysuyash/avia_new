@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Education Study Packs API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/education/study-packs:
+    post:
+      summary: Create a study pack from a lecture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [media_id]
+              properties:
+                media_id: { type: string }
+                quiz_count: { type: integer, minimum: 0, maximum: 50, default: 15 }
+                flashcard_format: { type: string, enum: [anki, csv, notion], default: anki }
+                slide_ocr: { type: boolean, default: true }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+  /api/v1/education/study-packs/{job_id}/status:
+    get:
+      summary: Get study pack job status
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/education/study-packs/{job_id}/download:
+    get:
+      summary: Download the generated study pack archive
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '302': { description: Redirect to file URL }
+  /api/v1/education/study-packs/{job_id}/export/anki:
+    post:
+      summary: Export to Anki (via .apkg or CSV)
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/education/study-packs/{job_id}/export/notion:
+    post:
+      summary: Export to Notion
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '202': { description: Accepted }
+

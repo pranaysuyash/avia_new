@@ -25,6 +25,24 @@ def render_batch_interface(analysis_mode: str):
     
     st.header("📦 Batch Processing")
     st.markdown("Process multiple audio/video files simultaneously with progress tracking and batch export.")
+    # Inline share and sidebar share/reset
+    try:
+        from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event
+        render_share_inline("Shareable view link")
+        with st.sidebar:
+            render_share_block("Share Batch View")
+            if st.button("Reset View/Filters"):
+                try:
+                    st.experimental_set_query_params()
+                except Exception:
+                    pass
+                try:
+                    log_ux_event("st_filters_cleared", {"scope": "batch_processing"})
+                except Exception:
+                    pass
+                st.rerun()
+    except Exception:
+        pass
     
     # Initialize batch processor if not running
     if not batch_processor.is_running:

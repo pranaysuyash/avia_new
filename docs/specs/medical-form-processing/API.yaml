@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  title: Medical Form Processing API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/medical/forms:
+    post:
+      summary: Create a medical form processing job
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                form_type:
+                  type: string
+                  description: Optional template hint (registration, consent, intake)
+          application/json:
+            schema:
+              type: object
+              properties:
+                doc_id: { type: string }
+                form_type: { type: string }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/medical/forms/{job_id}/status:
+    get:
+      summary: Get job status
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/medical/forms/{form_id}/results:
+    get:
+      summary: Get extracted fields and issues
+      parameters:
+        - in: path
+          name: form_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/medical/forms/{form_id}/export:
+    post:
+      summary: Export results
+      parameters:
+        - in: path
+          name: form_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format: { type: string, enum: [json, csv, fhir], default: json }
+      responses:
+        '200': { description: OK }
+

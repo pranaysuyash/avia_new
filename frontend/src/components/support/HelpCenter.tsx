@@ -257,6 +257,22 @@ const HelpCenter: React.FC = () => {
         <Typography variant="body1" color="text.secondary" paragraph>
           Search our knowledge base or browse categories below
         </Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={async () => {
+            try {
+              const u = new URL(window.location.href);
+              await navigator.clipboard.writeText(u.toString());
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const { logUxEvent } = require('../../components/shared/uxTelemetry');
+              try { logUxEvent('share_view_copied', { page: 'help_center' }); } catch {}
+            } catch {}
+          }}
+          sx={{ mt: 1 }}
+        >
+          Share
+        </Button>
         
         {/* Search Bar */}
         <Paper sx={{ p: 1, maxWidth: 600, mx: 'auto' }}>

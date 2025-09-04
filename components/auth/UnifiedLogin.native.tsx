@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ThemeProvider } from '../../shared/theme';
+import { logUxEvent } from '../shared/uxTelemetry';
 
 // Interfaces
 interface LoginProps {
@@ -221,15 +222,19 @@ export const UnifiedLoginNative: React.FC<LoginProps> = ({
     setIsSubmitting(true);
     
     try {
+      await logUxEvent('login_submit', { email_present: !!credentials.email });
       const success = await onSubmit(credentials);
       
       if (success) {
+        await logUxEvent('login_success');
         announceToScreenReader('Login successful');
       } else {
+        await logUxEvent('login_failed', { reason: 'invalid_credentials' });
         announceToScreenReader('Login failed. Please check your credentials.');
       }
     } catch (err) {
       console.error('Login error:', err);
+      await logUxEvent('login_failed', { error: String(err) });
       announceToScreenReader('An error occurred during login');
     } finally {
       setIsSubmitting(false);
@@ -240,6 +245,7 @@ export const UnifiedLoginNative: React.FC<LoginProps> = ({
   const handleBiometricLogin = useCallback(async () => {
     // Implementation would depend on biometric library
     // For now, just show an alert
+    await logUxEvent('login_biometric_initiated');
     Alert.alert(
       'Biometric Login',
       'Biometric authentication would be implemented here',

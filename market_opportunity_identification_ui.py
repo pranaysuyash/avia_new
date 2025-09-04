@@ -20,6 +20,7 @@ from market_opportunity_identification import (
     MarketOpportunityIdentificationSystem,
     create_sample_content_data
 )
+from streamlit_intent_utils import get_params, update_params, render_share_block, log_ux_event, render_skeleton_line, render_skeleton_block, render_share_inline
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -91,10 +92,23 @@ class MarketOpportunityUI:
         # Sidebar navigation
         with st.sidebar:
             st.header("Navigation")
+            params = get_params()
+            pages = ["Dashboard", "Opportunity Analysis", "Trend Analysis", "Content Analysis", "Settings"]
+            initial_index = pages.index(params.get("page", pages[0])) if params.get("page", pages[0]) in pages else 0
             page = st.selectbox(
                 "Select Page",
-                ["Dashboard", "Opportunity Analysis", "Trend Analysis", "Content Analysis", "Settings"]
+                pages,
+                index=initial_index
             )
+            # Deep-link the current page
+            update_params({"page": page})
+            log_ux_event("st_page_change", {"page": page})
+
+            # Share/reset controls
+            render_share_block()
+            if st.button("Reset View"):
+                update_params({"page": None, "days": None, "sample": None})
+                log_ux_event("st_filters_cleared", {"scope": "market_opportunity"})
         
         # Route to appropriate page
         if page == "Dashboard":
@@ -111,10 +125,20 @@ class MarketOpportunityUI:
     def render_dashboard(self):
         """Render the main dashboard"""
         st.header("📊 Market Intelligence Dashboard")
+        render_share_inline()
         
-        # Get dashboard data
+        # Get dashboard data with skeletons
+        placeholder = st.container()
+        with placeholder:
+            render_skeleton_line(width="40%", height=24)
+            col_a, col_b = st.columns(2)
+            with col_a:
+                render_skeleton_block(height=240)
+            with col_b:
+                render_skeleton_block(height=240)
         with st.spinner("Loading market intelligence data..."):
             dashboard_data = self.system.get_market_intelligence_dashboard()
+        placeholder.empty()
         
         if not dashboard_data:
             st.warning("No market intelligence data available. Please run an analysis first.")
@@ -180,18 +204,30 @@ class MarketOpportunityUI:
         col1, col2, col3 = st.columns(3)
         
         with col1:
+            # Deep-linked analysis period via ?days=
+            params = get_params()
+            default_days = int(params.get("days", "30")) if str(params.get("days", "")).isdigit() else 30
+            time_options = [7, 14, 30, 60, 90]
+            default_index = time_options.index(default_days) if default_days in time_options else 2
             time_period = st.selectbox(
                 "Analysis Period",
-                [7, 14, 30, 60, 90],
-                index=2,
+                time_options,
+                index=default_index,
                 format_func=lambda x: f"{x} days"
             )
+            update_params({"days": str(time_period)})
+            log_ux_event("st_filter_change", {"name": "analysis_period_days", "value": time_period})
         
         with col2:
-            use_sample_data = st.checkbox("Use Sample Data", value=True)
+            # Deep-linked sample toggle via ?sample=1/0
+            sample_default = params.get("sample", "1") == "1"
+            use_sample_data = st.checkbox("Use Sample Data", value=sample_default)
+            update_params({"sample": "1" if use_sample_data else "0"})
+            log_ux_event("st_filter_change", {"name": "use_sample_data", "value": use_sample_data})
         
         with col3:
             if st.button("Run Analysis", type="primary"):
+                log_ux_event("st_action_click", {"name": "run_opportunity_analysis", "days": time_period, "sample": use_sample_data})
                 self.run_opportunity_analysis(time_period, use_sample_data)
         
         # File upload for custom content data

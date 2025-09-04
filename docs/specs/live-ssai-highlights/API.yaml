@@ -1,0 +1,91 @@
+openapi: 3.0.3
+info:
+  title: Live/SSAI Highlights API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/live/streams:
+    get:
+      summary: List live streams
+      responses:
+        '200': { description: OK }
+  /api/v1/live/streams/{stream_id}/highlights/detect:
+    post:
+      summary: Start highlights detection for a stream
+      parameters:
+        - in: path
+          name: stream_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rules: { type: array, items: { type: string } }
+                clip_length_s: { type: integer, minimum: 4, maximum: 60 }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/live/streams/{stream_id}/highlights:
+    get:
+      summary: List detected highlight events
+      parameters:
+        - in: path
+          name: stream_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        t_start: { type: number }
+                        t_end: { type: number }
+                        label: { type: string }
+                        confidence: { type: number }
+  /api/v1/live/streams/{stream_id}/clips:
+    get:
+      summary: List generated highlight clips
+      parameters:
+        - in: path
+          name: stream_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/v1/live/streams/{stream_id}/ssai/publish:
+    post:
+      summary: Publish SSAI metadata from highlight events
+      parameters:
+        - in: path
+          name: stream_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                events: { type: array, items: { type: object } }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/live/streams/{stream_id}/events/ws:
+    get:
+      summary: WebSocket endpoint for real-time events (documented)
+      responses:
+        '101': { description: Switching Protocols }
+

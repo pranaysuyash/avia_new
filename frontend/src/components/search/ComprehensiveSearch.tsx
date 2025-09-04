@@ -51,6 +51,9 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import ShareViewButton from '../../components/shared/ShareViewButton';
+import { getQueryParam, setQueryParam } from '../../components/shared/useQueryParam';
+import { logUxEvent } from '../../components/shared/uxTelemetry';
 
 // Types and interfaces
 interface SearchFilter {
@@ -326,6 +329,35 @@ export const ComprehensiveSearch: React.FC<ComprehensiveSearchProps> = ({ classN
     loadAnalytics();
   }, []);
 
+  // Initialize state from URL params once
+  useEffect(() => {
+    try {
+      const qp = (key: string, d?: string) => getQueryParam(key, d || null);
+      const q0 = qp('q');
+      const t0 = qp('type');
+      const s0 = qp('scope');
+      const o0 = qp('sort');
+      if (q0) setQuery(q0);
+      if (t0) setSearchType(t0);
+      if (s0) setSearchScope(s0);
+      if (o0) setSortOrder(o0);
+    } catch {}
+  }, []);
+
+  // Sync changes to URL params
+  useEffect(() => {
+    try { setQueryParam('q', query || null); } catch {}
+  }, [query]);
+  useEffect(() => {
+    try { setQueryParam('type', searchType || null); } catch {}
+  }, [searchType]);
+  useEffect(() => {
+    try { setQueryParam('scope', searchScope || null); } catch {}
+  }, [searchScope]);
+  useEffect(() => {
+    try { setQueryParam('sort', sortOrder || null); } catch {}
+  }, [sortOrder]);
+
   // Perform search when filters change
   useEffect(() => {
     if (query.trim()) {
@@ -364,9 +396,33 @@ export const ComprehensiveSearch: React.FC<ComprehensiveSearchProps> = ({ classN
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Comprehensive Search
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Comprehensive Search
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 text-xs border rounded"
+                onClick={() => {
+                  setQuery('');
+                  setFilters([]);
+                  setSearchType('full_text');
+                  setSearchScope('all');
+                  setSortOrder('relevance');
+                  try {
+                    setQueryParam('q', null);
+                    setQueryParam('type', null);
+                    setQueryParam('scope', null);
+                    setQueryParam('sort', null);
+                    logUxEvent('search_filters_cleared', { page: 'comprehensive_search' });
+                  } catch {}
+                }}
+              >
+                Reset
+              </button>
+              <ShareViewButton className="px-2 py-1 text-xs border rounded" />
+            </div>
           </CardTitle>
           <CardDescription>
             Search across transcripts, users, and content with advanced filtering and analytics
@@ -592,6 +648,17 @@ export const ComprehensiveSearch: React.FC<ComprehensiveSearchProps> = ({ classN
         {/* Main Results */}
         <div className={Object.keys(facets).length > 0 ? "lg:col-span-3" : "lg:col-span-4"}>
           <div className="space-y-4">
+            {loading && results.length === 0 && (
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="border rounded p-4 animate-pulse">
+                    <div className="h-4 w-1/3 bg-gray-200 rounded mb-2" />
+                    <div className="h-3 w-2/3 bg-gray-200 rounded mb-1" />
+                    <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                  </div>
+                ))}
+              </>
+            )}
             {results.map((result) => (
               <Card
                 key={result.id}

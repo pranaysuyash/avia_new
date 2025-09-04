@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import json
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event, get_params, update_params
 
 from predictive_analytics import get_predictive_service, ForecastType, ModelType
 
@@ -25,22 +26,50 @@ def main():
     
     st.title("📈 Predictive Analytics & Forecasting")
     st.markdown("AI-powered predictive analytics for business intelligence and strategic planning")
+    # Inline share UI
+    try:
+        render_share_inline("Shareable view link")
+    except Exception:
+        pass
     
     # Sidebar for navigation
     with st.sidebar:
         st.header("Analytics Modules")
+        # Share + reset controls
+        try:
+            render_share_block("Share Predictive Analytics View")
+        except Exception:
+            pass
+        if st.button("Reset View/Filters"):
+            try:
+                st.experimental_set_query_params()
+            except Exception:
+                pass
+            try:
+                log_ux_event("st_filters_cleared", {"scope": "predictive_analytics"})
+            except Exception:
+                pass
+            st.rerun()
         
+        params = get_params()
+        modules = [
+            "Content Trends",
+            "User Behavior",
+            "Revenue Forecasting", 
+            "Market Analysis",
+            "Comprehensive Dashboard",
+            "Model Performance"
+        ]
+        default_module = params.get('pa_module', modules[0])
         selected_module = st.selectbox(
             "Choose Analytics Module",
-            [
-                "Content Trends",
-                "User Behavior",
-                "Revenue Forecasting", 
-                "Market Analysis",
-                "Comprehensive Dashboard",
-                "Model Performance"
-            ]
+            modules,
+            index=(modules.index(default_module) if default_module in modules else 0)
         )
+        try:
+            update_params({'pa_module': selected_module})
+        except Exception:
+            pass
         
         st.divider()
         

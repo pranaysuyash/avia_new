@@ -16,6 +16,7 @@ from typing import Optional, Dict, Any
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+from streamlit_intent_utils import render_share_inline, render_share_block, log_ux_event
 
 from advanced_noise_reduction_system import (
     AdvancedNoiseReductionSystem,
@@ -276,9 +277,29 @@ def main():
     
     st.title("🎵 Advanced Noise Reduction & Audio Restoration")
     st.markdown("Professional-grade audio processing with adaptive noise reduction, artifact removal, and AI-powered reconstruction")
+    # Inline share input
+    try:
+        render_share_inline("Shareable view link")
+    except Exception:
+        pass
     
     # Sidebar for file upload and settings
     with st.sidebar:
+        # Share + reset controls
+        try:
+            render_share_block("Share Noise Reduction View")
+        except Exception:
+            pass
+        if st.button("Reset View/Filters"):
+            try:
+                st.experimental_set_query_params()
+            except Exception:
+                pass
+            try:
+                log_ux_event("st_filters_cleared", {"scope": "noise_reduction"})
+            except Exception:
+                pass
+            st.rerun()
         st.header("📁 Audio Input")
         
         uploaded_file = st.file_uploader(

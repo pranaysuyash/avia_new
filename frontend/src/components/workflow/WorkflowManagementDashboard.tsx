@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ShareViewButton from '../../../components/shared/ShareViewButton';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -396,6 +397,7 @@ export const WorkflowManagementDashboard: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <ShareViewButton className="px-3 py-2 rounded border" />
           <Dialog>
             <DialogTrigger asChild>
               <Button>

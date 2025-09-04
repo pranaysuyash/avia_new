@@ -1,0 +1,337 @@
+{
+  "timestamp": "2025-09-01T11:42:21.364079",
+  "startup_result": {
+    "overall_status": "failed",
+    "total_services": 8,
+    "successful_services": 0,
+    "failed_services": 8,
+    "startup_time_ms": 30203.951835632324,
+    "service_results": [
+      {
+        "service_name": "minio",
+        "status": "failed",
+        "startup_time_ms": 1061.4521503448486,
+        "health_check_result": null,
+        "error_message": "Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      },
+      {
+        "service_name": "postgres",
+        "status": "failed",
+        "startup_time_ms": 1006.9639682769775,
+        "health_check_result": null,
+        "error_message": "Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      },
+      {
+        "service_name": "redis",
+        "status": "failed",
+        "startup_time_ms": 1006.6590309143066,
+        "health_check_result": null,
+        "error_message": "Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      },
+      {
+        "service_name": "fastapi",
+        "status": "failed",
+        "startup_time_ms": 1007.8988075256348,
+        "health_check_result": null,
+        "error_message": "Failed to start dependency postgres: Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      },
+      {
+        "service_name": "streamlit",
+        "status": "failed",
+        "startup_time_ms": 1007.3728561401367,
+        "health_check_result": null,
+        "error_message": "Failed to start dependency fastapi: Failed to start dependency postgres: Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      },
+      {
+        "service_name": "react",
+        "status": "failed",
+        "startup_time_ms": 1005.3808689117432,
+        "health_check_result": null,
+        "error_message": "Failed to start dependency fastapi: Failed to start dependency postgres: Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      },
+      {
+        "service_name": "mobile",
+        "status": "failed",
+        "startup_time_ms": 1010.3299617767334,
+        "health_check_result": null,
+        "error_message": "Failed to start dependency fastapi: Failed to start dependency postgres: Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      },
+      {
+        "service_name": "desktop",
+        "status": "failed",
+        "startup_time_ms": 1007.9653263092041,
+        "health_check_result": null,
+        "error_message": "Failed to start dependency fastapi: Failed to start dependency postgres: Service failed to start: docker: Cannot connect to the Docker daemon at unix:///Users/pranay/.docker/run/docker.sock. Is the docker daemon running?\n\nRun 'docker run --help' for more information\n",
+        "dependencies_started": []
+      }
+    ],
+    "system_health": {
+      "overall_status": "degraded",
+      "healthy_services": 3,
+      "total_services": 12,
+      "timestamp": "2025-09-01T06:12:20.333179",
+      "service_results": [
+        {
+          "service_name": "fastapi",
+          "status": "unhealthy",
+          "response_time_ms": 6074.985980987549,
+          "timestamp": "2025-09-01T06:12:14.255980",
+          "details": null,
+          "error_message": "HTTP 404",
+          "check_type": "http"
+        },
+        {
+          "service_name": "streamlit",
+          "status": "healthy",
+          "response_time_ms": 6072.640895843506,
+          "timestamp": "2025-09-01T06:12:14.260093",
+          "details": {
+            "status_code": 200
+          },
+          "error_message": null,
+          "check_type": "http"
+        },
+        {
+          "service_name": "react",
+          "status": "unhealthy",
+          "response_time_ms": 6070.931196212769,
+          "timestamp": "2025-09-01T06:12:14.260629",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:3000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 3000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 3000)]",
+          "check_type": "http"
+        },
+        {
+          "service_name": "mobile",
+          "status": "unhealthy",
+          "response_time_ms": 6070.757865905762,
+          "timestamp": "2025-09-01T06:12:14.260829",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:8081 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 8081, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 8081)]",
+          "check_type": "http"
+        },
+        {
+          "service_name": "desktop",
+          "status": "unhealthy",
+          "response_time_ms": 6070.212125778198,
+          "timestamp": "2025-09-01T06:12:14.261366",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:3001 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 3001, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 3001)]",
+          "check_type": "http"
+        },
+        {
+          "service_name": "postgres",
+          "status": "unhealthy",
+          "response_time_ms": 6064.1539096832275,
+          "timestamp": "2025-09-01T06:12:14.261658",
+          "details": null,
+          "error_message": "postgresql://postgres:postgres@localhost:5432/transcription_dev",
+          "check_type": "http"
+        },
+        {
+          "service_name": "redis",
+          "status": "unhealthy",
+          "response_time_ms": 6064.203977584839,
+          "timestamp": "2025-09-01T06:12:14.261792",
+          "details": null,
+          "error_message": "redis://localhost:6379",
+          "check_type": "http"
+        },
+        {
+          "service_name": "minio",
+          "status": "unhealthy",
+          "response_time_ms": 6069.754123687744,
+          "timestamp": "2025-09-01T06:12:14.261843",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:9000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 9000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 9000)]",
+          "check_type": "http"
+        },
+        {
+          "service_name": "postgresql",
+          "status": "healthy",
+          "response_time_ms": 36.828041076660156,
+          "timestamp": "2025-09-01T06:12:14.262059",
+          "details": {
+            "connection_status": "HealthStatus.HEALTHY",
+            "query_response_time_ms": 36.828041076660156,
+            "active_connections": 1,
+            "max_connections": 100,
+            "database_size_mb": 0.0,
+            "error_message": null
+          },
+          "error_message": null,
+          "check_type": "database"
+        },
+        {
+          "service_name": "redis",
+          "status": "healthy",
+          "response_time_ms": 2.071857452392578,
+          "timestamp": "2025-09-01T06:12:14.299019",
+          "details": {
+            "connection_status": "HealthStatus.HEALTHY",
+            "memory_usage_mb": 1.2820587158203125,
+            "memory_max_mb": 0,
+            "connected_clients": 1,
+            "hit_rate_percent": 0.0,
+            "error_message": null
+          },
+          "error_message": null,
+          "check_type": "cache"
+        },
+        {
+          "service_name": "minio",
+          "status": "unhealthy",
+          "response_time_ms": 6023.59676361084,
+          "timestamp": "2025-09-01T06:12:14.301172",
+          "details": null,
+          "error_message": "HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1120b3da0>: Failed to establish a new connection: [Errno 61] Connection refused'))",
+          "check_type": "storage"
+        },
+        {
+          "service_name": "frontend",
+          "status": "unhealthy",
+          "response_time_ms": 6.803035736083984,
+          "timestamp": "2025-09-01T06:12:20.324891",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:3000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 3000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 3000)]",
+          "check_type": "frontend"
+        }
+      ]
+    }
+  },
+  "final_status": {
+    "system_started": false,
+    "startup_in_progress": false,
+    "timestamp": "2025-09-01T06:12:21.353420",
+    "services": {
+      "fastapi": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "fastapi",
+          "status": "unhealthy",
+          "response_time_ms": 2.4247169494628906,
+          "timestamp": "2025-09-01T06:12:21.353459",
+          "details": null,
+          "error_message": "HTTP 404",
+          "check_type": "http"
+        }
+      },
+      "streamlit": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "streamlit",
+          "status": "healthy",
+          "response_time_ms": 2.5861263275146484,
+          "timestamp": "2025-09-01T06:12:21.356092",
+          "details": {
+            "status_code": 200
+          },
+          "error_message": null,
+          "check_type": "http"
+        }
+      },
+      "react": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "react",
+          "status": "unhealthy",
+          "response_time_ms": 1.2578964233398438,
+          "timestamp": "2025-09-01T06:12:21.359135",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:3000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 3000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 3000)]",
+          "check_type": "http"
+        }
+      },
+      "mobile": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "mobile",
+          "status": "unhealthy",
+          "response_time_ms": 1.1589527130126953,
+          "timestamp": "2025-09-01T06:12:21.360398",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:8081 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 8081, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 8081)]",
+          "check_type": "http"
+        }
+      },
+      "desktop": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "desktop",
+          "status": "unhealthy",
+          "response_time_ms": 0.8690357208251953,
+          "timestamp": "2025-09-01T06:12:21.361570",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:3001 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 3001, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 3001)]",
+          "check_type": "http"
+        }
+      },
+      "postgres": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "postgres",
+          "status": "unhealthy",
+          "response_time_ms": 0.052928924560546875,
+          "timestamp": "2025-09-01T06:12:21.362444",
+          "details": null,
+          "error_message": "postgresql://postgres:postgres@localhost:5432/transcription_dev",
+          "check_type": "http"
+        }
+      },
+      "redis": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "redis",
+          "status": "unhealthy",
+          "response_time_ms": 0.03218650817871094,
+          "timestamp": "2025-09-01T06:12:21.362514",
+          "details": null,
+          "error_message": "redis://localhost:6379",
+          "check_type": "http"
+        }
+      },
+      "minio": {
+        "startup_status": "failed",
+        "startup_time_ms": 0,
+        "current_health": {
+          "service_name": "minio",
+          "status": "unhealthy",
+          "response_time_ms": 1.4679431915283203,
+          "timestamp": "2025-09-01T06:12:21.362551",
+          "details": null,
+          "error_message": "Cannot connect to host localhost:9000 ssl:default [Multiple exceptions: [Errno 61] Connect call failed ('::1', 9000, 0, 0), [Errno 61] Connect call failed ('127.0.0.1', 9000)]",
+          "check_type": "http"
+        }
+      }
+    },
+    "health_monitor": {
+      "running": false,
+      "check_interval": 30,
+      "total_checks_configured": 12,
+      "history_size": 1,
+      "max_history_size": 1000,
+      "monitor_task_active": false,
+      "last_check": "2025-09-01T06:12:20.333179",
+      "checker_breakdown": {
+        "http_services": 8,
+        "databases": 1,
+        "caches": 1,
+        "storage": 1,
+        "frontends": 1
+      }
+    }
+  }
+}

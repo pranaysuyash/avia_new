@@ -11,6 +11,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
+import { logUxEvent } from '../services/uxTelemetry';
 
 interface Transcription {
   id: string;
@@ -131,6 +132,13 @@ const AdminPanel: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center space-x-3">
+            <button
+              onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_admin_panel_view', { href }); } catch {} }}
+              className="btn-secondary"
+              title="Copy shareable link"
+            >
+              Share
+            </button>
             <button 
               onClick={loadTranscriptions}
               className="btn-secondary"

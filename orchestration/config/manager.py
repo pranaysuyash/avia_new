@@ -377,6 +377,192 @@ class ConfigurationManager:
             )
         )
         
+    def save_configuration(self, config: SystemConfig, config_path: str) -> bool:
+        """Save system configuration to file."""
+        try:
+            config_file_path = Path(config_path)
+            
+            # Ensure directory exists
+            config_file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Convert SystemConfig to dictionary
+            config_dict = self._system_config_to_dict(config)
+            
+            # Determine file format and save
+            if config_file_path.suffix.lower() == '.yaml' or config_file_path.suffix.lower() == '.yml':
+                with open(config_file_path, 'w') as f:
+                    yaml.dump(config_dict, f, default_flow_style=False, indent=2)
+            elif config_file_path.suffix.lower() == '.json':
+                with open(config_file_path, 'w') as f:
+                    json.dump(config_dict, f, indent=2)
+            else:
+                raise ValueError(f"Unsupported configuration file format: {config_file_path.suffix}")
+            
+            logger.info(f"Configuration saved to: {config_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save configuration to {config_path}: {e}")
+            return False
+    
+    def _system_config_to_dict(self, config: SystemConfig) -> Dict[str, Any]:
+        """Convert SystemConfig to dictionary for serialization."""
+        config_dict = {
+            "environment": config.environment,
+            "services": {},
+            "environments": {}
+        }
+        
+        # Convert services
+        for service_name, service_config in config.services.items():
+            config_dict["services"][service_name] = {
+                "name": service_config.name,
+                "type": service_config.type.value,
+                "port": service_config.port,
+                "health_check_url": service_config.health_check_url,
+                "startup_command": service_config.startup_command,
+                "timeout": service_config.timeout,
+                "dependencies": list(service_config.dependencies),
+                "environment_variables": dict(service_config.environment_variables)
+            }
+        
+        # Convert environments
+        for env_name, env_config in config.environments.items():
+            env_dict = {
+                "name": env_config.name
+            }
+            
+            # Add backend config
+            if env_config.backend:
+                env_dict["backend"] = {
+                    "api_port": env_config.backend.api_port,
+                    "streamlit_port": env_config.backend.streamlit_port,
+                    "debug": env_config.backend.debug
+                }
+            
+            # Add frontend config
+            if env_config.frontend:
+                env_dict["frontend"] = {
+                    "port": env_config.frontend.port,
+                    "api_url": env_config.frontend.api_url
+                }
+            
+            # Add mobile config
+            if env_config.mobile:
+                env_dict["mobile"] = {
+                    "api_url": env_config.mobile.api_url,
+                    "dev_mode": env_config.mobile.dev_mode
+                }
+            
+            # Add desktop config
+            if env_config.desktop:
+                env_dict["desktop"] = {
+                    "api_url": env_config.desktop.api_url,
+                    "auto_updater": env_config.desktop.auto_updater
+                }
+            
+            # Add infrastructure config
+            if env_config.infrastructure:
+                env_dict["infrastructure"] = {}
+                
+                if env_config.infrastructure.postgres:
+                    env_dict["infrastructure"]["postgres"] = dict(env_config.infrastructure.postgres)
+                
+                if env_config.infrastructure.redis:
+                    env_dict["infrastructure"]["redis"] = dict(env_config.infrastructure.redis)
+                
+                if env_config.infrastructure.minio:
+                    env_dict["infrastructure"]["minio"] = dict(env_config.infrastructure.minio)
+            
+            config_dict["environments"][env_name] = env_dict
+        
+        return config_dict
+    
+    def update_service_config(self, service_name: str, updates: Dict[str, Any]) -> bool:
+        """Update configuration for a specific service."""
+        try:
+            if not self.current_config or service_name not in self.current_config.services:
+                logger.error(f"Service '{service_name}' not found in current configuration")
+                return False
+            
+            service_config = self.current_config.services[service_name]
+            
+            # Update service configuration
+            for key, value in updates.items():
+                if hasattr(service_config, key):
+                    setattr(service_config, key, value)
+                else:
+                    logger.warning(f"Unknown configuration key '{key}' for service '{service_name}'")
+            
+            # Validate updated configuration
+            validation_result = self.validate_configuration(self.current_config)
+            if not validation_result.is_valid:
+                logger.error(f"Configuration update failed validation: {validation_result.errors}")
+                return False
+            
+            logger.info(f"Updated configuration for service: {service_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to update service configuration: {e}")
+            return False
+    
+    def add_service_config(self, service_config: ServiceConfig) -> bool:
+        """Add a new service configuration."""
+        try:
+            if not self.current_config:
+                logger.error("No current configuration loaded")
+                return False
+            
+            if service_config.name in self.current_config.services:
+                logger.error(f"Service '{service_config.name}' already exists in configuration")
+                return False
+            
+            # Add service to configuration
+            self.current_config.services[service_config.name] = service_config
+            
+            # Validate updated configuration
+            validation_result = self.validate_configuration(self.current_config)
+            if not validation_result.is_valid:
+                logger.error(f"Adding service failed validation: {validation_result.errors}")
+                # Remove the service we just added
+                del self.current_config.services[service_config.name]
+                return False
+            
+            logger.info(f"Added new service configuration: {service_config.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to add service configuration: {e}")
+            return False
+    
+    def remove_service_config(self, service_name: str) -> bool:
+        """Remove a service configuration."""
+        try:
+            if not self.current_config or service_name not in self.current_config.services:
+                logger.error(f"Service '{service_name}' not found in current configuration")
+                return False
+            
+            # Check if other services depend on this one
+            dependents = []
+            for name, config in self.current_config.services.items():
+                if service_name in config.dependencies:
+                    dependents.append(name)
+            
+            if dependents:
+                logger.error(f"Cannot remove service '{service_name}' - it has dependents: {dependents}")
+                return False
+            
+            # Remove service
+            del self.current_config.services[service_name]
+            
+            logger.info(f"Removed service configuration: {service_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to remove service configuration: {e}")
+            return False
+
     def _write_service_config(self, service_config: ServiceConfig) -> None:
         """Write service-specific configuration file."""
         service_config_path = self.base_config_path / f"{service_config.name}.json"

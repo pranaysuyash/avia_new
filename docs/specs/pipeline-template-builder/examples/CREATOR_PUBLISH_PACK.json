@@ -1,0 +1,59 @@
+{
+  "id": "tpl_creator_pack_v1",
+  "name": "Creator Publish Pack — Shorts/Reels",
+  "version": "1.0.0",
+  "description": "Generate titles/hashtags, thumbnails and B‑roll; burn-in captions; export platform-ready assets.",
+  "io": {
+    "inputs": [{"name": "media", "type": "Video"}],
+    "outputs": [
+      {"name": "assets", "type": "Video[]"},
+      {"name": "thumbnails", "type": "Image[]"},
+      {"name": "metadata", "type": "JSON"}
+    ]
+  },
+  "parameters": {
+    "target_platforms": ["youtube_shorts", "instagram_reels"],
+    "caption_burn_in": true,
+    "thumbnail_style": "bold_text_center",
+    "hashtags_count": 10
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "target_platforms": {
+        "type": "array",
+        "items": {"type": "string", "enum": ["youtube_shorts", "instagram_reels", "tiktok"]},
+        "minItems": 1
+      },
+      "caption_burn_in": {"type": "boolean"},
+      "thumbnail_style": {"type": "string", "enum": ["bold_text_center", "clean_lower_third", "image_overlay"]},
+      "hashtags_count": {"type": "integer", "minimum": 0, "maximum": 30}
+    },
+    "required": ["target_platforms", "caption_burn_in", "thumbnail_style", "hashtags_count"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      {"id": "ingest", "def": "Ingest", "params": {}, "io": {"in": ["None"], "out": ["Video"]}},
+      {"id": "transcribe", "def": "ASR.Whisper", "params": {"model": "medium"}, "io": {"in": ["Audio"], "out": ["Text.Segments"]}},
+      {"id": "summarize", "def": "LLM.Summarize", "params": {"prompt": "key hooks + title ideas"}, "io": {"in": ["Text.Segments"], "out": ["Text"]}},
+      {"id": "broll", "def": "Gen.Broll", "params": {"style": "dynamic", "count": 3}, "io": {"in": ["Text"], "out": ["Video[]"]}},
+      {"id": "thumb", "def": "Gen.Thumbnail", "params": {"style": "${thumbnail_style}"}, "io": {"in": ["Text"], "out": ["Image[]"]}},
+      {"id": "captions", "def": "Captions.BurnIn", "params": {"enabled": "${caption_burn_in}"}, "io": {"in": ["Video", "Text.Segments"], "out": ["Video"]}},
+      {"id": "social", "def": "Publish.SocialPack", "params": {"platforms": "${target_platforms}", "hashtags": "${hashtags_count}"}, "io": {"in": ["Video", "Image[]", "Text"], "out": ["JSON"]}}
+    ],
+    "edges": [
+      {"from": "ingest.out", "to": "transcribe.in"},
+      {"from": "transcribe.out", "to": "summarize.in"},
+      {"from": "transcribe.out", "to": "captions.in_1"},
+      {"from": "ingest.out", "to": "captions.in_0"},
+      {"from": "summarize.out", "to": "broll.in"},
+      {"from": "summarize.out", "to": "thumb.in"},
+      {"from": "captions.out", "to": "social.in_0"},
+      {"from": "broll.out", "to": "social.in_0"},
+      {"from": "thumb.out", "to": "social.in_1"},
+      {"from": "summarize.out", "to": "social.in_2"}
+    ]
+  }
+}
+

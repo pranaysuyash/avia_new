@@ -29,6 +29,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { TeamPage } from './pages/TeamPage';
 import { BillingPage } from './pages/BillingPage';
 import { ApiDocumentationPage } from './pages/ApiDocumentationPage';
+import TelemetryPanel from '../../components/dev/TelemetryPanel';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -92,6 +93,8 @@ function EnterpriseApp() {
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/billing" element={<BillingPage />} />
                         <Route path="/api-docs" element={<ApiDocumentationPage />} />
+                        {/* Dev: UX Telemetry viewer */}
+                        <Route path="/dev/telemetry" element={<TelemetryPanel />} />
                       </Route>
                     </Route>
                   </Routes>

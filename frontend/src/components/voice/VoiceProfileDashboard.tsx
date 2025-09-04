@@ -307,13 +307,31 @@ export const VoiceProfileDashboard: React.FC<VoiceProfileDashboardProps> = ({
   return (
     <div className={`voice-profile-dashboard ${className}`}>
       {/* Header */}
-      <div style={{ marginBottom: webTheme.spacing['6'] }}>
-        <h2 style={{ margin: 0, fontSize: webTheme.typography.fontSize.xl, fontWeight: webTheme.typography.fontWeight.bold }}>
-          🎙️ Voice Profiling & Analysis Dashboard
-        </h2>
-        <p style={{ margin: `${webTheme.spacing['2']} 0 0 0`, fontSize: webTheme.typography.fontSize.base, color: webTheme.colors.text.secondary }}>
-          Advanced voice analysis with emotion detection, speaker identification, and stress analysis
-        </p>
+      <div style={{ marginBottom: webTheme.spacing['6'], display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: webTheme.typography.fontSize.xl, fontWeight: webTheme.typography.fontWeight.bold }}>
+            🎙️ Voice Profiling & Analysis Dashboard
+          </h2>
+          <p style={{ margin: `${webTheme.spacing['2']} 0 0 0`, fontSize: webTheme.typography.fontSize.base, color: webTheme.colors.text.secondary }}>
+            Advanced voice analysis with emotion detection, speaker identification, and stress analysis
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            try {
+              const u = new URL(window.location.href);
+              await navigator.clipboard.writeText(u.toString());
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const { logUxEvent } = require('../../components/shared/uxTelemetry');
+              try { logUxEvent('share_view_copied', { page: 'voice_profile_dashboard' }); } catch {}
+            } catch {}
+          }}
+          style={{ padding: '8px 12px', border: `1px solid ${webTheme.colors.border.light}`, borderRadius: 8, background: 'white', cursor: 'pointer' }}
+          aria-label="Copy shareable link"
+          title="Copy shareable link"
+        >
+          Share
+        </button>
       </div>
 
       {/* Stats Overview */}

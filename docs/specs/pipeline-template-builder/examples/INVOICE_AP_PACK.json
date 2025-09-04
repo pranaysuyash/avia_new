@@ -1,0 +1,55 @@
+{
+  "id": "tpl_invoice_ap_v1",
+  "name": "Invoice AP Pack — Header + Lines",
+  "version": "1.0.0",
+  "description": "OCR invoices/receipts, extract header and line items, validate, and export to AP systems.",
+  "io": {
+    "inputs": [
+      {"name": "document", "type": "Document"}
+    ],
+    "outputs": [
+      {"name": "invoice_json", "type": "JSON"},
+      {"name": "invoice_csv", "type": "CSV"},
+      {"name": "invoice_xlsx", "type": "XLSX"}
+    ]
+  },
+  "parameters": {
+    "vendor_hint": "",
+    "currency": "USD",
+    "min_confidence": 0.6,
+    "export_format": "json"
+  },
+  "parameters_schema": {
+    "type": "object",
+    "properties": {
+      "vendor_hint": {"type": "string", "description": "Optional vendor template hint"},
+      "currency": {"type": "string", "minLength": 3, "maxLength": 3, "description": "ISO 4217 code"},
+      "min_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+      "export_format": {"type": "string", "enum": ["json", "csv", "xlsx", "netsuite", "sap", "quickbooks"], "default": "json"}
+    },
+    "required": ["currency", "min_confidence", "export_format"],
+    "additionalProperties": false
+  },
+  "dag": {
+    "nodes": [
+      { "id": "ingest", "def": "Ingest.Document", "params": {"storage_class": "standard"}, "io": {"in": ["None"], "out": ["Document"]} },
+      { "id": "ocr", "def": "OCR.Printed", "params": {"currency": "${currency}"}, "io": {"in": ["Document"], "out": ["Text.Spans"]} },
+      { "id": "table", "def": "Table.Detect", "params": {}, "io": {"in": ["Text.Spans"], "out": ["Table.Structure"]} },
+      { "id": "lines", "def": "Invoice.ParseLines", "params": {"vendor_hint": "${vendor_hint}"}, "io": {"in": ["Table.Structure"], "out": ["Invoice.Lines"]} },
+      { "id": "validate", "def": "Validate.InvoiceRules", "params": {"min_confidence": "${min_confidence}"}, "io": {"in": ["Text.Spans", "Invoice.Lines"], "out": ["Issues", "Invoice.Header", "Invoice.Lines"]} },
+      { "id": "export", "def": "Export.Accounting", "params": {"format": "${export_format}"}, "io": {"in": ["Invoice.Header", "Invoice.Lines", "Issues"], "out": ["JSON", "CSV", "XLSX"]} }
+    ],
+    "edges": [
+      {"from": "ingest.out", "to": "ocr.in"},
+      {"from": "ocr.out", "to": "table.in"},
+      {"from": "table.out", "to": "lines.in"},
+      {"from": "ocr.out", "to": "validate.in"},
+      {"from": "lines.out", "to": "validate.in"},
+      {"from": "validate.out", "to": "export.in"}
+    ]
+  },
+  "policies": [
+    {"id": "gate_invoice_min_conf", "checks": [{"type": "min_confidence", "node": "validate", "value": "${min_confidence}"}], "severity": "warn"}
+  ]
+}
+

@@ -87,8 +87,8 @@ class ProcessingStrategy(Enum):
     BALANCED = "balanced"
     AGGRESSIVE = "aggressive"
     CUSTOM = "custom"
-@da
-taclass
+
+@dataclass
 class AudioMetadata:
     """Comprehensive audio metadata"""
     duration: float
@@ -421,9 +421,9 @@ class ProfessionalAudioProcessingEngine:
             
             return best_key if best_correlation > 0.5 else None
         except:
-            return None    
- 
-   async def analyze_noise_profile(self, audio_path: str, 
+            return None
+
+    async def analyze_noise_profile(self, audio_path: str, 
                                   noise_sample_duration: float = 2.0) -> NoiseProfile:
         """Analyze noise characteristics for targeted reduction"""
         try:
@@ -1086,9 +1086,9 @@ class ProfessionalAudioProcessingEngine:
             
         except Exception as e:
             logger.error(f"Spectral analysis failed: {e}")
-            raise    
- 
-   def _analyze_harmonic_content(self, magnitude: np.ndarray, 
+            raise
+
+    def _analyze_harmonic_content(self, magnitude: np.ndarray, 
                                 frequency_bins: np.ndarray, 
                                 sample_rate: int) -> Dict[str, float]:
         """Analyze harmonic content of audio"""

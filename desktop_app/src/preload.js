@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   
+  // UX telemetry
+  logUxEvent: (event) => ipcRenderer.invoke('ux:log', event),
+  
   // Platform info
   platform: process.platform,
   

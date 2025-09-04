@@ -1,0 +1,48 @@
+{
+  "info": {
+    "name": "ID Card Reader API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://api.example.com"},
+    {"key": "id", "value": "{{id}}"}
+  ],
+  "item": [
+    {
+      "name": "Parse ID (multipart)",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {"key": "front", "type": "file", "src": []},
+            {"key": "back", "type": "file", "src": []}
+          ]
+        },
+        "url": {"raw": "{{baseUrl}}/api/v1/ids/parse", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ids", "parse"]}
+      }
+    },
+    {
+      "name": "Get Result",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{baseUrl}}/api/v1/ids/{{id}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ids", "{{id}}"]}
+      }
+    },
+    {
+      "name": "Verify Selfie",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {"key": "selfie", "type": "file", "src": []}
+          ]
+        },
+        "url": {"raw": "{{baseUrl}}/api/v1/ids/{{id}}/verify-selfie", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ids", "{{id}}", "verify-selfie"]}
+      }
+    }
+  ]
+}
+

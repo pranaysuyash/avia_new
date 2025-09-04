@@ -312,17 +312,53 @@ Follow up in 24 hours or sooner if symptoms worsen.`;
     }
   }, [activeTab, loadComplianceReport]);
 
+  // Deep-link active tab in URL, initialize from it
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const t = url.searchParams.get('tab');
+      if (t && ['transcription','reports','entities','compliance','analytics'].includes(t)) {
+        setActiveTab(t as any);
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', activeTab);
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+  }, [activeTab]);
+
   // Render transcription tab
   const renderTranscriptionTab = () => (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-lg">
-        <div className="flex items-center space-x-3">
-          <Stethoscope className="w-8 h-8" />
-          <div>
-            <h1 className="text-2xl font-bold">Medical Transcription Processing</h1>
-            <p className="opacity-90">HIPAA-compliant medical transcription with specialized NLP</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Stethoscope className="w-8 h-8" />
+            <div>
+              <h1 className="text-2xl font-bold">Medical Transcription Processing</h1>
+              <p className="opacity-90">HIPAA-compliant medical transcription with specialized NLP</p>
+            </div>
           </div>
+          <button
+            onClick={async () => {
+              try {
+                const u = new URL(window.location.href);
+                await navigator.clipboard.writeText(u.toString());
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const { logUxEvent } = require('../../components/shared/uxTelemetry');
+                try { logUxEvent('share_view_copied', { page: 'medical_transcription' }); } catch {}
+              } catch {}
+            }}
+            className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded border border-white/30"
+            aria-label="Copy shareable link"
+            title="Copy shareable link"
+          >
+            Share
+          </button>
         </div>
       </div>
 

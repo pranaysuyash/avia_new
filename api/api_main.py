@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from sqlalchemy.orm import Session
 import os
 import sys
 import logging
@@ -23,6 +24,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import data models
 from pydantic import BaseModel
 from enum import Enum
+
+# Import our database models and auth utilities
+from api.database import get_db, User
+from api.auth import get_current_active_user
 
 class ProcessingMode(str, Enum):
     """Available processing modes"""
@@ -279,7 +284,7 @@ def create_api_app() -> FastAPI:
     @app.post("/upload", tags=["Upload"], status_code=status.HTTP_201_CREATED)
     async def upload_file(
         file: UploadFile = File(...),
-        current_user: dict = Depends(get_current_user)
+        current_user: User = Depends(get_current_active_user)
     ):
         """Handle file upload with proper validation and error handling"""
         try:
@@ -329,7 +334,7 @@ def create_api_app() -> FastAPI:
     @app.post("/batch-upload", tags=["Upload"], status_code=status.HTTP_202_ACCEPTED)
     async def batch_upload_files(
         files: List[UploadFile] = File(...),
-        current_user: dict = Depends(get_current_user)
+        current_user: User = Depends(get_current_active_user)
     ):
         """Handle batch file upload with progress tracking"""
         try:
@@ -373,7 +378,7 @@ def create_api_app() -> FastAPI:
     @app.post("/batch-process", tags=["Processing"], status_code=status.HTTP_202_ACCEPTED)
     async def batch_process_files(
         request: BatchProcessRequest,
-        current_user: dict = Depends(get_current_user)
+        current_user: User = Depends(get_current_active_user)
     ):
         """Process multiple files in batch mode"""
         try:
@@ -415,7 +420,7 @@ def create_api_app() -> FastAPI:
     @app.get("/download/{file_id}", tags=["Files"], status_code=status.HTTP_200_OK)
     async def download_file(
         file_id: str,
-        current_user: dict = Depends(get_current_user)
+        current_user: User = Depends(get_current_active_user)
     ):
         """Download processed file"""
         try:
@@ -491,7 +496,7 @@ def create_api_app() -> FastAPI:
 
 # Helper functions for file processing and batch operations
 
-async def process_file_upload(file: UploadFile, user: dict) -> str:
+async def process_file_upload(file: UploadFile, user: User) -> str:
     """Process single file upload"""
     # Generate unique file ID
     file_id = str(uuid.uuid4())
@@ -505,11 +510,11 @@ async def process_file_upload(file: UploadFile, user: dict) -> str:
     # 3. Update user storage usage
     # 4. Return file ID for tracking
     
-    logger.info(f"Processing file upload for user {user.get('user_id')} - File ID: {file_id}")
+    logger.info(f"Processing file upload for user {user.id} - File ID: {file_id}")
     return file_id
 
 
-async def process_batch_upload(files: List[UploadFile], user: dict) -> str:
+async def process_batch_upload(files: List[UploadFile], user: User) -> str:
     """Process batch file upload"""
     # Generate unique batch ID
     batch_id = str(uuid.uuid4())
@@ -534,12 +539,12 @@ async def process_batch_upload(files: List[UploadFile], user: dict) -> str:
     # 4. Update user storage usage
     # 5. Return batch ID for tracking
     
-    logger.info(f"Processing batch upload for user {user.get('user_id')} - Batch ID: {batch_id}")
+    logger.info(f"Processing batch upload for user {user.id} - Batch ID: {batch_id}")
     logger.info(f"Batch processing results - Successful: {successful_uploads}, Failed: {failed_uploads}")
     return batch_id
 
 
-async def process_single_file_async(file: UploadFile, user: dict) -> str:
+async def process_single_file_async(file: UploadFile, user: User) -> str:
     """Process a single file asynchronously"""
     try:
         # Simulate async file processing
@@ -548,15 +553,15 @@ async def process_single_file_async(file: UploadFile, user: dict) -> str:
         # Generate unique file ID
         file_id = str(uuid.uuid4())
         
-        logger.info(f"Processed file {file.filename} for user {user.get('user_id')} - File ID: {file_id}")
+        logger.info(f"Processed file {file.filename} for user {user.id} - File ID: {file_id}")
         return file_id
         
     except Exception as e:
-        logger.error(f"Error processing file {file.filename}: {e}")
+        logger.error(f"Error processing file {file.filename} for user {user.id}: {e}")
         raise
 
 
-async def process_batch_job(request: BatchProcessRequest, user: dict) -> str:
+async def process_batch_job(request: BatchProcessRequest, user: User) -> str:
     """Process batch job request"""
     # Generate unique batch job ID
     import uuid
@@ -567,7 +572,7 @@ async def process_batch_job(request: BatchProcessRequest, user: dict) -> str:
     # 2. Create batch processing job in queue
     # 3. Return job ID for tracking
     
-    logger.info(f"Processing batch job for user {user.get('user_id')} - Job ID: {batch_job_id}")
+    logger.info(f"Processing batch job for user {user.id} - Job ID: {batch_job_id}")
     return batch_job_id
 
 
@@ -600,7 +605,7 @@ def calculate_estimated_completion(file_count: int) -> str:
         return f"{hours} hours"
 
 
-async def check_file_access(file_id: str, user: dict) -> bool:
+async def check_file_access(file_id: str, user: User) -> bool:
     """Check if user has access to file"""
     # In a real implementation, this would:
     # 1. Check file ownership
@@ -608,16 +613,16 @@ async def check_file_access(file_id: str, user: dict) -> bool:
     # 3. Check subscription permissions
     
     # Log the file access check for debugging
-    logger.debug(f"Checking access for file {file_id} by user {user.get('user_id')}")
+    logger.debug(f"Checking access for file {file_id} by user {user.id}")
     
     # For now, allow access if user is authenticated
-    return user.get('user_id') is not None
+    return user.id is not None
 
 
-async def generate_download_url(file_id: str, user: dict) -> str:
+async def generate_download_url(file_id: str, user: User) -> str:
     """Generate presigned download URL"""
     # Log the download URL generation for debugging
-    logger.debug(f"Generating download URL for file {file_id} by user {user.get('user_id')}")
+    logger.debug(f"Generating download URL for file {file_id} by user {user.id}")
     
     # In a real implementation, this would:
     # 1. Generate S3/MinIO presigned URL
@@ -625,23 +630,10 @@ async def generate_download_url(file_id: str, user: dict) -> str:
     # 3. Return download URL
     
     # For now, return mock URL with the file_id
-    return f"https://storage.example.com/files/{file_id}?user={user.get('user_id')}&expires={int(datetime.now().timestamp() + 3600)}"
+    return f"https://storage.example.com/files/{file_id}?user={user.id}&expires={int(datetime.now().timestamp() + 3600)}"
 
 
-# Dependency function for current user
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)) -> Dict[str, Any]:
-    """Get current user from authentication credentials"""
-    # In a real implementation, this would:
-    # 1. Validate the token/API key
-    # 2. Retrieve user information from database
-    # 3. Return user details
-    
-    return {
-        "user_id": "user_123",
-        "username": "test_user",
-        "email": "test@example.com",
-        "role": "user"
-    }
+
 
 
 # Create the app instance

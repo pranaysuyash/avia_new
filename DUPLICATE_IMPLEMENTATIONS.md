@@ -13,7 +13,6 @@ This document outlines areas in the codebase with potential duplicate or overlap
 
 ## 2. Authentication
 
-- **`app_with_auth.py`**: Application file with authentication.
 - **`user_authentication.py`**: A dedicated module for user authentication.
 - **`demo_user_authentication.py`**: A demonstration of the user authentication.
 - **`production_auth_system.py`**: A production-ready authentication system.

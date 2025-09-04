@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logUxEvent } from '../services/uxTelemetry';
 import { motion } from 'framer-motion';
 import {
   ChartBarIcon,
@@ -118,7 +119,10 @@ interface ContentAnalysisData {
 }
 
 const ContentAnalysis: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'emotion' | 'speaking' | 'complexity' | 'bias'>('emotion');
+  const [activeTab, setActiveTab] = useState<'emotion' | 'speaking' | 'complexity' | 'bias'>(() => {
+    try { const url = new URL(window.location.href); const t = url.searchParams.get('ca_tab'); if (t && ['emotion','speaking','complexity','bias'].includes(t)) return t as any; } catch {}
+    return 'emotion';
+  });
   const [analysisData, setAnalysisData] = useState<ContentAnalysisData | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedTranscript, setSelectedTranscript] = useState<string>('test_transcript_001');
@@ -146,6 +150,11 @@ const ContentAnalysis: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Sync active tab into URL for shareable state
+  useEffect(() => {
+    try { const url = new URL(window.location.href); url.searchParams.set('ca_tab', activeTab); window.history.replaceState({}, '', url.toString()); } catch {}
+  }, [activeTab]);
 
   const renderEmotionAnalysis = () => {
     if (!analysisData) return null;
@@ -701,13 +710,22 @@ const ContentAnalysis: React.FC = () => {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           Advanced Content Analysis
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          AI-powered insights into emotions, speaking patterns, complexity, and bias
-        </p>
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            AI-powered insights into emotions, speaking patterns, complexity, and bias
+          </p>
+        </div>
+        <button
+          onClick={async () => { try { const href = window.location.href; await navigator.clipboard.writeText(href); logUxEvent('share_content_analysis_view', { href }); } catch {} }}
+          className="px-3 py-2 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+          title="Copy shareable link"
+        >
+          Share
+        </button>
       </div>
 
       {/* Quick Summary */}

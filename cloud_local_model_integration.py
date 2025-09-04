@@ -15,6 +15,7 @@ import json
 import aiohttp
 # import backoff  # Optional dependency
 from datetime import datetime, timedelta
+from abc import ABC, abstractmethod
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -502,7 +503,7 @@ class HuggingFaceProvider(CloudModelProvider):
             self.config.update_usage(False, processing_time)
             raise
 
-class LocalModelProvider:
+class LocalModelProvider(ABC):
     """Base class for local model providers"""
     
     def __init__(self, config: ProviderConfig):
@@ -516,9 +517,60 @@ class LocalModelProvider:
             await self._load_model()
             self.is_loaded = True
     
+    @abstractmethod
     async def _load_model(self):
         """Load the local model"""
         raise NotImplementedError("Subclasses must implement _load_model method")
+    
+    @abstractmethod
+    async def _process_transcription(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process transcription task"""
+        raise NotImplementedError("Subclasses must implement _process_transcription method")
+    
+    @abstractmethod
+    async def _process_translation(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process translation task"""
+        raise NotImplementedError("Subclasses must implement _process_translation method")
+    
+    @abstractmethod
+    async def _process_classification(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process classification task"""
+        raise NotImplementedError("Subclasses must implement _process_classification method")
+    
+    @abstractmethod
+    async def _process_entity_extraction(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process entity extraction task"""
+        raise NotImplementedError("Subclasses must implement _process_entity_extraction method")
+    
+    @abstractmethod
+    async def _process_summarization(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process summarization task"""
+        raise NotImplementedError("Subclasses must implement _process_summarization method")
+    
+    @abstractmethod
+    async def _process_transcription(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process transcription task - override in subclasses"""
+        raise NotImplementedError("Subclasses must implement _process_transcription method")
+    
+    @abstractmethod
+    async def _process_translation(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process translation task - override in subclasses"""
+        raise NotImplementedError("Subclasses must implement _process_translation method")
+    
+    @abstractmethod
+    async def _process_classification(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process classification task - override in subclasses"""
+        raise NotImplementedError("Subclasses must implement _process_classification method")
+    
+    @abstractmethod
+    async def _process_entity_extraction(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process entity extraction task - override in subclasses"""
+        raise NotImplementedError("Subclasses must implement _process_entity_extraction method")
+    
+    @abstractmethod
+    async def _process_summarization(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Process summarization task - override in subclasses"""
+        raise NotImplementedError("Subclasses must implement _process_summarization method")
     
     async def process(self, text: str, task_type: str, **kwargs) -> ProcessingResult:
         """Process text using the local model"""
