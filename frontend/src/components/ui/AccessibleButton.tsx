@@ -10,15 +10,6 @@ interface AccessibleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> 
   children: React.ReactNode;
 }
 
-interface AccessibleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  loading?: boolean;
-  loadingText?: string;
-  variant?: 'primary' | 'secondary' | 'danger' | 'outline';
-  size?: 'sm' | 'md' | 'lg';
-  fullWidth?: boolean;
-  children: React.ReactNode;
-}
-
 export const AccessibleButton = forwardRef<HTMLButtonElement, AccessibleButtonProps>(
   ({
     loading = false,
