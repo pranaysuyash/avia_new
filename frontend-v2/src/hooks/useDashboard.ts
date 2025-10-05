@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, API_ENDPOINTS } from '@/lib/api-client';
+import { useDevelopmentMode, mockDashboardStats, mockRecentJobs, mockAIEngines, mockSystemStatus } from './useDevelopmentMode';
 
 // Types
 export interface DashboardStats {
@@ -45,7 +46,7 @@ export interface ProcessingJob {
 export interface AIEngine {
   id: string;
   name: string;
-  type: 'transcription' | 'summarization' | 'analysis' | 'enhancement';
+  type: 'transcription' | 'summarization' | 'analysis' | 'enhancement' | 'video' | 'audio' | 'medical' | 'legal' | 'emotion' | 'entity' | 'realtime';
   status: 'active' | 'inactive' | 'error' | 'maintenance';
   activeJobs: number;
   totalJobs: number;
@@ -75,6 +76,8 @@ export interface SystemStatus {
 
 // Dashboard hook
 export function useDashboard() {
+  const { isDevelopmentMode } = useDevelopmentMode();
+
   // Dashboard stats
   const {
     data: stats,
@@ -84,12 +87,17 @@ export function useDashboard() {
   } = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: async (): Promise<DashboardStats> => {
+      if (isDevelopmentMode) {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return mockDashboardStats;
+      }
       const response = await apiClient.get<{ stats: DashboardStats }>(
         API_ENDPOINTS.DASHBOARD.STATS
       );
       return response.stats;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: isDevelopmentMode ? false : 30000, // Don't refetch in dev mode
   });
 
   // Recent processing jobs
@@ -101,13 +109,17 @@ export function useDashboard() {
   } = useQuery({
     queryKey: ['dashboard', 'recent-jobs'],
     queryFn: async (): Promise<ProcessingJob[]> => {
+      if (isDevelopmentMode) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return mockRecentJobs;
+      }
       const response = await apiClient.get<{ jobs: ProcessingJob[] }>(
         API_ENDPOINTS.DASHBOARD.RECENT_JOBS,
         { limit: 10 }
       );
       return response.jobs;
     },
-    refetchInterval: 10000, // Refetch every 10 seconds for active jobs
+    refetchInterval: isDevelopmentMode ? false : 10000,
   });
 
   // System status
@@ -119,12 +131,16 @@ export function useDashboard() {
   } = useQuery({
     queryKey: ['dashboard', 'system-status'],
     queryFn: async (): Promise<SystemStatus> => {
+      if (isDevelopmentMode) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return mockSystemStatus;
+      }
       const response = await apiClient.get<{ status: SystemStatus }>(
         API_ENDPOINTS.DASHBOARD.SYSTEM_STATUS
       );
       return response.status;
     },
-    refetchInterval: 15000, // Refetch every 15 seconds
+    refetchInterval: isDevelopmentMode ? false : 15000,
   });
 
   // AI engines status
@@ -136,12 +152,16 @@ export function useDashboard() {
   } = useQuery({
     queryKey: ['dashboard', 'ai-engines'],
     queryFn: async (): Promise<AIEngine[]> => {
+      if (isDevelopmentMode) {
+        await new Promise(resolve => setTimeout(resolve, 400));
+        return mockAIEngines;
+      }
       const response = await apiClient.get<{ engines: AIEngine[] }>(
         '/api/ai/engines/status'
       );
       return response.engines;
     },
-    refetchInterval: 20000, // Refetch every 20 seconds
+    refetchInterval: isDevelopmentMode ? false : 20000,
   });
 
   // Helper functions

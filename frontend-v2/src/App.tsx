@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 function DashboardContent() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, isDevelopmentMode } = useAuth();
   const { 
     stats, 
     recentJobs, 
@@ -178,6 +178,11 @@ function DashboardContent() {
         breadcrumbs={[{ label: 'Dashboard' }]}
         actions={
           <div className="flex items-center gap-2">
+            {isDevelopmentMode && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                Development Mode
+              </Badge>
+            )}
             <Badge variant={systemStatus?.overall === 'healthy' ? 'default' : 'destructive'}>
               {systemStatus?.overall === 'healthy' ? 'All Systems Online' : 
                systemStatus?.overall === 'degraded' ? 'System Degraded' :

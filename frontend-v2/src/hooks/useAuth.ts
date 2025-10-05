@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, API_ENDPOINTS } from '@/lib/api-client';
+import { useDevelopmentMode, mockUser } from './useDevelopmentMode';
 
 // Types
 export interface User {
@@ -37,6 +38,7 @@ export interface LoginResponse {
 // Custom hook for authentication
 export function useAuth() {
   const queryClient = useQueryClient();
+  const { isDevelopmentMode, isChecking } = useDevelopmentMode();
 
   // Get current user
   const {
@@ -46,10 +48,14 @@ export function useAuth() {
   } = useQuery({
     queryKey: ['auth', 'user'],
     queryFn: async (): Promise<User> => {
+      if (isDevelopmentMode) {
+        // Return mock user in development mode
+        return mockUser;
+      }
       const response = await apiClient.get<{ user: User }>(API_ENDPOINTS.AUTH.PROFILE);
       return response.user;
     },
-    enabled: !!apiClient.authToken,
+    enabled: isDevelopmentMode || !!apiClient.authToken,
     retry: false,
   });
 
@@ -161,7 +167,7 @@ export function useAuth() {
   };
 
   // Check if user is authenticated
-  const isAuthenticated = !!user && !!apiClient.authToken;
+  const isAuthenticated = isDevelopmentMode ? !!user : (!!user && !!apiClient.authToken);
 
   // Check user permissions
   const hasPermission = (permission: string): boolean => {
@@ -223,8 +229,9 @@ export function useAuth() {
     // State
     user,
     isAuthenticated,
-    isLoading: isLoadingUser,
+    isLoading: isLoadingUser || isChecking,
     error: userError,
+    isDevelopmentMode,
     
     // Actions
     login,
