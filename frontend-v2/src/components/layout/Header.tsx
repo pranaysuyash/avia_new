@@ -83,13 +83,7 @@ export function Header({ onMenuClick, sidebarCollapsed }: HeaderProps) {
           </Button>
           
           <ThemeToggle />
-          <UserMenu 
-            user={{
-              name: "John Doe",
-              email: "john@example.com",
-              initials: "JD"
-            }}
-          />
+          <UserMenu />
         </div>
       </div>
     </header>

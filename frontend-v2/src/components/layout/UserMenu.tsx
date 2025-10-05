@@ -8,17 +8,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/hooks/useAuth"
 
-interface UserMenuProps {
-  user: {
-    name: string
-    email: string
-    avatar?: string
-    initials: string
+export function UserMenu() {
+  const { user, logout, isLoggingOut } = useAuth()
+
+  if (!user) {
+    return null
   }
-}
-
-export function UserMenu({ user }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -76,9 +73,13 @@ export function UserMenu({ user }: UserMenuProps) {
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem className="text-red-600">
+        <DropdownMenuItem 
+          className="text-red-600"
+          onClick={logout}
+          disabled={isLoggingOut}
+        >
           <LogOut className="w-4 h-4 mr-2" />
-          Log out
+          {isLoggingOut ? 'Logging out...' : 'Log out'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,94 +1,139 @@
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppShell, PageContainer } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ThemeProvider } from '@/lib/theme-provider';
+import { queryClient } from '@/lib/api-client';
+import { useDashboard } from '@/hooks/useDashboard';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Upload, Brain, Mic, Video, Stethoscope, Scale, TrendingUp,
   FileText, Briefcase, Target, Eye, Headphones, FileSearch,
   AudioLines, CheckCircle2, Sparkles, Activity, ArrowRight,
-  Zap, Play, Loader2
+  Zap, Play, Loader2, AlertCircle
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
 
-function App() {
-  const [apiStatus, setApiStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+function DashboardContent() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { 
+    stats, 
+    recentJobs, 
+    aiEngines, 
+    systemStatus,
+    isLoading: dashboardLoading,
+    error: dashboardError 
+  } = useDashboard();
 
-  // Check API health on mount
-  useEffect(() => {
-    const checkApiHealth = async () => {
-      try {
-        const response = await fetch('/api/health');
-        setApiStatus(response.ok ? 'online' : 'offline');
-      } catch {
-        setApiStatus('offline');
-      }
-    };
-    checkApiHealth();
-    const interval = setInterval(checkApiHealth, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
 
-  const platformStats = [
-    { label: 'Media Files Processed', value: '47,234', change: '+23%', icon: FileText, color: 'blue' },
-    { label: 'AI Processing Hours', value: '12,847', change: '+18%', icon: Brain, color: 'purple' },
-    { label: 'Enterprise Clients', value: '342', change: '+24%', icon: Briefcase, color: 'green' },
-    { label: 'System Accuracy', value: '99.3%', change: '+1.2%', icon: Target, color: 'orange' }
-  ];
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="p-8 max-w-md">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-warning mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+            <p className="text-muted-foreground mb-4">Please log in to access the dashboard.</p>
+            <Button onClick={() => window.location.href = '/login'}>
+              Go to Login
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
-  const aiEngines = [
-    { name: 'Speech-to-Text', icon: Mic, status: 'active', jobs: 45, color: 'blue' },
-    { name: 'Video Intelligence', icon: Video, status: 'active', jobs: 23, color: 'purple' },
-    { name: 'Medical AI (HIPAA)', icon: Stethoscope, status: 'active', jobs: 18, color: 'green' },
-    { name: 'Legal AI', icon: Scale, status: 'active', jobs: 12, color: 'orange' },
-    { name: 'Multi-Channel Audio', icon: Headphones, status: 'active', jobs: 34, color: 'cyan' },
-    { name: 'Emotion Detection', icon: Eye, status: 'active', jobs: 28, color: 'pink' },
-    { name: 'Entity Extraction', icon: FileSearch, status: 'active', jobs: 56, color: 'indigo' },
-    { name: 'Real-time Transcription', icon: AudioLines, status: 'active', jobs: 15, color: 'teal' }
-  ];
-
-  const recentProcessing = [
+  // Use real data from backend or fallback to loading state
+  const platformStats = stats ? [
     { 
-      name: 'Board_Meeting_Q4_2024.mp4', 
-      type: 'Business Intelligence', 
-      status: 'completed', 
-      accuracy: 99.1, 
-      duration: '1:23:45',
-      aiFeatures: ['Sentiment Analysis', 'Action Items', 'Key Insights', 'Speaker Diarization'],
-      icon: Briefcase,
-      color: 'purple'
+      label: 'Media Files Processed', 
+      value: stats.totalFiles.toLocaleString(), 
+      change: stats.trends.files.change, 
+      trend: stats.trends.files.trend,
+      icon: FileText, 
+      color: 'blue' 
     },
     { 
-      name: 'Medical_Consultation_Case_447.wav', 
-      type: 'Medical AI (HIPAA)', 
-      status: 'processing', 
-      accuracy: 0, 
-      duration: '45:32',
-      aiFeatures: ['Clinical NER', 'HIPAA Compliance', 'Medical Terminology'],
-      icon: Stethoscope,
-      color: 'green'
+      label: 'AI Processing Time', 
+      value: stats.totalProcessingTime, 
+      change: stats.trends.processing.change, 
+      trend: stats.trends.processing.trend,
+      icon: Brain, 
+      color: 'purple' 
     },
     { 
-      name: 'Legal_Deposition_2024_03.mp4', 
-      type: 'Legal AI', 
-      status: 'completed', 
-      accuracy: 98.7, 
-      duration: '2:18:45',
-      aiFeatures: ['Legal Entity Extraction', 'Compliance Check', 'Redaction'],
-      icon: Scale,
-      color: 'blue'
+      label: 'System Accuracy', 
+      value: `${stats.accuracyRate}%`, 
+      change: stats.trends.accuracy.change, 
+      trend: stats.trends.accuracy.trend,
+      icon: Target, 
+      color: 'green' 
     },
     { 
-      name: 'Multi_Speaker_Conference.wav', 
-      type: 'Advanced Audio', 
-      status: 'completed', 
-      accuracy: 97.9, 
-      duration: '56:42',
-      aiFeatures: ['8-Channel Processing', 'Spatial Audio', 'Voice Profiling'],
-      icon: Headphones,
-      color: 'orange'
+      label: 'Storage Used', 
+      value: stats.storageUsed, 
+      change: stats.trends.storage.change, 
+      trend: stats.trends.storage.trend,
+      icon: Briefcase, 
+      color: 'orange' 
     }
-  ];
+  ] : [];
+
+  // Map AI engines to display format
+  const engineIcons: Record<string, any> = {
+    'transcription': Mic,
+    'video': Video,
+    'medical': Stethoscope,
+    'legal': Scale,
+    'audio': Headphones,
+    'emotion': Eye,
+    'entity': FileSearch,
+    'realtime': AudioLines,
+  };
+
+  const engineColors = ['blue', 'purple', 'green', 'orange', 'cyan', 'pink', 'indigo', 'teal'];
+  
+  const displayEngines = aiEngines?.map((engine, index) => ({
+    name: engine.name,
+    icon: engineIcons[engine.type] || Brain,
+    status: engine.status,
+    jobs: engine.activeJobs,
+    color: engineColors[index % engineColors.length],
+  })) || [];
+
+  // Map job types to icons and colors
+  const jobTypeIcons: Record<string, any> = {
+    'audio': Headphones,
+    'video': Video,
+    'document': FileText,
+    'image': Eye,
+  };
+
+  const jobTypeColors: Record<string, string> = {
+    'audio': 'blue',
+    'video': 'purple',
+    'document': 'green',
+    'image': 'orange',
+  };
+
+  const displayJobs = recentJobs?.map(job => ({
+    name: job.name,
+    type: job.type.charAt(0).toUpperCase() + job.type.slice(1),
+    status: job.status,
+    accuracy: job.accuracy,
+    duration: job.duration,
+    aiFeatures: job.aiFeatures,
+    icon: jobTypeIcons[job.type] || FileText,
+    color: jobTypeColors[job.type] || 'blue',
+  })) || [];
 
   const getColorClasses = (color: string) => {
     const colors: Record<string, string> = {
@@ -104,42 +149,91 @@ function App() {
     return colors[color] || colors.blue;
   };
 
-  return (
-    <ThemeProvider defaultTheme="system" storageKey="frontend-v2-theme">
+  if (dashboardError) {
+    return (
       <AppShell>
+        <PageContainer title="Dashboard">
+          <Card className="p-8">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Failed to Load Dashboard</h2>
+              <p className="text-muted-foreground mb-4">
+                {dashboardError instanceof Error ? dashboardError.message : 'An error occurred'}
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            </div>
+          </Card>
+        </PageContainer>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell>
         <PageContainer
         title="Dashboard"
         description="Enterprise AI Media Processing & Management Platform"
         breadcrumbs={[{ label: 'Dashboard' }]}
         actions={
           <div className="flex items-center gap-2">
-            <Badge variant={apiStatus === 'online' ? 'default' : 'destructive'}>
-              {apiStatus === 'online' ? 'All Systems Online' : 
-               apiStatus === 'offline' ? 'API Offline' : 'Checking...'}
+            <Badge variant={systemStatus?.overall === 'healthy' ? 'default' : 'destructive'}>
+              {systemStatus?.overall === 'healthy' ? 'All Systems Online' : 
+               systemStatus?.overall === 'degraded' ? 'System Degraded' :
+               systemStatus?.overall === 'down' ? 'System Down' : 'Checking...'}
             </Badge>
             <Badge variant="secondary">
-              {aiEngines.reduce((sum, eng) => sum + eng.jobs, 0)} AI Jobs
+              {stats?.activeJobs || 0} Active Jobs
             </Badge>
+            {dashboardLoading && (
+              <Badge variant="outline">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                Loading...
+              </Badge>
+            )}
           </div>
         }
       >
         {/* Platform Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {platformStats.map((stat, idx) => (
-            <Card key={idx} className="p-6 hover:shadow-lg transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-r ${getColorClasses(stat.color)}`}>
-                  <stat.icon className="w-6 h-6 text-white" />
+          {dashboardLoading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, idx) => (
+              <Card key={idx} className="p-6">
+                <div className="animate-pulse">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-muted rounded-xl"></div>
+                    <div className="w-16 h-4 bg-muted rounded"></div>
+                  </div>
+                  <div className="w-20 h-8 bg-muted rounded mb-2"></div>
+                  <div className="w-32 h-4 bg-muted rounded"></div>
                 </div>
-                <div className="flex items-center space-x-1 text-success text-sm font-semibold">
-                  <TrendingUp className="w-3 h-3" />
-                  <span>{stat.change}</span>
+              </Card>
+            ))
+          ) : (
+            platformStats.map((stat, idx) => (
+              <Card key={idx} className="p-6 hover:shadow-lg transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-xl bg-gradient-to-r ${getColorClasses(stat.color)}`}>
+                    <stat.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className={`flex items-center space-x-1 text-sm font-semibold ${
+                    stat.trend === 'up' ? 'text-success' : 'text-destructive'
+                  }`}>
+                    {stat.trend === 'up' ? (
+                      <TrendingUp className="w-3 h-3" />
+                    ) : (
+                      <TrendingUp className="w-3 h-3 rotate-180" />
+                    )}
+                    <span>{stat.change}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="text-3xl font-bold mb-2">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-            </Card>
-          ))}
+                <div className="text-3xl font-bold mb-2">{stat.value}</div>
+                <div className="text-sm text-muted-foreground">{stat.label}</div>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* AI Processing Engines */}
@@ -162,21 +256,48 @@ function App() {
           
           <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {aiEngines.map((engine, idx) => (
-                <div key={idx} className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors hover:shadow-md">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`p-2 rounded-lg bg-gradient-to-r ${getColorClasses(engine.color)}`}>
-                      <engine.icon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <CheckCircle2 className="w-4 h-4 text-success" />
-                      <span className="text-xs text-success font-medium">{engine.status}</span>
+              {dashboardLoading ? (
+                // Loading skeleton for AI engines
+                Array.from({ length: 8 }).map((_, idx) => (
+                  <div key={idx} className="p-4 rounded-lg border border-border">
+                    <div className="animate-pulse">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-8 h-8 bg-muted rounded-lg"></div>
+                        <div className="w-16 h-4 bg-muted rounded"></div>
+                      </div>
+                      <div className="w-24 h-4 bg-muted rounded mb-1"></div>
+                      <div className="w-20 h-3 bg-muted rounded"></div>
                     </div>
                   </div>
-                  <div className="text-sm font-semibold mb-1">{engine.name}</div>
-                  <div className="text-xs text-muted-foreground">{engine.jobs} active jobs</div>
-                </div>
-              ))}
+                ))
+              ) : (
+                displayEngines.map((engine, idx) => (
+                  <div key={idx} className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors hover:shadow-md">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`p-2 rounded-lg bg-gradient-to-r ${getColorClasses(engine.color)}`}>
+                        <engine.icon className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        {engine.status === 'active' ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : engine.status === 'error' ? (
+                          <AlertCircle className="w-4 h-4 text-destructive" />
+                        ) : (
+                          <div className="w-4 h-4 rounded-full bg-warning"></div>
+                        )}
+                        <span className={`text-xs font-medium ${
+                          engine.status === 'active' ? 'text-success' :
+                          engine.status === 'error' ? 'text-destructive' : 'text-warning'
+                        }`}>
+                          {engine.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold mb-1">{engine.name}</div>
+                    <div className="text-xs text-muted-foreground">{engine.jobs} active jobs</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </Card>
@@ -229,7 +350,34 @@ function App() {
           </div>
           
           <div className="divide-y divide-border">
-            {recentProcessing.map((item, idx) => (
+            {dashboardLoading ? (
+              // Loading skeleton for recent processing
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="p-6">
+                  <div className="animate-pulse">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-muted rounded-xl"></div>
+                      <div className="flex-1">
+                        <div className="w-48 h-4 bg-muted rounded mb-2"></div>
+                        <div className="w-32 h-3 bg-muted rounded mb-2"></div>
+                        <div className="flex gap-2">
+                          <div className="w-20 h-6 bg-muted rounded"></div>
+                          <div className="w-24 h-6 bg-muted rounded"></div>
+                          <div className="w-16 h-6 bg-muted rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : displayJobs.length === 0 ? (
+              <div className="p-8 text-center">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Recent Processing</h3>
+                <p className="text-muted-foreground">Upload media files to start AI processing.</p>
+              </div>
+            ) : (
+              displayJobs.map((item, idx) => (
               <div key={idx} className="p-6 hover:bg-muted/50 transition-colors">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-start space-x-4 flex-1">
@@ -295,12 +443,23 @@ function App() {
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
       </PageContainer>
     </AppShell>
-    </ThemeProvider>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="frontend-v2-theme">
+        <DashboardContent />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
