@@ -47,24 +47,56 @@ export interface UploadOptions {
 export function useMediaUpload() {
   const queryClient = useQueryClient();
 
-  // Upload mutation
+  // Upload mutation - using your transcription upload endpoint
   const uploadMutation = useMutation({
     mutationFn: async ({
       file,
       options = {},
-      onProgress,
     }: {
       file: File;
       options?: UploadOptions;
       onProgress?: (progress: number) => void;
     }): Promise<MediaFile> => {
-      const response = await apiClient.uploadFile<{ file: MediaFile }>(
-        API_ENDPOINTS.MEDIA.UPLOAD,
-        file,
-        options,
-        onProgress
-      );
-      return response.file;
+      // Note: onProgress not implemented for this endpoint yet
+      // Use your actual transcription upload endpoint
+      const formData = new FormData();
+      formData.append('file', file);
+      if (options.enableTranscription !== false) {
+        formData.append('title', file.name);
+        formData.append('language', options.language || 'auto');
+        formData.append('method', 'advanced');
+      }
+      
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TRANSCRIPTIONS.UPLOAD}`, {
+        method: 'POST',
+        headers: {
+          ...(apiClient.authToken && { Authorization: `Bearer ${apiClient.authToken}` }),
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const transcription = await response.json();
+      
+      // Transform transcription response to MediaFile format
+      return {
+        id: transcription.id,
+        name: transcription.title,
+        originalName: file.name,
+        size: file.size,
+        type: file.type.startsWith('video/') ? 'video' : 'audio',
+        mimeType: file.type,
+        uploadedAt: transcription.created_at,
+        status: transcription.status === 'processing' ? 'processing' : 'completed',
+        metadata: {
+          format: file.name.split('.').pop() || 'unknown',
+        },
+        processingJobs: [transcription.id],
+      };
     },
     onSuccess: (uploadedFile) => {
       // Update media list cache
@@ -82,27 +114,55 @@ export function useMediaUpload() {
     },
   });
 
-  // Multiple files upload
+  // Multiple files upload - using transcription endpoint
   const uploadMultipleMutation = useMutation({
     mutationFn: async ({
       files,
       options = {},
-      onProgress,
     }: {
       files: File[];
       options?: UploadOptions;
       onProgress?: (fileId: string, progress: number) => void;
     }): Promise<MediaFile[]> => {
-      const uploadPromises = files.map(async (file, index) => {
-        const fileId = `temp-${index}-${Date.now()}`;
+      // Note: onProgress not implemented for batch upload yet
+      const uploadPromises = files.map(async (file, _index) => {
         try {
-          const response = await apiClient.uploadFile<{ file: MediaFile }>(
-            API_ENDPOINTS.MEDIA.UPLOAD,
-            file,
-            options,
-            (progress) => onProgress?.(fileId, progress)
-          );
-          return response.file;
+          // Use the same upload logic as single file
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('title', file.name);
+          formData.append('language', options.language || 'auto');
+          formData.append('method', 'advanced');
+          
+          const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TRANSCRIPTIONS.UPLOAD}`, {
+            method: 'POST',
+            headers: {
+              ...(apiClient.authToken && { Authorization: `Bearer ${apiClient.authToken}` }),
+            },
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            throw new Error('Upload failed');
+          }
+          
+          const transcription = await response.json();
+          
+          return {
+            id: transcription.id,
+            name: transcription.title,
+            originalName: file.name,
+            size: file.size,
+            type: file.type.startsWith('video/') ? 'video' : 'audio',
+            mimeType: file.type,
+            uploadedAt: transcription.created_at,
+            status: transcription.status === 'processing' ? 'processing' : 'completed',
+            metadata: {
+              format: file.name.split('.').pop() || 'unknown',
+            },
+            processingJobs: [transcription.id],
+          } as MediaFile;
         } catch (error) {
           console.error(`Failed to upload ${file.name}:`, error);
           throw error;
@@ -217,31 +277,48 @@ export function useMediaUpload() {
   };
 }
 
-// Hook for media file management
+// Hook for media file management - using transcriptions
 export function useMediaFiles() {
   const queryClient = useQueryClient();
 
-  // Get media files list
+  // Get transcriptions as media files
   const {
     data: mediaFiles,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['media', 'list'],
+    queryKey: ['transcriptions'],
     queryFn: async (): Promise<{ files: MediaFile[]; total: number }> => {
-      const response = await apiClient.get<{
-        files: MediaFile[];
-        total: number;
-      }>(API_ENDPOINTS.MEDIA.LIST);
-      return response;
+      const response = await apiClient.get<Array<{
+        id: string;
+        title: string;
+        status: string;
+        created_at: string;
+        duration?: number;
+      }>>(API_ENDPOINTS.TRANSCRIPTIONS.LIST);
+      
+      const files = response.map(t => ({
+        id: t.id,
+        name: t.title,
+        originalName: t.title,
+        size: 0, // Not available from transcription API
+        type: 'audio' as const,
+        mimeType: 'audio/mpeg',
+        uploadedAt: t.created_at,
+        status: t.status as 'processing' | 'completed' | 'failed',
+        metadata: {},
+        processingJobs: [t.id],
+      })) as MediaFile[];
+      
+      return { files, total: files.length };
     },
   });
 
-  // Delete file mutation
+  // Delete transcription mutation
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string): Promise<void> => {
-      await apiClient.delete(API_ENDPOINTS.MEDIA.DELETE(fileId));
+      await apiClient.delete(API_ENDPOINTS.TRANSCRIPTIONS.DELETE(fileId));
     },
     onSuccess: (_, fileId) => {
       // Remove from cache
@@ -259,15 +336,31 @@ export function useMediaFiles() {
     },
   });
 
-  // Get file details
+  // Get transcription details
   const getFileDetails = (fileId: string) => {
     return useQuery({
-      queryKey: ['media', 'details', fileId],
+      queryKey: ['transcriptions', fileId],
       queryFn: async (): Promise<MediaFile> => {
-        const response = await apiClient.get<{ file: MediaFile }>(
-          API_ENDPOINTS.MEDIA.DETAILS(fileId)
-        );
-        return response.file;
+        const response = await apiClient.get<{
+          id: string;
+          title: string;
+          status: string;
+          created_at: string;
+          text?: string;
+        }>(API_ENDPOINTS.TRANSCRIPTIONS.DETAILS(fileId));
+        
+        return {
+          id: response.id,
+          name: response.title,
+          originalName: response.title,
+          size: 0,
+          type: 'audio' as const,
+          mimeType: 'audio/mpeg',
+          uploadedAt: response.created_at,
+          status: response.status as 'processing' | 'completed' | 'failed',
+          metadata: {},
+          processingJobs: [response.id],
+        };
       },
       enabled: !!fileId,
     });

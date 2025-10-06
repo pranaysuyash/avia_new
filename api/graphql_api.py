@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from dataclasses import dataclass
 import logging
+from fastapi import Depends
 
 from api.database import get_db, User, Transcript, Team, TeamMember
 from api.auth import get_current_active_user

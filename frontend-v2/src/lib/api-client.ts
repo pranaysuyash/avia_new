@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 
-// API Configuration
+// API Configuration - Connect to your existing FastAPI backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const API_TIMEOUT = 30000; // 30 seconds
 
@@ -254,73 +254,55 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// Common API Endpoints
+// API Endpoints - Matching your existing FastAPI backend
 export const API_ENDPOINTS = {
-  // Authentication
+  // Authentication - Your existing endpoints
   AUTH: {
     LOGIN: '/api/auth/login',
-    LOGOUT: '/api/auth/logout',
+    LOGOUT: '/api/auth/logout', 
     REFRESH: '/api/auth/refresh',
-    PROFILE: '/api/auth/profile',
+    PROFILE: '/api/users/profile', // Your actual endpoint
+    REGISTER: '/api/auth/register',
   },
   
-  // Dashboard
-  DASHBOARD: {
-    STATS: '/api/dashboard/stats',
-    RECENT_JOBS: '/api/dashboard/recent-jobs',
-    SYSTEM_STATUS: '/api/dashboard/system-status',
+  // Health Check
+  HEALTH: '/api/health',
+  
+  // Transcriptions - Your existing endpoints
+  TRANSCRIPTIONS: {
+    UPLOAD: '/api/transcriptions/upload',
+    LIST: '/api/transcriptions',
+    DETAILS: (id: string) => `/api/transcriptions/${id}`,
+    DELETE: (id: string) => `/api/transcriptions/${id}`,
   },
   
-  // Media Processing
-  MEDIA: {
-    UPLOAD: '/api/media_ingestion',
-    LIST: '/api/media/list',
-    DETAILS: (id: string) => `/api/media/${id}`,
-    DELETE: (id: string) => `/api/media/${id}`,
-  },
-  
-  // Processing Jobs
-  JOBS: {
-    LIST: '/api/jobs/list',
-    STATUS: (id: string) => `/api/jobs/${id}/status`,
-    CANCEL: (id: string) => `/api/jobs/${id}/cancel`,
-    RESULTS: (id: string) => `/api/jobs/${id}/results`,
-  },
-  
-  // Transcription
-  TRANSCRIPTION: {
-    REALTIME: '/api/realtime_transcription',
-    HISTORY: '/api/transcription/history',
-    EXPORT: (id: string) => `/api/transcription/${id}/export`,
-  },
-  
-  // AI Services
-  AI: {
-    SUMMARIZATION: '/api/hybrid_summarization',
-    EMOTION_DETECTION: '/api/emotion_sentiment_detection',
-    VOICE_PROFILING: '/api/voice_profiling',
-    VIDEO_PROCESSING: '/api/advanced_video_processing',
-  },
-  
-  // Intelligence Systems
-  INTELLIGENCE: {
-    MEDICAL: '/api/medical_transcription',
-    LEGAL: '/api/legal_transcription',
-    BUSINESS: '/api/business_intelligence_advisor',
-  },
-  
-  // User Management
-  USERS: {
-    PROFILE: '/api/users/profile',
-    SETTINGS: '/api/users/settings',
-    PREFERENCES: '/api/users/preferences',
-  },
-  
-  // Team & Collaboration
+  // Teams - Your existing endpoints
   TEAMS: {
     LIST: '/api/teams',
     CREATE: '/api/teams',
     DETAILS: (id: string) => `/api/teams/${id}`,
     MEMBERS: (id: string) => `/api/teams/${id}/members`,
+    REMOVE_MEMBER: (teamId: string, userId: string) => `/api/teams/${teamId}/members/${userId}`,
+  },
+  
+  // Storage - Your existing endpoints
+  STORAGE: {
+    PRESIGNED_UPLOAD: '/api/storage/presigned-upload',
+    DOWNLOAD: (id: string) => `/api/storage/download/${id}`,
+    STATS: '/api/storage/stats',
+  },
+  
+  // User Management - Your existing endpoints
+  USERS: {
+    PROFILE: '/api/users/profile',
+    API_KEYS: '/api/users/api-keys',
+    DELETE_API_KEY: (id: string) => `/api/users/api-keys/${id}`,
+  },
+  
+  // WebSocket endpoints
+  WEBSOCKET: {
+    SIGNALING: '/ws/signaling',
+    ROOMS: '/api/v1/rooms',
+    ROOM_INFO: (id: string) => `/api/v1/rooms/${id}`,
   },
 } as const;

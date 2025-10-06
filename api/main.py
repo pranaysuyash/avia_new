@@ -3,10 +3,10 @@ Main API Application
 Production-ready FastAPI backend for the transcription platform
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, WebSocket, WebSocketDisconnect, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any, Set
@@ -75,11 +75,15 @@ if os.getenv("ENABLE_REQUEST_LOGGING", "true").lower() == "true":
 # Add rate limiting if Redis is available
 redis_client = create_redis_client()
 if redis_client:
+    from api.middleware.rate_limiter import RateLimiter
+    rate_limiter = RateLimiter(
+        redis_client=redis_client,
+        default_limit=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
+        default_window=60  # 1 minute window
+    )
     app.add_middleware(
         RateLimitMiddleware,
-        redis_client=redis_client,
-        requests_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
-        requests_per_hour=int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
+        rate_limiter=rate_limiter
     )
 
 # Setup GraphQL
@@ -499,7 +503,7 @@ async def upload_transcription(
 @app.get("/api/transcriptions", response_model=List[TranscriptionResponse])
 async def list_transcriptions(
     skip: int = 0,
-    limit: int = Field(default=20, le=100),
+    limit: int = Query(default=20, le=100),
     team_id: Optional[int] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)

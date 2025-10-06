@@ -225,6 +225,45 @@ class EnhancedAuthService:
             
         return user
     
+    def create_user(self, db: Session, email: str, password: str, **kwargs) -> User:
+        """Create a new user"""
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user:
+            raise ValueError("User with this email already exists")
+        
+        # Create new user
+        user = User(
+            email=email,
+            password_hash=self.get_password_hash(password),
+            role=kwargs.get('role', 'user'),
+            is_active=kwargs.get('is_active', True),
+            **{k: v for k, v in kwargs.items() if k not in ['role', 'is_active']}
+        )
+        
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        return user
+    
+    def get_user_by_email(self, db: Session, email: str) -> Optional[User]:
+        """Get user by email address"""
+        return db.query(User).filter(User.email == email).first()
+    
+    def create_api_key(self, db: Session, user_id: int, name: str = None) -> APIKey:
+        """Create a new API key for user"""
+        api_key = APIKey(
+            user_id=user_id,
+            name=name or f"API Key {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+        )
+        
+        db.add(api_key)
+        db.commit()
+        db.refresh(api_key)
+        
+        return api_key
+    
     def get_user_permissions(self, user: User) -> List[str]:
         """Get user permissions based on role"""
         return [perm.value for perm in ROLE_PERMISSIONS.get(user.role, [])]

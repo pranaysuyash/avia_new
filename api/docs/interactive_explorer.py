@@ -16,7 +16,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import yaml
 
-from api.main import app as main_app
 from api.auth import get_current_active_user
 from api.database import User
 

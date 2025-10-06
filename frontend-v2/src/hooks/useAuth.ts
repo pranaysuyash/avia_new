@@ -52,8 +52,21 @@ export function useAuth() {
         // Return mock user in development mode
         return mockUser;
       }
-      const response = await apiClient.get<{ user: User }>(API_ENDPOINTS.AUTH.PROFILE);
-      return response.user;
+      // Your API returns user directly, not wrapped in { user: ... }
+      const response = await apiClient.get<User>(API_ENDPOINTS.AUTH.PROFILE);
+      return {
+        ...response,
+        initials: generateInitials(response.name),
+        preferences: {
+          theme: 'system' as const,
+          language: 'en',
+          notifications: true,
+        },
+        subscription: {
+          plan: 'enterprise' as const,
+          status: 'active' as const,
+        },
+      };
     },
     enabled: isDevelopmentMode || !!apiClient.authToken,
     retry: false,
@@ -62,11 +75,39 @@ export function useAuth() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResponse> => {
-      const response = await apiClient.post<LoginResponse>(
-        API_ENDPOINTS.AUTH.LOGIN,
-        credentials
-      );
-      return response;
+      // Your API expects OAuth2 format (username/password)
+      const formData = new FormData();
+      formData.append('username', credentials.email);
+      formData.append('password', credentials.password);
+      
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.LOGIN}`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+      
+      const data = await response.json();
+      return {
+        user: {
+          ...data.user,
+          initials: generateInitials(data.user.name),
+          preferences: {
+            theme: 'system' as const,
+            language: 'en',
+            notifications: true,
+          },
+          subscription: {
+            plan: 'enterprise' as const,
+            status: 'active' as const,
+          },
+        },
+        token: data.access_token,
+        refreshToken: data.refresh_token,
+      };
     },
     onSuccess: (data) => {
       // Store token

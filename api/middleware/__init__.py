@@ -5,6 +5,7 @@ Comprehensive middleware for authentication, rate limiting, CORS, and medical co
 
 from .cors_config import setup_cors, CORSConfig, CORSPresets
 from .rate_limiter import RateLimitMiddleware, create_rate_limiter
+from .logging_middleware import LoggingMiddleware, SecurityHeadersMiddleware, create_redis_client
 
 # Enhanced authentication and rate limiting
 from .authentication import (
@@ -39,6 +40,11 @@ __all__ = [
     'CORSPresets',
     'RateLimitMiddleware',
     'create_rate_limiter',
+    
+    # Logging and security
+    'LoggingMiddleware',
+    'SecurityHeadersMiddleware', 
+    'create_redis_client',
     
     # Enhanced authentication
     "MedicalAuthenticationMiddleware",

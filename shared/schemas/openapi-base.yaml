@@ -1,0 +1,311 @@
+openapi: 3.0.3
+info:
+  title: AI Media Processing Platform API
+  description: |
+    Enterprise-grade API for audio/video transcription, AI analysis, and collaboration features.
+    
+    ## Authentication
+    This API uses Bearer token authentication. Include your token in the Authorization header:
+    ```
+    Authorization: Bearer <your-token>
+    ```
+    
+    ## Rate Limiting
+    API requests are rate limited. Check response headers for current limits:
+    - `X-RateLimit-Limit`: Request limit per window
+    - `X-RateLimit-Remaining`: Remaining requests in current window
+    - `X-RateLimit-Reset`: Time when the rate limit resets
+    
+    ## Error Handling
+    All errors follow a consistent format with error codes and detailed messages.
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.transcription-platform.com/v1
+    description: Production server
+  - url: https://staging-api.transcription-platform.com/v1
+    description: Staging server
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+paths: {}  # Will be extended by specific API modules
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    # Base response schemas
+    APIResponse:
+      type: object
+      required:
+        - success
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          description: Whether the request was successful
+        data:
+          description: Response data (varies by endpoint)
+        message:
+          type: string
+          description: Human-readable message
+        errors:
+          type: array
+          items:
+            type: string
+          description: List of error messages
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata
+        timestamp:
+          type: string
+          format: date-time
+          description: Response timestamp
+
+    PaginatedResponse:
+      allOf:
+        - $ref: '#/components/schemas/APIResponse'
+        - type: object
+          required:
+            - pagination
+          properties:
+            pagination:
+              $ref: '#/components/schemas/PaginationInfo'
+
+    PaginationInfo:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
+        - has_next
+        - has_prev
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Items per page
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+        has_next:
+          type: boolean
+          description: Whether there is a next page
+        has_prev:
+          type: boolean
+          description: Whether there is a previous page
+
+    # Error schemas
+    APIError:
+      type: object
+      required:
+        - error_code
+        - message
+        - timestamp
+      properties:
+        error_code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+
+    ErrorCode:
+      type: string
+      enum:
+        - AUTHENTICATION_FAILED
+        - INSUFFICIENT_PERMISSIONS
+        - TOKEN_EXPIRED
+        - INVALID_INPUT
+        - MISSING_REQUIRED_FIELD
+        - INVALID_FILE_FORMAT
+        - FILE_TOO_LARGE
+        - RESOURCE_NOT_FOUND
+        - RESOURCE_ALREADY_EXISTS
+        - OPERATION_NOT_ALLOWED
+        - QUOTA_EXCEEDED
+        - INTERNAL_SERVER_ERROR
+        - SERVICE_UNAVAILABLE
+        - RATE_LIMIT_EXCEEDED
+        - MEDIA_PROCESSING_FAILED
+        - AI_ANALYSIS_FAILED
+        - TRANSCRIPTION_FAILED
+
+  responses:
+    # Common error responses
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+          example:
+            error_code: INVALID_INPUT
+            message: Invalid input provided
+            timestamp: "2025-01-10T10:00:00Z"
+
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+          example:
+            error_code: AUTHENTICATION_FAILED
+            message: Authentication required
+            timestamp: "2025-01-10T10:00:00Z"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+          example:
+            error_code: INSUFFICIENT_PERMISSIONS
+            message: Insufficient permissions for this operation
+            timestamp: "2025-01-10T10:00:00Z"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+          example:
+            error_code: RESOURCE_NOT_FOUND
+            message: Requested resource not found
+            timestamp: "2025-01-10T10:00:00Z"
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Time when rate limit resets (Unix timestamp)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+          example:
+            error_code: RATE_LIMIT_EXCEEDED
+            message: Rate limit exceeded. Try again later.
+            timestamp: "2025-01-10T10:00:00Z"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+          example:
+            error_code: INTERNAL_SERVER_ERROR
+            message: An unexpected error occurred
+            timestamp: "2025-01-10T10:00:00Z"
+
+  parameters:
+    # Common query parameters
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    SortParam:
+      name: sort
+      in: query
+      description: Sort field and direction (e.g., 'created_at:desc')
+      required: false
+      schema:
+        type: string
+        pattern: '^[a-zA-Z_]+:(asc|desc)$'
+
+    SearchParam:
+      name: q
+      in: query
+      description: Search query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 500
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management operations
+  - name: Teams
+    description: Team and collaboration management
+  - name: Media
+    description: Media file upload and management
+  - name: Transcription
+    description: Audio/video transcription services
+  - name: AI Analysis
+    description: AI-powered content analysis
+  - name: Search
+    description: Search and discovery features
+  - name: Export
+    description: Export and sharing functionality
+  - name: Analytics
+    description: Usage analytics and reporting
+  - name: System
+    description: System health and monitoring

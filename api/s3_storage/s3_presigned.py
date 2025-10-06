@@ -7,7 +7,7 @@ import os
 import boto3
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Any
 from botocore.exceptions import ClientError
 import hashlib
 import mimetypes
@@ -46,7 +46,7 @@ class MultipartUploadResponse(BaseModel):
     """Response model for multipart upload"""
     upload_id: str
     file_key: str
-    part_urls: List[Dict[str, any]]
+    part_urls: List[Dict[str, Any]]
     part_size: int
 
 

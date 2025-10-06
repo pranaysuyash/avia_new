@@ -5,13 +5,13 @@ Handles presigned URL generation for secure file uploads
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 import logging
 
 from api.database import get_db, User
 from api.auth import get_current_active_user
-from api.storage.s3_presigned import (
+from api.s3_storage.s3_presigned import (
     s3_presigned_service,
     PresignedUploadRequest,
     PresignedUploadResponse,
@@ -38,7 +38,7 @@ class CompleteMultipartRequest(BaseModel):
     """Request to complete multipart upload"""
     upload_id: str
     file_key: str
-    parts: List[Dict[str, any]] = Field(..., description="List with PartNumber and ETag")
+    parts: List[Dict[str, Any]] = Field(..., description="List with PartNumber and ETag")
 
 
 class UploadVerificationResponse(BaseModel):

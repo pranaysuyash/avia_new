@@ -40,16 +40,18 @@ def check_dependencies():
     return True
 
 def start_backend():
-    """Start the backend API server"""
-    print("🔧 Starting backend API server...")
+    """Start the real FastAPI backend server"""
+    print("🔧 Starting real FastAPI backend server...")
+    print("📡 Connecting to your existing API endpoints")
     
     # Use current Python (should be in virtual environment)
     python_cmd = sys.executable
     print("✅ Using current Python environment")
     
     try:
+        # Start your real FastAPI backend instead of mock server
         backend_process = subprocess.Popen(
-            [python_cmd, "backend_server.py"],
+            [python_cmd, "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,

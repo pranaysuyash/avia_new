@@ -27,11 +27,9 @@ class StorageService:
         self.use_ssl = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
         self.region = os.getenv("AWS_REGION", "us-east-1")
         
-        # Initialize S3 client
-        self.s3_client = self._create_client()
-        
-        # Ensure bucket exists
-        self._ensure_bucket_exists()
+        # Initialize S3 client lazily
+        self.s3_client = None
+        self._client_initialized = False
     
     def _create_client(self):
         """Create S3 client with proper configuration"""
@@ -56,6 +54,27 @@ class StorageService:
         except Exception as e:
             logger.error(f"Failed to create S3 client: {e}")
             raise
+    
+    def _initialize_client(self):
+        """Initialize S3 client and ensure bucket exists"""
+        if self._client_initialized:
+            return
+            
+        try:
+            self.s3_client = self._create_client()
+            self._ensure_bucket_exists()
+            self._client_initialized = True
+        except Exception as e:
+            logger.warning(f"Failed to initialize storage client: {e}")
+            # Don't raise - allow API to start without storage
+    
+    def _ensure_client_ready(self):
+        """Ensure client is initialized and ready"""
+        if not self._client_initialized:
+            self._initialize_client()
+        
+        if not self.s3_client:
+            raise RuntimeError("Storage client not available")
     
     def _ensure_bucket_exists(self):
         """Create bucket if it doesn't exist"""
@@ -133,6 +152,9 @@ class StorageService:
                 content_type = 'application/octet-stream'
         
         try:
+            # Ensure client is ready
+            self._ensure_client_ready()
+            
             # Get file size
             file.seek(0, 2)  # Seek to end
             file_size = file.tell()
@@ -166,6 +188,7 @@ class StorageService:
     def download_file(self, object_key: str) -> bytes:
         """Download a file from S3"""
         try:
+            self._ensure_client_ready()
             response = self.s3_client.get_object(
                 Bucket=self.bucket_name,
                 Key=object_key
@@ -180,6 +203,7 @@ class StorageService:
     def delete_file(self, object_key: str) -> bool:
         """Delete a file from S3"""
         try:
+            self._ensure_client_ready()
             self.s3_client.delete_object(
                 Bucket=self.bucket_name,
                 Key=object_key
@@ -193,6 +217,7 @@ class StorageService:
     def get_file_url(self, object_key: str, expires_in: int = 3600) -> str:
         """Generate a presigned URL for file access"""
         try:
+            self._ensure_client_ready()
             url = self.s3_client.generate_presigned_url(
                 'get_object',
                 Params={

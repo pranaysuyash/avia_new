@@ -15,7 +15,13 @@ from pathlib import Path
 
 import openai
 from pydub import AudioSegment
-import moviepy.editor as mp
+
+try:
+    import moviepy.editor as mp
+    MOVIEPY_AVAILABLE = True
+except ImportError:
+    mp = None
+    MOVIEPY_AVAILABLE = False
 
 from api.cache.redis_cache import transcription_cache, cached
 from api.models.upload import UploadSession
@@ -162,6 +168,9 @@ class CachedTranscriptionService:
         
         # Extract audio from video
         logger.info(f"Extracting audio from video: {file_path}")
+        
+        if not MOVIEPY_AVAILABLE:
+            raise RuntimeError("MoviePy is required for video processing but not installed")
         
         temp_audio = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
         temp_audio.close()

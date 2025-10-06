@@ -45,6 +45,35 @@ def create_error_response(message, status_code=400):
     """Create standardized error response"""
     return {"status": "error", "message": message, "status_code": status_code}
 
+# Direct function exports from auth_service for API compatibility
+def authenticate_user(db, email: str, password: str):
+    """Authenticate user - delegates to auth_service"""
+    return auth_service.authenticate_user(db, email, password)
+
+def create_user(db, email: str, password: str, **kwargs):
+    """Create user - delegates to auth_service"""
+    return auth_service.create_user(db, email, password, **kwargs)
+
+def create_access_token(user_id: int, permissions=None, expires_delta=None):
+    """Create access token - delegates to auth_service"""
+    return auth_service.create_access_token(user_id, permissions, expires_delta)
+
+def create_refresh_token(user_id: int, session_id: str):
+    """Create refresh token - delegates to auth_service"""
+    return auth_service.create_refresh_token(user_id, session_id)
+
+def get_user_by_email(db, email: str):
+    """Get user by email - delegates to auth_service"""
+    return auth_service.get_user_by_email(db, email)
+
+def create_api_key(db, user_id: int, name: str = None):
+    """Create API key - delegates to auth_service"""
+    return auth_service.create_api_key(db, user_id, name)
+
+def get_current_admin_user(*args, **kwargs):
+    """Get current admin user - delegates to require_admin"""
+    return require_admin(*args, **kwargs)
+
 # Legacy compatibility functions
 api_key_required = get_current_user  # Alias for backward compatibility
 jwt_required = get_current_user  # Alias for backward compatibility  
@@ -99,6 +128,7 @@ __all__ = [
     "require_self_or_admin",
     "get_current_user_optional",
     "get_current_user_or_api_key",
+    "get_current_admin_user",
     "create_api_response",
     "create_error_response",
     "AuthenticationError",
@@ -106,6 +136,14 @@ __all__ = [
     "RateLimiter",
     "standard_rate_limit",
     "strict_rate_limit",
+    
+    # Direct function exports
+    "authenticate_user",
+    "create_user", 
+    "create_access_token",
+    "create_refresh_token",
+    "get_user_by_email",
+    "create_api_key",
     
     # Legacy compatibility
     "api_key_required",
