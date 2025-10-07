@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -33,12 +34,12 @@ const navigationItems: NavItem[] = [
   {
     icon: LayoutDashboard,
     label: 'Dashboard',
-    href: '/',
+    href: '/dashboard',
   },
   {
     icon: Upload,
-    label: 'Media Ingestion',
-    href: '/upload',
+    label: 'Media Processing',
+    href: '/media-processing',
   },
   {
     icon: FileText,
@@ -85,6 +86,8 @@ const navigationItems: NavItem[] = [
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleExpanded = (label: string) => {
     setExpandedItems(prev =>
@@ -92,6 +95,12 @@ export function Sidebar({ collapsed }: SidebarProps) {
         ? prev.filter(item => item !== label)
         : [...prev, label]
     );
+  };
+
+  const handleNavigation = (href: string, hasChildren: boolean) => {
+    if (!hasChildren) {
+      navigate(href);
+    }
   };
 
   return (
@@ -108,9 +117,16 @@ export function Sidebar({ collapsed }: SidebarProps) {
               variant="ghost"
               className={cn(
                 'w-full justify-start gap-3 h-10',
-                collapsed && 'justify-center px-2'
+                collapsed && 'justify-center px-2',
+                location.pathname === item.href && 'bg-primary/10 text-primary'
               )}
-              onClick={() => item.children && toggleExpanded(item.label)}
+              onClick={() => {
+                if (item.children) {
+                  toggleExpanded(item.label);
+                } else {
+                  handleNavigation(item.href, false);
+                }
+              }}
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
               {!collapsed && (
@@ -140,7 +156,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   <Button
                     key={child.label}
                     variant="ghost"
-                    className="w-full justify-start gap-3 h-9 text-sm"
+                    className={cn(
+                      "w-full justify-start gap-3 h-9 text-sm",
+                      location.pathname === child.href && 'bg-primary/10 text-primary'
+                    )}
+                    onClick={() => handleNavigation(child.href, false)}
                   >
                     <child.icon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 text-left">{child.label}</span>

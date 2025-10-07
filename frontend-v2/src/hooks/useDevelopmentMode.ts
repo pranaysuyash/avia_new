@@ -8,20 +8,28 @@ export function useDevelopmentMode() {
   useEffect(() => {
     const checkBackendAvailability = async () => {
       try {
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const response = await fetch('http://localhost:8000/api/health', {
           method: 'GET',
-          timeout: 3000,
-        } as RequestInit);
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
+          console.log('✅ Backend connected - using real data');
           setBackendAvailable(true);
           setIsDevelopmentMode(false);
         } else {
+          console.warn('❌ Backend responded with error - using mock data');
           setBackendAvailable(false);
           setIsDevelopmentMode(true);
         }
       } catch (error) {
-        console.warn('Backend not available, enabling development mode with mock data');
+        console.warn('❌ Backend not available - using mock data:', error);
         setBackendAvailable(false);
         setIsDevelopmentMode(true);
       }
